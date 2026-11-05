@@ -270,6 +270,29 @@ details summary{cursor:pointer}
 .cpbox{display:flex;gap:8px}.cpbox input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-weight:700}
 .olist{margin:0 0 16px;padding-left:20px;display:grid;gap:4px}
 @media (max-width:640px){.shead{margin:-40px 8px 14px}.slogo{width:84px;height:84px;font-size:30px}.sbanner{height:140px}}
+
+/* enlace de la tienda */
+.share{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-end;border-color:var(--lav);background:#FBF8FF}
+.share>div:first-child{flex:1;min-width:260px}
+.linkbox{display:flex;gap:8px;margin-top:10px}
+.linkbox input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-weight:700;color:var(--blue);background:#fff;min-width:0}
+/* perfil público de la tienda */
+.sstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0 0 18px}
+.sstats>div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px}
+.sstats b{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--sa,var(--blue))}
+.stars{color:#F5B301;letter-spacing:1px}.stars i{color:#E3DFEE;font-style:normal}
+.coupon .btn{margin-top:8px;justify-self:start}.coupon .badge{margin-top:8px;justify-self:start}
+.ratebox{margin-top:10px;background:#FFFBEA;border-radius:12px;padding:9px 12px;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ratebox.done{background:var(--pear-soft)}
+.rate{display:inline-flex;flex-direction:row-reverse}
+.rate button{border:0;background:none;font-size:26px;line-height:1;color:#D9D3E8;padding:0 2px;cursor:pointer}
+.rate button:hover,.rate button:hover~button{color:#F5B301}
+/* notificaciones que se tocan */
+.notif.click{cursor:pointer;transition:background .15s}
+.notif.click:hover{background:#F6F2FF}
+.notif .nbody{white-space:pre-wrap;max-height:4.4em;overflow:hidden}
+.notif .go{display:inline-block;margin-top:6px;font-weight:800;font-size:13px;color:var(--blue)}
+.panel.hl{box-shadow:0 0 0 3px var(--lav);transition:box-shadow .3s}
 </style>
 </head>
 <body>
@@ -300,7 +323,7 @@ const COL_CITIES = ['Bogotá','Cali','Barranquilla','Cartagena','Bucaramanga','C
 const CITIES = [...AREA_MED, ...COL_CITIES];
 const OTHER = 'Otro municipio de Colombia';
 function cityOptions(sel){
-  return `<optgroup label="Medellín y alrededores (domicilio en 1 día hábil)">${AREA_MED.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}</optgroup>
+  return `<optgroup label="Medellín y alrededores (domicilio en 1 a 2 días hábiles)">${AREA_MED.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}</optgroup>
     <optgroup label="Resto de Colombia (envío nacional)">${COL_CITIES.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}<option value="${OTHER}" ${sel&&!CITIES.includes(sel)?'selected':''}>${OTHER}…</option></optgroup>`;
 }
 function readCity(selId, otherId){ const v=$('#'+selId).value; return v===OTHER ? ($('#'+otherId)?.value.trim()||'') : v; }
@@ -313,8 +336,8 @@ const PLAN_INFO = {
 };
 const PLAN_PERKS = {
   gratis:['Tienda virtual básica','Gestión de pedidos y ventas','Estadísticas básicas','Soporte estándar'],
-  emprendedor:['Tienda personalizada','Gestión de inventario y pedidos','Estadísticas comerciales','Cupones de descuento','Mayor visibilidad','Soporte prioritario'],
-  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Mayor exposición comercial','Soporte preferencial']
+  emprendedor:['Tienda personalizada con enlace para compartir','Gestión de inventario y pedidos','Estadísticas comerciales','Cupones de descuento','Mayor visibilidad','Soporte prioritario'],
+  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Prioridad en las búsquedas','Mis cuentas: ventas, gastos y ganancia del mes','Soporte preferencial']
 };
 const DOM_MODES = {merk:'Domiciliario de MER-K', propio:'Domiciliario propio del vendedor'};
 const COLORS = ['#F1F5C8','#EEE6FC','#E3E8F7','#FFFBDA','#E7DCFB','#E9EFB4','#DDE3F5','#F5F0FF'];
@@ -395,7 +418,7 @@ function seed(){
     ],
     nextId:16, nextOrder:1001, nextSeller:5, nextBuyer:6,
     chats:{}, frag:{}, orders:[], payouts:[], alerts:[], notifs:[], subPays:[], expenses:[],
-    coupons:[], tickets:[], subClaims:[], stockLog:[], nextCoupon:1, nextTicket:101, nextClaim:1, pendingPlan:null,
+    coupons:[], tickets:[], subClaims:[], stockLog:[], follows:[], claims:[], reviews:[], nextCoupon:1, nextTicket:101, nextClaim:1, pendingPlan:null,
     earnings:{commissions:0, official:0, domicilios:0, subs:0, proc:0}
   };
 }
@@ -527,7 +550,7 @@ function askLocation(){
   openModal(`<div class="mpad" style="text-align:center">
     <div style="font-size:46px">📍</div>
     <h2>¿Dónde quieres recibir tus compras?</h2>
-    <p class="sub">Elige tu zona o ciudad. En Medellín y alrededores te llega por domicilio en 1 día hábil; al resto del país, por transportadora.</p>
+    <p class="sub">Elige tu zona o ciudad. En Medellín y alrededores te llega por domicilio en 1 a 2 días hábiles; al resto del país, por transportadora (el tiempo depende de la transportadora).</p>
     <div class="form" style="text-align:left"><label>Tu ubicación<select id="cityPick" ${otherToggle('cityPick','cityOther')}>${cityOptions(S.loc)}</select></label>
       <input id="cityOther" placeholder="Escribe tu municipio" style="display:${S.loc&&!CITIES.includes(S.loc)?'block':'none'}" value="${CITIES.includes(S.loc)?'':esc(S.loc)}">
       <button class="btn" onclick="const c=readCity('cityPick','cityOther'); if(!c){toast('Escribe tu municipio.');return;} S.loc=c;save();closeModal();toast(inArea(c)?'Te llega por domicilio en '+c:'Te llega por envío nacional a '+c)">Guardar ubicación</button></div></div>`, true);
@@ -542,10 +565,10 @@ function shipping(p, city){
   const s = SEL(p.s), free = !!p.freeShip;
   if(inArea(city) && inArea(s.city)){
     const tarifa = zonePrice(city);
-    return {type:'dom', tarifa, free, cost:free?0:tarifa, eta:'Entrega en 1 día hábil', label:'Domicilio en Medellín y alrededores'};
+    return {type:'dom', tarifa, free, cost:free?0:tarifa, eta:'Entrega en 1 a 2 días hábiles', label:'Domicilio en Medellín y alrededores'};
   }
   const nc = p.natCost||0;
-  return {type:'nat', free, eta:'Llega en 2 a 5 días hábiles', label:'Envío nacional',
+  return {type:'nat', free, eta:'El tiempo de entrega depende de la transportadora', label:'Envío nacional',
           options: CARRIERS.map(c=>({carrier:c, cost: free?0:nc}))};
 }
 function shipLine(p){
@@ -665,10 +688,10 @@ function showNotifs(){
 /* =================== VISTAS COMPRADOR =================== */
 function visibleProducts(){ return S.products.filter(p => !p.paused && p.stock > 0 && SEL(p.s).status === 'activa'); }
 function viewHome(){
-  const q = deacc(S.ui.q.toLowerCase()), rank = {oficial:0, pro:1, emprendedor:2, gratis:3};
+  const q = deacc(S.ui.q.toLowerCase());
   const list = visibleProducts().filter(p => S.ui.cat==='Todo' || p.c===S.ui.cat)
-    .filter(p => !q || deacc((p.t+' '+p.c+' '+SEL(p.s).name).toLowerCase()).includes(q))
-    .sort((a,b) => rank[effPlan(a.s)] - rank[effPlan(b.s)]);
+    .filter(p => !q || deacc((p.t+' '+p.c+' '+p.d+' '+SEL(p.s).name).toLowerCase()).includes(q))
+    .sort((a,b) => searchRank(a) - searchRank(b));
   const deals = visibleProducts().filter(p=>discOf(p)>0).sort((a,b)=>discOf(b)-discOf(a)).slice(0,8);
   const featured = visibleProducts().filter(isFeatured).slice(0,12);
   return `
@@ -678,7 +701,7 @@ function viewHome(){
     ${me()?'':`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn" onclick="registerModal()">Crear cuenta</button><button class="btn ghost" onclick="loginModal()">Iniciar sesión</button><button class="btn pear" onclick="document.getElementById('planes').scrollIntoView({behavior:'smooth'})">¿Vendes? Mira los planes</button></div>`}</div>
     <div class="shield">
       <div><b>Compra protegida.</b> Tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir.</div>
-      <div><b>Domicilios en Medellín y alrededores</b> en 1 día hábil y envíos a toda Colombia.</div>
+      <div><b>Domicilios en Medellín y alrededores</b> en 1 a 2 días hábiles y envíos a toda Colombia.</div>
       <div><b>Chat seguro</b> y vendedores verificados.</div>
     </div></section>
   ${featured.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${featured.map(card).join('')}</div>`:''}
@@ -743,7 +766,7 @@ function showProduct(id){
       <p class="note" style="margin:0">${esc(p.d)}</p>
       <div class="shipbox"><b>Envío a ${esc(S.loc)}</b>${p.freeShip?'<span class="badge" style="justify-self:start">Envío gratis</span>':''}${shipBox(p, S.loc)}<a class="note" href="javascript:askLocation()">Cambiar ubicación</a></div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}${cps.length?`<div class="cpline">🎟️ Cupón de la tienda: ${cps.map(c=>`<b>${esc(c.code)}</b> (${couponLabel(c)})`).join(' · ')}</div>`:''}
-      <div class="seller"><div><b>${esc(s.name)}</b><br><span class="note">★ ${s.rating.toFixed(1)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
+      <div class="seller"><div><b>${esc(s.name)}</b><br><span class="note">${ratingLine(p.s)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
       <div class="protect"><b>Compra protegida:</b> tu pago queda en MER-K y tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="checkout(${p.id})">Comprar ahora</button>
         <button class="btn ghost" onclick="openChat('p${p.id}','b')">Preguntar al vendedor</button></div></div></div>`);
@@ -764,7 +787,7 @@ function checkout(id){
     <div id="coSum" style="margin:16px 0"></div>
     <div class="protect" style="margin-bottom:16px">Tu dinero queda en MER-K. Tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir; si todo está bien, le pagamos al vendedor.</div>
     <button class="btn" style="width:100%" id="coBtn" onclick="pay(${id})">Pagar</button></div>`, true);
-  coRefresh(id);
+  coRefresh(id); autoClaimedCoupon(id);
 }
 function coState(id){
   const p=P(id), addr=BUY(me().key).addresses.find(a=>a.id===+$('#coAddr').value), sh=shipping(p, addr.city);
@@ -799,7 +822,7 @@ function createOrder(p, bk, addr, sh, opt, payMethod, cp){
   o.sellerGross = price + opt.cost;
   if(cp) cp.c.used++;
   p.stock--; S.orders.unshift(o); logStock(p, -1, 'Venta · pedido #'+o.id); lowStockCheck(p);
-  notify(bk, `Pago registrado · Pedido #${o.id}`, `${p.t}\n${STATES.pagado.buyer}`);
+  notify(bk, `✅ Tu pago fue confirmado · Pedido #${o.id}`, `Compraste "${p.t}" por ${cop(price+opt.cost)}. Tu dinero queda protegido en MER-K y te avisamos cada vez que tu pedido avance.`, {link:'o:'+o.id});
   notify('admin', `Nuevo pedido #${o.id} · confirma el pago`, `${p.t} · ${cop(price+opt.cost)} · ${SEL(sk).name} → ${addr.city} (${sh.type==='dom'?'domicilio':'envío por '+opt.carrier})`);
   return o;
 }
@@ -832,16 +855,16 @@ function setState(o, st, note, opts={}){
 function viewBuyer(){
   if(!isRole('buyer')) return gate('buyer');
   const bk=me().key, b=BUY(bk), t=S.ui.buyTab, mine=S.orders.filter(o=>o.bk===bk);
-  const tabs=[['compras','Mis compras', mine.filter(o=>!['liberado','devuelto'].includes(o.status)).length],['direcciones','Mis direcciones'],['cuenta','Mi cuenta'],['soporte','Soporte',tkUnread(bk)]];
+  const tabs=[['compras','Mis compras', mine.filter(o=>!['liberado','devuelto'].includes(o.status)).length],['direcciones','Mis direcciones'],['cupones','Mis cupones y tiendas'],['cuenta','Mi cuenta'],['soporte','Soporte',tkUnread(bk)]];
   let body='';
-  if(t==='compras') body = mine.length ? mine.map(o=>`<div class="panel">
+  if(t==='compras') body = mine.length ? mine.map(o=>`<div class="panel" id="ord-${o.id}">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
         ${['despachado','agendado'].includes(o.status)?`<button class="btn sm" onclick="received(${o.id})">Recibí mi pedido</button><button class="btn bad sm" onclick="claim(${o.id})">Tengo un problema</button>`:''}
         ${o.status==='entregado'?`<button class="btn bad sm" onclick="claim(${o.id})">Garantía o devolución</button>`:''}
         <button class="btn ghost sm" onclick="openChat('o${o.id}:b','b')">Escribir a MER-K</button></div></div>
       ${stepsHtml(o)}${deliveryHtml(o)}${o.status==='entregado'?`<div class="note" style="margin-top:6px">Garantía hasta el <b>${fdate(o.releaseAt)}</b></div>`:''}
-      <details style="margin-top:8px"><summary class="note">Ver historial del pedido</summary>${timelineHtml(o)}</details></div>`).join('')
+      ${rateBox(o)}<details style="margin-top:8px"><summary class="note">Ver historial del pedido</summary>${timelineHtml(o)}</details></div>`).join('')
     : '<div class="panel"><p class="empty">Aún no tienes compras.</p></div>';
   if(t==='direcciones') body = `<div class="split"><div class="panel"><h3>Mis direcciones</h3>
     ${b.addresses.map(a=>`<div class="addr"><div><b>${esc(a.alias)}</b> · ${esc(a.name)}<br><span class="note">${esc(a.dir)}, ${esc(a.city)}${a.notes?' · '+esc(a.notes):''}</span></div><button class="btn bad sm" onclick="delAddr(${a.id})">Quitar</button></div>`).join('') || '<p class="empty">No tienes direcciones guardadas.</p>'}</div>
@@ -854,6 +877,7 @@ function viewBuyer(){
     <p class="note">Tu celular y tu correo solo los ve MER-K. A los vendedores solo les llega el nombre, la dirección y el teléfono de entrega para la guía.</p>
     <p class="note">Advertencias por compartir datos de contacto: ${b.warnings} de 3.</p></div>`;
   if(t==='soporte') body = supportTab(bk);
+  if(t==='cupones') body = buyerCouponsTab(bk);
   return `<h2>Mis compras</h2><p class="sub">Sigue cada pedido paso a paso. Te avisamos con una notificación 🔔 cada vez que cambia.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.buyTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
 }
@@ -897,7 +921,7 @@ function viewSeller(){
   const pend=sales.filter(o=>['comanda','preparando'].includes(o.status)).length;
   const sum=(st)=>S.orders.filter(o=>o.sk===sk && st.includes(o.status)).reduce((a,o)=>a+o.sellerGross,0);
   const lk=f=>can(sk,f)?'':' 🔒';
-  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)]];
+  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['cuentas','Mis cuentas'+lk('cuentas')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)]];
   let body='';
   if(t==='resumen') body = `<div class="kpis">
       <div class="kpi"><small>Pedidos por despachar</small><div>${pend}</div></div>
@@ -909,7 +933,7 @@ function viewSeller(){
     ${planFeaturesPanel(sk)}
     ${ss&&ss!=='al_dia'?`<div class="panel" style="border-color:#F2C4C4"><b>${ss==='por_vencer'?'Tu plan vence el '+fdate(s.sub.due):ss==='vencido'?'Tu plan venció el '+fdate(s.sub.due)+'. Paga antes de que se desactive.':'Tu plan está desactivado por falta de pago.'}</b> <button class="btn sm" onclick="S.ui.sellTab='plan';render()">Pagar mensualidad</button></div>`:''}
     ${s.bank||sk===OFFICIAL?'':`<div class="panel" style="border-color:#F2C4C4"><b>Te falta registrar tu cuenta bancaria.</b> <span class="note">Sin ella no podemos pagarte.</span> <button class="btn sm" onclick="S.ui.sellTab='dinero';render()">Registrar cuenta</button></div>`}`;
-  if(t==='pedidos') body = (sales.length?orderChips(sales):'') + (filterSales(sales).length ? filterSales(sales).map(o=>`<div class="panel">
+  if(t==='pedidos') body = (sales.length?orderChips(sales):'') + (filterSales(sales).length ? filterSales(sales).map(o=>`<div class="panel" id="ord-${o.id}">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>Pedido #${o.id} · ${esc(o.title)}</b><br><span class="note">${o.created} · venta ${cop(o.price)} · comisión ${fmtPct(+(o.fee*100).toFixed(2))} · procesamiento ${cop(o.proc||0)}</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
         ${o.status==='comanda'?`<button class="btn sm" onclick="sellerAccept(${o.id})">Aceptar y preparar</button>`:''}
@@ -926,6 +950,7 @@ function viewSeller(){
   if(t==='cupones') body = couponsTab(sk);
   if(t==='promos') body = promosTab(sk);
   if(t==='tienda') body = storeTab(sk);
+  if(t==='cuentas') body = ledgerTab(sk);
   if(t==='soporte') body = supportTab(sk);
   if(t==='productos') body = `<div class="panel"><h3>Mis productos (${mine.length}${lim===Infinity?', sin límite':' de '+lim})</h3>
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
@@ -950,7 +975,7 @@ function viewSeller(){
       <div class="kpi"><small>Listo para pagarte</small><div>${cop(s.available)}</div><span class="note">MER-K te transfiere a tu cuenta</span></div>
       <div class="kpi"><small>Pagado a tu cuenta</small><div>${cop(s.paid)}</div></div></div>
       <div class="split"><div class="panel"><h3>Cuenta para recibir pagos</h3>
-        ${s.bank?`<p><b>${esc(s.bank.banco)}</b> · ${esc(s.bank.tipo)} ${esc(s.bank.num)}<br><span class="note">Titular: ${esc(s.bank.titular)}</span></p><p class="note">Solo MER-K ve estos datos.</p><button class="btn ghost sm" onclick="SEL('${sk}').bank=null;save();render()">Cambiar cuenta</button>`
+        ${s.bank?`<p><b>${esc(s.bank.banco)}</b> · ${esc(s.bank.tipo)} ${esc(s.bank.num)}<br><span class="note">Titular: ${esc(s.bank.titular)}</span></p>${s.bankPending?'<p><span class="badge warn">En revisión: MER-K está verificando tu cuenta nueva</span></p>':''}<p class="note">Solo MER-K ve estos datos. Si la cambias, MER-K la verifica antes de transferirte.</p><button class="btn ghost sm" onclick="SEL('${sk}').bank=null;save();render()">Cambiar cuenta</button>`
         :`<form class="form" onsubmit="saveBank(event)"><div class="row2"><label>Banco o billetera<select id="bBank"><option>Bancolombia</option><option>Davivienda</option><option>Banco de Bogotá</option><option>BBVA</option><option>Banco de Occidente</option><option>Nequi</option><option>Daviplata</option><option>Otro</option></select></label>
           <label>Tipo de cuenta<select id="bType"><option>Ahorros</option><option>Corriente</option></select></label></div>
           <label>Número de cuenta<input id="bNum" required inputmode="numeric" pattern="[0-9]{6,20}" title="Solo números"></label>
@@ -1040,7 +1065,8 @@ function saveDomi(e,id){ e.preventDefault(); const o=O(id), who=$('#dWho').value
   notify('admin',`Datos del domicilio · Pedido #${o.id}`, `${who} · ${eta}. Revísalos y compártelos con el comprador.`);
   save(); toast('Datos enviados a MER-K.'); closeModal(); }
 function saveShip(e){ e.preventDefault(); const s=SEL(me().key); s.ship={domFree: !!$('#dfree')?.checked, natFree: $('#nfree').checked}; save(); toast('Configuración de envíos guardada.'); render(); }
-function saveBank(e){ e.preventDefault(); const n=$('#bNum').value; SEL(me().key).bank={banco:$('#bBank').value, tipo:$('#bType').value, num:'•••• '+n.slice(-4), titular:$('#bHolder').value.trim()}; save(); toast('Cuenta guardada.'); render(); }
+function saveBank(e){ e.preventDefault(); const n=$('#bNum').value, s=SEL(me().key); s.bank={banco:$('#bBank').value, tipo:$('#bType').value, num:'•••• '+n.slice(-4), titular:$('#bHolder').value.trim()}; s.bankPending=true;
+  notify('admin','🏦 Cuenta bancaria nueva por verificar', `${s.name} cambió su cuenta para recibir pagos (${s.bank.banco} ${s.bank.num}). Verifícala antes de transferir.`, {link:'pagos'}); save(); toast('Cuenta guardada. MER-K la verifica antes de tu próxima transferencia.'); render(); }
 function productForm(p){
   const v = p || {t:'',d:'',p:'',disc:0,c:'Tecnología',stock:1,freeShip:false,natCost:14000};
   return `<form class="form" onsubmit="saveProduct(event,${p?p.id:'null'})">
@@ -1147,13 +1173,14 @@ function viewAdmin(){
   if(t==='pagos'){ const list=sellers.filter(([k])=>k!==OFFICIAL);
     body = `<div class="panel"><h3>Por transferir a vendedores</h3><div class="tw"><table><tr><th>Vendedor</th><th>Listo para pagar</th><th>Cuenta del vendedor</th><th></th></tr>${list.map(([k,s])=>`<tr>
       <td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)} · CC/NIT ${esc(s.doc)}<br>Pagado histórico: ${cop(s.paid)}</span></td><td><b>${cop(s.available)}</b></td>
-      <td class="note">${s.bank?`${esc(s.bank.banco)} ${esc(s.bank.tipo)} ${esc(s.bank.num)}<br>${esc(s.bank.titular)}`:'<span class="alert">Sin cuenta registrada</span>'}</td>
-      <td style="text-align:right">${s.available>0?`<button class="btn sm" ${s.bank?'':'disabled'} onclick="payoutForm('${k}')">Registrar transferencia</button>`:''}</td></tr>`).join('')}</table></div>
+      <td class="note">${s.bank?`${esc(s.bank.banco)} ${esc(s.bank.tipo)} ${esc(s.bank.num)}<br>${esc(s.bank.titular)}${s.bankPending?`<br><span class="badge warn">Cuenta nueva sin verificar</span> <button class="btn ghost sm" onclick="verifyBank('${k}')">Ya la verifiqué</button>`:''}`:'<span class="alert">Sin cuenta registrada</span>'}</td>
+      <td style="text-align:right">${s.available>0?`<button class="btn sm" ${s.bank&&!s.bankPending?'':'disabled'} onclick="payoutForm('${k}')">Registrar transferencia</button>`:''}</td></tr>`).join('')}</table></div>
+      <p class="note" style="margin:12px 0 0">🏦 Cuando un vendedor cambia su cuenta bancaria, queda <b>sin verificar</b> y no se le puede transferir hasta que ustedes la revisen (pídanle el certificado bancario por Soporte).</p>
       <p class="note" style="margin:12px 0 0">Ustedes hacen la transferencia desde la cuenta bancaria de MER-K y aquí guardan el comprobante. El vendedor lo ve en su panel.</p></div>
       <div class="panel"><h3>Historial de transferencias</h3>${S.payouts.length?`<table><tr><th>Fecha</th><th>Vendedor</th><th>Valor</th><th>Comprobante</th></tr>${S.payouts.map(x=>`<tr><td>${x.date}</td><td>${esc(SEL(x.sk).name)}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div>`; }
-  if(t==='vendedores') body = `<div class="panel"><h3>Vendedores</h3><div class="tw"><table><tr><th>Vendedor</th><th>Contacto (solo MER-K)</th><th>Plan</th><th>Envíos</th><th>Advertencias</th><th>Estado</th><th></th></tr>
+  if(t==='vendedores') body = `<div class="panel"><h3>Vendedores</h3><p class="note" style="margin-top:-6px">Con <b>⭐ Prioridad en búsquedas</b> los productos de una tienda Pro salen de primeras cuando la gente busca o mira una categoría. Si su plan Pro se vence, la prioridad se pausa sola.</p><div class="tw"><table><tr><th>Vendedor</th><th>Contacto (solo MER-K)</th><th>Plan</th><th>Prioridad en búsquedas</th><th>Advertencias</th><th>Estado</th><th></th></tr>
     ${sellers.map(([k,s])=>`<tr><td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)} · ${esc(s.city)}</span></td><td class="note">${esc(s.email)}<br>${esc(s.phone)}<br>CC/NIT ${esc(s.doc)}</td><td>${planBadge(k)}<br><a class="note" href="${storeUrl(k)}">Ver tienda</a></td>
-      <td class="note">${S.products.filter(p=>p.s===k&&p.freeShip).length} de ${S.products.filter(p=>p.s===k).length} productos con envío gratis</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status)}</td>
+      <td>${boostCell(k)}</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status)}</td>
       <td style="text-align:right;white-space:nowrap">${k===OFFICIAL?'':s.status==='activa'?`<button class="btn bad sm" onclick="adminBlock('${k}')">Bloquear</button>`:`<button class="btn ghost sm" onclick="pardon('${k}')">Reactivar</button>`}</td></tr>`).join('')}</table></div></div>`;
   if(t==='compradores') body = `<div class="panel"><h3>Compradores</h3><div class="tw"><table><tr><th>Comprador</th><th>Contacto (solo MER-K)</th><th>Pedidos</th><th>Advertencias</th><th>Estado</th><th></th></tr>
     ${Object.entries(S.buyers).map(([k,b])=>`<tr><td><b>${esc(b.name)}</b><br><span class="note">CC ${esc(b.doc)}</span></td><td class="note">${esc(b.email)}<br>${esc(b.phone)}</td><td>${S.orders.filter(o=>o.bk===k).length}</td><td>${b.warnings} / 3</td><td>${statusBadge(b.status)}</td>
@@ -1272,7 +1299,7 @@ function programForm(id){
         <label>Horario de entrega<select id="pDelT" onchange="progMsg(${o.id})">${SLOTS.map((x,i)=>`<option ${i===2?'selected':''}>${x}</option>`).join('')}</select></label></div>
       <label>Mensaje para el comprador<textarea id="pMsgB" rows="3"></textarea></label>
       <label>Mensaje para el vendedor<textarea id="pMsgS" rows="3"></textarea></label>
-      <p class="note" style="margin:0">En Medellín y alrededores las entregas son en 1 día hábil: los domicilios se agendan un día antes para recoger en la mañana y entregar en ruta.</p>
+      <p class="note" style="margin:0">En Medellín y alrededores las entregas son en 1 a 2 días hábiles: los domicilios se agendan un día antes para recoger en la mañana y entregar en ruta.</p>
       <button class="btn">Guardar y notificar al vendedor y al comprador</button></form></div>`);
   $('#pWho').addEventListener('input',()=>progMsg(o.id)); progMsg(o.id);
 }
@@ -1395,7 +1422,7 @@ function populateDemo(){
 
   // Mensualidades de los planes pagos
   const subAt=(k,paidDaysAgo,ref)=>{ at(paidDaysAgo); const s=SEL(k); s.sub={due:T()+30*DAY, suspended:false, r5:false, r0:false}; S.subPays.unshift({sk:k, plan:s.plan, amount:planPrice(s.plan), date:now(), ts:T(), ref, how:'vendedor'}); S.earnings.subs+=planPrice(s.plan); };
-  subAt('s2',28,'WOMPI-5521098'); subAt('s4',12,'WOMPI-5530117'); subAt('s3',32,'WOMPI-5519984');
+  subAt('s2',28,'WOMPI-5521098'); SEL('s2').boost=true; subAt('s4',12,'WOMPI-5530117'); subAt('s3',32,'WOMPI-5519984');
   // Tiendas personalizadas, cupones, visitas e inventario
   Object.assign(storeOf('of'), {slogan:'La tienda de los dueños de MER-K', about:'Productos seleccionados por el equipo de MER-K, con envío rápido en Medellín.', theme:'azul', notice:'Bienvenido a MER-K: usa el cupón BIENVENIDA en tu primera compra.', policy:'Cambios hasta 5 días hábiles después de recibir.', hours:'Lunes a sábado, 8 a. m. a 6 p. m.', slug:'mer-k-oficial'});
   Object.assign(storeOf('s2'), {slogan:'Detalles que hacen hogar', about:'Somos una tienda bogotana de decoración y menaje. Escogemos piezas hechas a mano por artesanos colombianos.', theme:'coral', notice:'¡Envío gratis a todo el país en toda la tienda!', policy:'Cambios hasta 8 días después de recibir, con el producto sin usar y en su empaque.', hours:'Lunes a viernes, 9 a. m. a 6 p. m.', slug:'casa-bonita'});
@@ -1444,6 +1471,10 @@ function populateDemo(){
   at(6); S.alerts.unshift({when:now(), who:'TecnoMed', text:'Escríbeme al tres cero cero uno dos tres…', reason:'Número de teléfono (en cifras, letras o símbolos)', where:'Chat'});
   at(2); S.alerts.unshift({when:now(), who:'Valentina Ospina', text:'¿Me pasas tu wpp?', reason:'Mención de WhatsApp', where:'Chat'});
 
+  // Seguidores, cupones guardados y calificaciones
+  S.follows.push({bk:'b1', sk:'s2'}, {bk:'b1', sk:'s4'}, {bk:'b3', sk:'s2'}); S.claims.push({bk:'b1', cid:2});
+  Object.assign(SEL('s2'), {ratingCount:128}); Object.assign(SEL('s3'), {ratingCount:57}); Object.assign(SEL('s4'), {ratingCount:91}); Object.assign(SEL('s1'), {ratingCount:6}); Object.assign(SEL('of'), {ratingCount:0});
+  S.reviews.push({oid:o1.id, bk:'b1', sk:'of', stars:5}, {oid:o2.id, bk:'b2', sk:'s3', stars:4});
   // Soporte
   const tk=(key,role,subject,cat,daysAgo,msgs,status)=>{ const pr=supportOf(key); at(daysAgo); const t={id:S.nextTicket++, from:key, role, subject, cat, prio:pr.label, rank:pr.rank, sla:pr.sla, status, created:T(), msgs:[], unreadAdmin:status==='abierto', unreadUser:false};
     msgs.forEach(([from,text,dd])=>{ at(dd); t.msgs.push({from, text, t:now()}); if(from==='a'){ t.unreadUser=true; notify(key, `💬 MER-K respondió tu solicitud #${t.id}`, text, {tk:t.id}); } else notify('admin', `🛟 Soporte ${pr.label} · #${t.id}`, `${nameOf(key)}: ${subject}`, {tk:t.id}); });
@@ -1464,7 +1495,7 @@ function populateDemo(){
 /* =================== FUNCIONES SEGÚN EL PLAN =================== */
 const FEAT = {
   inventario:['emprendedor','pro'], cupones:['emprendedor','pro'], stats2:['emprendedor','pro'], stats3:['pro'],
-  tienda2:['emprendedor','pro'], tienda3:['pro'], promos:['pro'], destacados:['pro']
+  tienda2:['emprendedor','pro'], tienda3:['pro'], promos:['pro'], destacados:['pro'], cuentas:['pro']
 };
 const tierOf = sk => SEL(sk).plan==='oficial' ? 'pro' : effPlan(sk);   // la tienda oficial tiene todo lo del Pro, gratis
 const can = (sk, f) => FEAT[f].includes(tierOf(sk));
@@ -1488,6 +1519,8 @@ function planFeaturesPanel(sk){
     ['Estadísticas', can(sk,'stats3')?'Avanzadas':can(sk,'stats2')?'Comerciales':'Básicas', true, 'estadisticas'],
     ['Cupones de descuento', can(sk,'cupones')?'Incluido':'Plan Emprendedor', can(sk,'cupones'), 'cupones'],
     ['Destacados y ofertas relámpago', can(sk,'promos')?'Incluido':'Plan Pro', can(sk,'promos'), 'promos'],
+    ['Mis cuentas', can(sk,'cuentas')?'Incluido':'Plan Pro', can(sk,'cuentas'), 'cuentas'],
+    ['Prioridad en búsquedas', isBoosted(sk)?'Activa ⭐':can(sk,'cuentas')?'La activa MER-K':'Plan Pro', isBoosted(sk), 'resumen'],
     ['Soporte', supportOf(sk).label, true, 'soporte']];
   return `<div class="panel"><h3>Lo que incluye tu plan ${PLAN_INFO[effPlan(sk)].name}</h3><div class="feats">${L.map(([a,b,ok,tab])=>`<button class="feat ${ok?'':'off'}" onclick="S.ui.sellTab='${tab}';render()"><span>${ok?'✓':'🔒'}</span><b>${a}</b><small>${b}</small></button>`).join('')}</div></div>`;
 }
@@ -1509,40 +1542,43 @@ function viewStore(slug){
   const s=SEL(sk), st=storeOf(sk), cus=can(sk,'tienda2'), adv=can(sk,'tienda3'), th=THEMES[cus?st.theme:'azul']||THEMES.azul;
   if(lastStoreVisit!==sk){ lastStoreVisit=sk; s.storeVisits=(s.storeVisits||0)+1; save(); track('store', sk); }
   const list=visibleProducts().filter(p=>p.s===sk).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0));
-  const feat=adv?list.filter(p=>p.featured):[], flash=list.filter(flashOn);
-  const coupons=can(sk,'promos')?S.coupons.filter(c=>c.sk===sk && c.pub && couponLive(c)):[];
-  const mine=isRole('seller') && me().key===sk;
+  const feat=adv?list.filter(p=>p.featured):[], flash=list.filter(flashOn), coupons=publicCoupons(sk), r=ratingOf(sk);
+  const mine=isRole('seller') && me().key===sk, buyer=isRole('buyer') ? me().key : null, fol=buyer && follows(buyer, sk);
   return `<div class="store" style="--sa:${th.a};--sb:${th.b}">
     ${mine?`<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px"><span class="note">Así ven los compradores tu tienda.</span><button class="btn sm" onclick="S.ui.sellTab='tienda';location.hash='#vender'">🎨 Personalizar tienda</button></div>`:''}
     <div class="sbanner" style="${adv&&st.banner?`background-image:url(${st.banner})`:''}"></div>
     <div class="shead"><div class="slogo" style="${cus&&st.logo?`background-image:url(${st.logo})`:''}">${cus&&st.logo?'':esc(initials(s.name))}</div>
-      <div class="sname"><h2>${esc(s.name)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}
-        <div class="note">★ ${s.rating.toFixed(1)} · ${s.sales} ventas · ${esc(s.city)} · ${list.length} productos</div></div>
-      <div>${planBadge(sk)}</div></div>
+      <div class="sname"><h2>${esc(s.name)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div></div>
+      ${mine?'':`<button class="btn ${fol?'ghost':''}" onclick="toggleFollow('${sk}')">${fol?'✓ Siguiendo':'+ Seguir tienda'}</button>`}</div>
+    <div class="sstats">
+      <div><b>${r.n?r.avg.toFixed(1):'—'}</b>${r.n?stars(r.avg):'<span class="note">Tienda nueva</span>'}<span class="note">${r.n?r.n+' calificaciones':'Aún sin calificaciones'}</span></div>
+      <div><b>${s.sales}</b><span class="note">productos vendidos</span></div>
+      <div><b>${list.length}</b><span class="note">productos publicados</span></div>
+      <div><b>📍 ${esc(s.city||'Colombia')}</b><span class="note">desde aquí despacha</span></div></div>
     ${adv&&st.notice?`<div class="snotice">📣 ${esc(st.notice)}</div>`:''}
-    ${coupons.length?`<div class="scoupons">${coupons.map(c=>`<div class="coupon"><span>Cupón</span><b>${esc(c.code)}</b><small>${couponLabel(c)}</small></div>`).join('')}</div>`:''}
+    ${coupons.length?`<div class="scoupons">${coupons.map(c=>{ const got=buyer&&claimed(buyer,c.id); return `<div class="coupon"><span>Cupón de descuento</span><b>${c.type==='pct'?c.value+' %':cop(c.value)} OFF</b><small>Código ${esc(c.code)}${c.min?' · compras desde '+cop(c.min):''}${c.until?' · hasta '+dLabel(c.until):''}</small>
+      ${mine?'':got?'<span class="badge">✓ Guardado: se aplica al pagar</span>':`<button class="btn sm" onclick="claimCoupon(${c.id})">Redimir</button>`}</div>`; }).join('')}</div>`:''}
     ${flash.length?`<div class="sec"><h3>⚡ Ofertas relámpago</h3></div><div class="row">${flash.map(card).join('')}</div>`:''}
     ${feat.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${feat.map(card).join('')}</div>`:''}
     <div class="sec"><h3>Todos los productos</h3></div><div class="grid">${list.map(card).join('')||'<p class="empty">Esta tienda aún no tiene productos publicados.</p>'}</div>
-    ${st.about||(cus&&(st.policy||st.hours))?`<div class="split" style="margin-top:22px">${st.about?`<div class="panel"><h3>Sobre nosotros</h3><p style="white-space:pre-wrap;margin:0">${esc(st.about)}</p></div>`:''}
-      ${cus&&(st.policy||st.hours)?`<div class="panel"><h3>Información de la tienda</h3>${st.hours?`<p style="margin-top:0"><b>Horario de atención:</b> ${esc(st.hours)}</p>`:''}${st.policy?`<p style="white-space:pre-wrap;margin:0"><b>Cambios y garantías:</b> ${esc(st.policy)}</p>`:''}</div>`:''}</div>`:''}
-    <div class="protect" style="margin-top:18px">Todas las compras de esta tienda se pagan dentro de MER-K: tu dinero queda protegido hasta que recibes. Si tienes preguntas, usa el botón "Preguntar al vendedor" de cada producto.</div></div>`;
+    <div class="split" style="margin-top:22px">${st.about?`<div class="panel"><h3>Sobre la tienda</h3><p style="white-space:pre-wrap;margin:0">${esc(st.about)}</p></div>`:''}
+      <div class="panel"><h3>Envíos</h3><p style="margin:0">Despacha desde <b>${esc(s.city||'Colombia')}</b>.</p><ul class="note" style="margin:8px 0 0;padding-left:18px"><li>Medellín y alrededores: domicilio en <b>1 a 2 días hábiles</b>.</li><li>Resto del país: por transportadora; el tiempo depende de la transportadora.</li><li>El costo se calcula al pagar según tu ubicación.</li></ul></div></div>
+    <div class="protect" style="margin-top:18px">Todas las compras de esta tienda se pagan dentro de MER-K: tu dinero queda protegido hasta que recibes. Si tienes preguntas, usa "Preguntar al vendedor" en cada producto.</div></div>`;
 }
 function storeTab(sk){
   const st=storeOf(sk), cus=can(sk,'tienda2'), adv=can(sk,'tienda3');
   return `<div class="panel" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
       <div><h3 style="margin:0">Personalizar mi tienda</h3><span class="note">Dirección de tu tienda: <b>merkshopping.com/tienda/${esc(st.slug)}</b></span></div>
       <a class="btn ghost sm" href="${storeUrl(sk)}" style="text-decoration:none">Ver mi tienda</a></div>
-    <div class="protect" style="margin-bottom:16px">Todo lo que escribas pasa por el filtro anti-contacto: no se permiten teléfonos, WhatsApp, Instagram, correos ni enlaces. Las ventas se hacen dentro de MER-K.</div>
+    ${shareBox(sk)}
+    <div class="protect" style="margin-bottom:16px">Como en Mercado Libre, tu tienda muestra solo tu nombre, tu descripción, tus productos, tus calificaciones, tus cupones y tus envíos. No se permiten teléfonos, WhatsApp, Instagram, correos ni enlaces: todo pasa por el filtro anti-contacto.</div>
     <form class="panel form" onsubmit="saveStore(event)">
       <label>Sobre nosotros (descripción de la tienda)<textarea id="stAbout" rows="3" maxlength="600" placeholder="Cuenta quiénes son y qué venden">${esc(st.about)}</textarea></label>
-      ${cus?`<div class="row2"><label>Eslogan<input id="stSlogan" maxlength="80" value="${esc(st.slogan)}" placeholder="Ej: Detalles hechos a mano en Medellín"></label>
-          <label>Horario de atención<input id="stHours" maxlength="60" value="${esc(st.hours)}" placeholder="Ej: Lunes a sábado, 8 a. m. a 6 p. m."></label></div>
-        <label>Política de cambios y garantías<textarea id="stPolicy" rows="2" maxlength="400" placeholder="Ej: Cambios hasta 5 días después de recibir, con el producto sin usar.">${esc(st.policy)}</textarea></label>
+      ${cus?`<label>Eslogan<input id="stSlogan" maxlength="80" value="${esc(st.slogan)}" placeholder="Ej: Detalles hechos a mano en Medellín"></label>
         <fieldset><legend>Colores de la tienda</legend><div class="themes">${Object.entries(THEMES).map(([k,t])=>`<label class="theme"><input type="radio" name="stTheme" value="${k}" ${st.theme===k?'checked':''}><span style="background:${t.b}"><i style="background:${t.a}"></i>${t.name}</span></label>`).join('')}</div></fieldset>
         <div class="row2"><label>Logo de la tienda${st.logo?' <span class="badge">Cargado</span>':''}<input id="stLogo" type="file" accept="image/*"></label>
           ${adv?`<label>Portada (imagen grande arriba)${st.banner?' <span class="badge">Cargada</span>':''}<input id="stBanner" type="file" accept="image/*"></label>`:'<div></div>'}</div>`
-      : upsell('Con el plan Emprendedor pones tu logo, colores, eslogan, horario y políticas de cambios.','emprendedor')}
+      : upsell('Con el plan Emprendedor pones tu logo, tus colores y tu eslogan.','emprendedor')}
       ${adv?`<fieldset><legend>Herramientas Pro</legend>
           <label>Dirección personalizada<div style="display:flex;align-items:center;gap:6px"><span class="note">merkshopping.com/tienda/</span><input id="stSlug" maxlength="30" value="${esc(st.slug)}" style="flex:1"></div></label>
           <label>Aviso destacado arriba de tu tienda<input id="stNotice" maxlength="120" value="${esc(st.notice)}" placeholder="Ej: ¡Envío gratis en toda la tienda esta semana!"></label>
@@ -1553,7 +1589,7 @@ function storeTab(sk){
 function saveStore(e){
   e.preventDefault(); const sk=me().key, s=SEL(sk), st=storeOf(sk), val=id=>($('#'+id)?.value||'').trim();
   const f={about:val('stAbout')};
-  if(can(sk,'tienda2')) Object.assign(f,{slogan:val('stSlogan'), hours:val('stHours'), policy:val('stPolicy'), theme:$('input[name=stTheme]:checked')?.value||st.theme});
+  if(can(sk,'tienda2')) Object.assign(f,{slogan:val('stSlogan'), hours:'', policy:'', theme:$('input[name=stTheme]:checked')?.value||st.theme});
   let slug=st.slug;
   if(can(sk,'tienda3')){ f.notice=val('stNotice'); slug=slugify(val('stSlug')||s.name); }
   const r=check([f.about,f.slogan,f.hours,f.policy,f.notice,slug.replace(/-/g,' ')].filter(Boolean).join(' \n '));
@@ -1583,7 +1619,7 @@ function couponsTab(sk){
       <div class="row2"><label>Tipo<select id="cpType"><option value="pct">Porcentaje (%)</option><option value="fixed">Valor fijo ($)</option></select></label><label>Descuento<input id="cpVal" type="number" min="1" required placeholder="10"></label></div>
       <div class="row2"><label>Compra mínima<input id="cpMin" type="number" min="0" step="1000" value="0"></label><label>Usos máximos (0 = sin límite)<input id="cpMax" type="number" min="0" value="0"></label></div>
       <label>Válido hasta (opcional)<input id="cpUntil" type="date" min="${todayISO()}"></label>
-      ${pro?`<label class="check"><input type="checkbox" id="cpPub"> Mostrarlo en mi tienda y en mis productos</label>`:upsell('Con el plan Pro tus cupones se muestran solos en tu tienda y en tus productos.','pro')}
+      ${pro?`<label class="check"><input type="checkbox" id="cpPub" checked> Mostrarlo en mi tienda para que lo rediman y avisarles a mis seguidores</label>`:upsell('Con el plan Pro tus cupones se muestran solos en tu tienda y en tus productos.','pro')}
       <div><button class="btn">Crear cupón</button></div></form></div></div>`;
 }
 function saveCoupon(e){
@@ -1592,7 +1628,8 @@ function saveCoupon(e){
   if(/\d{5,}/.test(code) || !check(code).ok){ toast('El código no puede tener datos de contacto ni más de 4 números seguidos.'); return; }
   if(S.coupons.some(c=>c.sk===sk && c.code===code)){ toast('Ya tienes un cupón con ese código.'); return; }
   if(type==='pct' && (value<1||value>70)){ toast('El porcentaje debe estar entre 1 % y 70 %.'); return; }
-  S.coupons.unshift({id:S.nextCoupon++, sk, code, type, value, min:+$('#cpMin').value||0, max:+$('#cpMax').value||0, until:$('#cpUntil').value||'', used:0, active:true, pub:!!$('#cpPub')?.checked && can(sk,'promos')});
+  const c={id:S.nextCoupon++, sk, code, type, value, min:+$('#cpMin').value||0, max:+$('#cpMax').value||0, until:$('#cpUntil').value||'', used:0, active:true, pub:!!$('#cpPub')?.checked && can(sk,'promos')}; S.coupons.unshift(c);
+  if(c.pub) notifyFollowers(sk, `🎟️ ${SEL(sk).name} lanzó un cupón`, `${couponLabel(c)} con el código ${code}. Entra a la tienda y redímelo.`, storeUrl(sk));
   save(); toast('Cupón '+code+' creado.'); render();
 }
 function toggleCoupon(id){ const c=S.coupons.find(x=>x.id===id); c.active=!c.active; save(); render(); }
@@ -1631,7 +1668,7 @@ function promosTab(sk){
       <label>Producto<select id="flP">${mine.map(p=>`<option value="${p.id}">${esc(p.t)}</option>`).join('')}</select></label>
       <div class="row2"><label>Descuento (%)<input id="flPct" type="number" min="5" max="80" required value="20"></label>
         <label>Duración<select id="flDur"><option value="1">24 horas</option><option value="3">3 días</option><option value="7">7 días</option></select></label></div>
-      <p class="note" style="margin:0">Se muestra con ⚡ y la fecha de cierre en la página principal, en Ofertas y en tu tienda. Al terminar, el producto vuelve a su precio normal.</p>
+      <p class="note" style="margin:0">Se muestra con ⚡ en la página principal, en Ofertas y en tu tienda, y les avisamos a tus seguidores. Al terminar, el producto vuelve a su precio normal.</p>
       <div><button class="btn" ${mine.length?'':'disabled'}>Lanzar oferta</button></div></form></div></div>`;
 }
 function endFlash(id){ P(id).flash=null; save(); render(); }
@@ -1640,7 +1677,7 @@ function saveLowStock(){ SEL(me().key).lowStock=Math.max(0,+$('#lsTh').value); s
 function toggleFeat(id, el){ const p=P(id), sk=p.s;
   if(el.checked && S.products.filter(x=>x.s===sk&&x.featured).length>=FEAT_MAX){ el.checked=false; toast(`Puedes destacar máximo ${FEAT_MAX} productos.`); return; }
   p.featured=el.checked; save(); toast(el.checked?'Producto destacado.':'Ya no está destacado.'); render(); }
-function saveFlash(e){ e.preventDefault(); const p=P(+$('#flP').value), pct=Math.max(5,Math.min(80,+$('#flPct').value)); p.flash={pct, until:T()+(+$('#flDur').value)*DAY}; save(); toast('¡Oferta relámpago lanzada!'); render(); }
+function saveFlash(e){ e.preventDefault(); const p=P(+$('#flP').value), pct=Math.max(5,Math.min(80,+$('#flPct').value)); p.flash={pct, until:T()+(+$('#flDur').value)*DAY}; notifyFollowers(p.s, `⚡ Oferta relámpago en ${SEL(p.s).name}`, `${p.t} con ${pct} % de descuento, solo por poco tiempo.`, storeUrl(p.s)); save(); toast('¡Oferta relámpago lanzada!'); render(); }
 
 /* ---------- Inventario ---------- */
 function logStock(p, delta, reason){ (S.stockLog||(S.stockLog=[])).unshift({pid:p.id, sk:p.s, title:p.t, delta, stock:p.stock, reason, t:now()}); if(S.stockLog.length>300) S.stockLog.length=300; }
@@ -1812,6 +1849,150 @@ function handleWompiReturn(){
     reportPay(null, S.pendingPlan.plan, id); history.replaceState(null,'',location.pathname+'#vender'); }catch(e){}
 }
 
+/* ---------- Prioridad en búsquedas (la da la administración a tiendas Pro) ---------- */
+const isBoosted = sk => !!(SEL(sk).boost && tierOf(sk)==='pro');
+const PLAN_RANK = {oficial:1, pro:2, emprendedor:3, gratis:4};
+const searchRank = p => (isBoosted(p.s) ? 0 : PLAN_RANK[effPlan(p.s)] ?? 4) * 2 + (isFeatured(p) ? 0 : 1);
+function boostCell(k){
+  if(tierOf(k)!=='pro') return '<span class="note">Solo para plan Pro</span>';
+  return isBoosted(k) ? `<span class="badge lav">⭐ Activa</span><br><button class="btn ghost sm" style="margin-top:6px" onclick="adminBoost('${k}',false)">Quitar prioridad</button>`
+                      : `<button class="btn sm" onclick="adminBoost('${k}',true)">⭐ Dar prioridad</button>`;
+}
+function adminBoost(k, on){ SEL(k).boost=on; if(on) notify(k,'⭐ Tienes prioridad en las búsquedas', 'MER-K activó la prioridad para tu tienda: tus productos salen de primeras cuando la gente busca o mira tu categoría.'); save(); toast(on?'Prioridad activada.':'Prioridad quitada.'); render(); }
+
+/* ---------- Enlace de la tienda para compartir ---------- */
+const storeLink = sk => 'https://merkshopping.com/tienda/' + storeOf(sk).slug;
+function shareBox(sk){
+  if(!can(sk,'tienda2')) return upsell('Con el plan Emprendedor tienes el enlace de tu tienda para compartirlo en Instagram, WhatsApp y tus redes.','emprendedor');
+  const url = storeLink(sk);
+  return `<div class="panel share"><div><b>🔗 El enlace de tu tienda</b><br><span class="note">Compártelo en tu Instagram, tu WhatsApp y tus redes. Quien entre, compra dentro de MER-K con su dinero protegido.</span>
+      <div class="linkbox"><input readonly value="${esc(url)}" onclick="this.select()"><button class="btn sm" onclick="copyStoreLink('${sk}')">Copiar enlace</button></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('¡Mira mi tienda en MER-K! '+url)}">Compartir por WhatsApp</a></div></div>`;
+}
+function copyStoreLink(sk){ const url=storeLink(sk);
+  const ok=()=>toast('¡Enlace copiado! Pégalo en tu Instagram o WhatsApp.');
+  try{ navigator.clipboard.writeText(url).then(ok, ()=>{ fallbackCopy(url); ok(); }); }catch(e){ fallbackCopy(url); ok(); } }
+function fallbackCopy(t){ const i=document.createElement('textarea'); i.value=t; document.body.appendChild(i); i.select(); try{ document.execCommand('copy'); }catch(e){} i.remove(); }
+
+/* ---------- Mis cuentas (plan Pro): todo lo vendido dentro de MER-K, calculado solo ---------- */
+const monthKey = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
+const monthName = k => { const [y,m]=k.split('-'); return new Date(+y, +m-1, 15).toLocaleDateString('es-CO',{month:'long', year:'numeric'}); };
+const netOf = o => o.sellerGross - feeAmtOf(o);
+const moneyState = o => o.status==='devuelto' ? ['Devuelto al comprador','bad'] : o.liquidated ? ['Pagado a tu cuenta',''] : o.status==='liberado' ? ['Listo para pagarte','blue']
+  : o.status==='entregado' ? ['En garantía hasta el '+fdate(o.releaseAt),'warn'] : o.status==='reclamo' ? ['En reclamo','bad'] : ['Pedido en curso','lav'];
+function monthTotals(sk, k){
+  const all=S.orders.filter(o=>o.sk===sk && monthKey(o.ts||0)===k), ok=all.filter(o=>o.status!=='devuelto');
+  return {all, ok, n:ok.length, sales:ok.reduce((a,o)=>a+o.price,0), ship:ok.reduce((a,o)=>a+(o.sellerGross-o.price),0), comm:ok.reduce((a,o)=>a+commOf(o),0), proc:ok.reduce((a,o)=>a+(o.proc||0),0),
+    net:ok.reduce((a,o)=>a+netOf(o),0), paid:ok.filter(o=>o.liquidated).reduce((a,o)=>a+netOf(o),0), refunds:all.length-ok.length};
+}
+function ledgerTab(sk){
+  if(!can(sk,'cuentas')) return lockBox('cuentas','Mis cuentas','Lleva el registro de todo lo que vendes en MER-K: cada venta, cuánto te queda después de comisiones, cuánto ya te pagamos y cuánto ganaste cada mes. Todo se calcula solo.');
+  const months=[...Array(6)].map((_,i)=>{ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); return monthKey(d); });
+  const k=S.ui.ledgerMonth && months.includes(S.ui.ledgerMonth) ? S.ui.ledgerMonth : months[0], m=monthTotals(sk,k);
+  const hist=months.map(x=>[x, monthTotals(sk,x)]).reverse(), byProd=groupSum(m.ok, o=>o.title, o=>netOf(o)), units=groupSum(m.ok, o=>o.title, ()=>1);
+  return `<div class="panel" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0">Mis cuentas</h3><span class="note">Todo lo que vendes en MER-K queda registrado aquí solo: ventas, comisiones, lo que te queda y lo que ya te pagamos.</span></div>
+      <label class="note" style="display:flex;gap:6px;align-items:center">Mes <select onchange="S.ui.ledgerMonth=this.value;render()" style="border:1.5px solid var(--line);border-radius:10px;padding:7px 10px;font-weight:700">${months.map(x=>`<option value="${x}" ${x===k?'selected':''}>${monthName(x)}</option>`).join('')}</select></label></div>
+    <div class="kpis"><div class="kpi"><small>Ventas del mes</small><div>${cop(m.sales)}</div><span class="note">${m.n} ${m.n===1?'venta':'ventas'}${m.refunds?' · '+m.refunds+' devueltas':''}</span></div>
+      <div class="kpi"><small>Envíos cobrados</small><div>${cop(m.ship)}</div><span class="note">Lo que pagaron los compradores</span></div>
+      <div class="kpi"><small>Comisión MER-K</small><div>${cop(m.comm)}</div></div>
+      <div class="kpi"><small>Procesamiento de pago</small><div>${cop(m.proc)}</div></div>
+      <div class="kpi"><small>Te quedan</small><div>${cop(m.net)}</div><span class="note">Ventas + envíos − comisión − procesamiento</span></div>
+      <div class="kpi"><small>Ya te pagamos</small><div>${cop(m.paid)}</div><span class="note">Por cobrar: ${cop(m.net-m.paid)}</span></div></div>
+    <div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><h3 style="margin:0">Ventas de ${monthName(k)}</h3><button class="btn ghost sm" onclick="exportLedger('${k}')">Descargar en Excel (CSV)</button></div>
+      ${m.all.length?`<div class="tw"><table><tr><th>Fecha</th><th>Pedido</th><th>Venta</th><th>Envío</th><th>Comisión + proc.</th><th>Te queda</th><th>Estado del dinero</th></tr>${m.all.map(o=>{ const [lbl,cls]=moneyState(o); return `<tr>
+        <td class="note">${o.created}</td><td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">a ${esc(o.addr.city)}${o.coupon?' · cupón '+esc(o.coupon.code)+' −'+cop(o.coupon.amount):''}</span></td>
+        <td>${cop(o.price)}</td><td>${cop(o.sellerGross-o.price)}</td><td>−${cop(feeAmtOf(o))}</td><td><b>${o.status==='devuelto'?'$0':cop(netOf(o))}</b></td><td><span class="badge ${cls}">${lbl}</span></td></tr>`; }).join('')}</table></div>`:'<p class="empty">No tuviste ventas este mes.</p>'}</div>
+    <div class="split"><div class="panel"><h3>Lo que más vendiste</h3>${byProd.length?hBars(byProd.slice(0,6).map(([t,v])=>[t+' ('+units.find(u=>u[0]===t)[1]+')', v, cop(v)]),'#A88AED'):'<p class="empty">Aún no hay datos.</p>'}</div>
+      <div class="panel"><h3>Últimos 6 meses</h3><div class="tw"><table><tr><th>Mes</th><th>Ventas</th><th>Te quedan</th></tr>${hist.map(([x,t])=>`<tr><td>${monthName(x)}</td><td>${cop(t.sales)} <span class="note">(${t.n})</span></td><td><b>${cop(t.net)}</b></td></tr>`).join('')}</table></div></div></div>
+    <p class="note">Es una ayuda para llevar las cuentas de lo que vendes en MER-K; no reemplaza a un contador.</p>`;
+}
+function exportLedger(k){ const sk=me().key, m=monthTotals(sk,k);
+  download('ventas-mer-k-'+k+'.csv', csv([['Fecha','Pedido','Producto','Ciudad','Venta','Envío','Cupón','Comisión','Procesamiento','Te queda','Estado del dinero'],
+    ...m.all.map(o=>[o.created, o.id, o.title, o.addr.city, o.price, o.sellerGross-o.price, o.coupon?.amount||0, commOf(o), o.proc||0, o.status==='devuelto'?0:netOf(o), moneyState(o)[0]])])); }
+
+/* ---------- Notificaciones que se pueden tocar (como Mercado Libre) ---------- */
+let NOTIF_LIST = [];
+function notifLink(n){
+  if(n.link) return n.link;
+  if(n.tk) return 'tk:'+n.tk;
+  if(n.oid) return 'o:'+n.oid;
+  const t=n.title+' '+n.body, m=/#(\d{4,})/.exec(n.title) || /[Pp]edido #(\d{4,})/.exec(t);
+  if(m) return 'o:'+m[1];
+  if(/plan|mensualidad/i.test(n.title)) return 'plan';
+  if(/transferimos|dinero/i.test(n.title)) return 'dinero';
+  if(/inventario|agotado/i.test(n.title)) return 'inventario';
+  if(/pregunta|vendedor respondió/i.test(n.title)) return 'mensajes';
+  if(/cuenta bancaria/i.test(n.title)) return 'pagos';
+  if(/anti-contacto/i.test(n.title)) return 'alertas';
+  return null;
+}
+function notifHtml(list){
+  NOTIF_LIST = list;
+  return list.length ? list.map((n,i)=>{ const l=notifLink(n); return `<div class="notif ${n.read?'':'new'} ${l?'click':''}" ${l?`onclick="openNotif(${i})"`:''}><b>${esc(n.title)}</b><span class="note">${n.t}</span><div class="nbody">${esc(n.body)}</div>${l?'<span class="go">Ver →</span>':''}</div>`; }).join('')
+    : '<p class="empty">No tienes notificaciones.</p>';
+}
+function showNotifs(){ const k=me().key, list=S.notifs.filter(n=>n.to===k); openModal(`<div class="mpad"><h2>Notificaciones</h2>${notifHtml(list)}</div>`, true); list.forEach(n=>n.read=true); save(); }
+const goHash = h => { if(location.hash===h) render(); else location.hash=h; };
+function openNotif(i){
+  const n=NOTIF_LIST[i], l=n && notifLink(n), role=me()?.role; if(!l) return;
+  if(l.startsWith('tk:')) return openTicket(+l.slice(3));
+  $('#scrim').classList.remove('open');
+  if(l.startsWith('#')) return goHash(l);
+  if(l.startsWith('o:')){ const id=+l.slice(2);
+    if(role==='admin'){ render(); if(O(id)) manageOrder(id); return; }
+    if(role==='buyer'){ S.ui.buyTab='compras'; goHash('#compras'); } else { S.ui.sellTab='pedidos'; S.ui.sellFilter='todos'; goHash('#vender'); }
+    setTimeout(()=>{ const el=document.getElementById('ord-'+id); if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('hl'); setTimeout(()=>el.classList.remove('hl'), 2600); } }, 250);
+    return; }
+  if(role==='seller' && ['plan','dinero','inventario','mensajes','soporte'].includes(l)){ S.ui.sellTab=l; return goHash('#vender'); }
+  if(role==='admin' && ['pagos','alertas','soporte','planes'].includes(l)){ S.ui.adminTab=l; return goHash('#admin'); }
+  if(role==='buyer' && l==='soporte'){ S.ui.buyTab='soporte'; return goHash('#compras'); }
+  render();
+}
+
+/* ---------- Calificaciones con estrellas ---------- */
+const ratingOf = sk => { const s=SEL(sk); return {avg:+s.rating||0, n:s.ratingCount||0}; };
+const stars = v => { const f=Math.round(v); return `<span class="stars" aria-label="${(+v).toFixed(1)} de 5">${'★'.repeat(f)}<i>${'★'.repeat(5-f)}</i></span>`; };
+function ratingLine(sk){ const r=ratingOf(sk); return r.n ? `<span class="stars">★</span> ${r.avg.toFixed(1)} (${r.n})` : 'Tienda nueva'; }
+function rateBox(o){
+  if(!['entregado','liberado'].includes(o.status)) return '';
+  const r=(S.reviews||[]).find(x=>x.oid===o.id);
+  if(r) return `<div class="ratebox done">Calificaste a <b>${esc(SEL(o.sk).name)}</b>: ${stars(r.stars)}</div>`;
+  return `<div class="ratebox">¿Cómo te fue con <b>${esc(SEL(o.sk).name)}</b>? Califica la tienda: <span class="rate">${[5,4,3,2,1].map(n=>`<button onclick="rateOrder(${o.id},${n})" title="${n} de 5" aria-label="${n} estrellas">★</button>`).join('')}</span></div>`;
+}
+function rateOrder(id, n){ const o=O(id), s=SEL(o.sk), c=s.ratingCount||0;
+  s.rating=((+s.rating||0)*c+n)/(c+1); s.ratingCount=c+1; (S.reviews||(S.reviews=[])).push({oid:id, bk:o.bk, sk:o.sk, stars:n});
+  notify(o.sk,'⭐ Nueva calificación', `Un comprador calificó tu tienda con ${n} estrella${n>1?'s':''} por el pedido #${id}.`, {link:'o:'+id}); save(); toast('¡Gracias por calificar!'); render(); }
+
+/* ---------- Seguir tiendas y redimir cupones ---------- */
+const follows = (bk, sk) => (S.follows||[]).some(f=>f.bk===bk && f.sk===sk);
+const claimed = (bk, cid) => (S.claims||[]).some(c=>c.bk===bk && c.cid===cid);
+function notifyFollowers(sk, title, body, link){ (S.follows||[]).filter(f=>f.sk===sk).forEach(f=>notify(f.bk, title, body, {link})); }
+function toggleFollow(sk){
+  if(!isRole('buyer')){ loginModal('Inicia sesión como comprador para seguir tiendas y enterarte de sus promociones.'); return; }
+  const bk=me().key, was=follows(bk,sk);
+  S.follows = was ? S.follows.filter(f=>!(f.bk===bk&&f.sk===sk)) : [...(S.follows||[]), {bk,sk}];
+  save(); toast(was?'Dejaste de seguir esta tienda.':'¡Ahora sigues esta tienda! Te avisamos de sus cupones y ofertas.'); render(); }
+function claimCoupon(cid){
+  if(!isRole('buyer')){ loginModal('Inicia sesión como comprador para guardar cupones.'); return; }
+  const bk=me().key; if(!claimed(bk,cid)) (S.claims||(S.claims=[])).push({bk,cid});
+  save(); toast('¡Cupón guardado! Se aplica solo cuando compres en esta tienda.'); render(); }
+function autoClaimedCoupon(id){
+  if(!isRole('buyer') || !$('#coCode')) return;
+  const p=P(id), c=S.coupons.find(c=>c.sk===p.s && couponLive(c) && claimed(me().key,c.id));
+  if(c){ $('#coCode').value=c.code; applyCoupon(id); }
+}
+function buyerCouponsTab(bk){
+  const mine=(S.claims||[]).filter(c=>c.bk===bk).map(c=>S.coupons.find(x=>x.id===c.cid)).filter(Boolean);
+  const fol=(S.follows||[]).filter(f=>f.bk===bk).map(f=>f.sk).filter(k=>S.sellers[k]);
+  return `<div class="split"><div class="panel"><h3>Mis cupones</h3>${mine.length?mine.map(c=>`<div class="addr"><div><b>${esc(c.code)}</b> · ${couponLabel(c)}<br><span class="note">${esc(SEL(c.sk).name)}${c.until?' · vence el '+dLabel(c.until):''}</span><br>${couponLive(c)?'<span class="badge">Se aplica solo al pagar</span>':'<span class="badge warn">Ya no está vigente</span>'}</div><a class="btn ghost sm" style="text-decoration:none" href="${storeUrl(c.sk)}">Ir a la tienda</a></div>`).join('')
+      :'<p class="empty">Aún no tienes cupones. Cuando una tienda tenga un cupón, toca "Redimir" en su perfil y se aplica solo al pagar.</p>'}</div>
+    <div class="panel"><h3>Tiendas que sigo</h3>${fol.length?fol.map(k=>`<div class="addr"><div><b>${esc(SEL(k).name)}</b><br><span class="note">${ratingLine(k)} · ${esc(SEL(k).city)}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn ghost sm" style="text-decoration:none" href="${storeUrl(k)}">Ver tienda</a><button class="btn ghost sm" onclick="toggleFollow('${k}')">Dejar de seguir</button></div></div>`).join('')
+      :'<p class="empty">Sigue tus tiendas favoritas y te avisamos con la campanita cuando lancen cupones u ofertas.</p>'}</div></div>`;
+}
+
+/* ---------- Cuenta bancaria nueva: MER-K la verifica antes de transferir ---------- */
+function verifyBank(k){ SEL(k).bankPending=false; notify(k,'🏦 Verificamos tu cuenta bancaria', 'Tu cuenta nueva quedó verificada. Las próximas transferencias llegan allí.', {link:'dinero'}); save(); toast('Cuenta verificada.'); render(); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
@@ -1867,7 +2048,7 @@ function blankState(){
     cfg:{ fees:{gratis:8, emprendedor:5, pro:3.5, oficial:0}, fixedFee:0, fixedUnder:0, prices:{emprendedor:39900, pro:89900}, limits:{gratis:15, emprendedor:150},
           wompiPct:2.65, wompiFixed:700, iva:19, graceDays:3, domicilio:15000, zones:{...DOM_TARIFFS}, carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{} },
     ui:Object.assign({cat:'Todo', q:'', sellTab:'resumen', adminTab:'pedidos', buyTab:'compras', sellFilter:'todos', tkFilter:'abierto'}, p.ui||{}),
-    users:[], buyers:{}, sellers:{}, products:[], orders:[], chats:{}, frag:{}, payouts:[], alerts:[], notifs:[], subPays:[], expenses:[],
+    users:[], follows:[], claims:[], reviews:[], buyers:{}, sellers:{}, products:[], orders:[], chats:{}, frag:{}, payouts:[], alerts:[], notifs:[], subPays:[], expenses:[],
     coupons:[], tickets:[], subClaims:[], stockLog:[], earnings:{commissions:0, official:0, domicilios:0, subs:0, proc:0}, nextId:1, nextOrder:1, nextCoupon:1, nextTicket:1, nextClaim:1 };
 }
 function save(){ try{ localStorage.setItem('merk-ui', JSON.stringify({loc:S.loc, locAsked:S.locAsked, ui:{sellTab:S.ui.sellTab, adminTab:S.ui.adminTab, buyTab:S.ui.buyTab}})); }catch(e){} }
@@ -1885,7 +2066,7 @@ function mapSeller(r, prof, priv){
     bank: b ? {banco:b.banco, tipo:b.tipo, numero:b.numero, num: isRole('admin') ? (b.numero||'') : '•••• '+String(b.numero||'').slice(-4), titular:b.titular, doc:b.doc} : null,
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
-    storeVisits:r.store_visits, lowStock:r.low_stock};
+    storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
 }
 function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
   ship:r.ship, addr:r.addr, origin:r.origin||'', pay:r.pay_method||'', status:r.status, sellerGross:r.seller_gross, feeAmt:r.fee_amt, net:r.net,
@@ -1901,12 +2082,14 @@ async function loadAll(){
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
-  let profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], summary=null;
+  let profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
       T0('messages', {order:'created_at', asc:true}), T0('notifications', {order:'created_at', limit:150}), T0('tickets', {order:'created_at'}), T0('ticket_messages', {order:'created_at', asc:true})]);
     if(role==='buyer') addrs = await T0('addresses', {order:'created_at', asc:true});
     if(role==='seller' || role==='admin') [slog, pays, subs] = await Promise.all([T0('stock_log', {order:'created_at', limit:300}), T0('payouts', {order:'created_at'}), T0('sub_payments', {order:'created_at'})]);
+    if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
+    revs = await T0('reviews');
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
@@ -1922,7 +2105,7 @@ async function loadAll(){
   const EV = {}; evs.forEach(e=>(EV[e.order_id] = EV[e.order_id] || []).push(e));
   S.orders = orders.filter(o=>!['pendiente_pago','rechazado'].includes(o.status)).map(o=>mapOrder(o, EV[o.id]));
   S.chats = {}; msgs.forEach(m=>(S.chats[m.thread] = S.chats[m.thread] || []).push(m.role==='sys' ? {sys:1, text:m.body} : {from:m.role, text:m.body}));
-  S.notifs = notifs.map(n=>({id:n.id, to:n.for_admin?'admin':n.user_id, ts:Date.parse(n.created_at), t:fmtTs(n.created_at), title:n.title, body:n.body, read:n.read, tk:n.ticket_id||null}));
+  S.notifs = notifs.map(n=>({id:n.id, to:n.for_admin?'admin':n.user_id, ts:Date.parse(n.created_at), t:fmtTs(n.created_at), title:n.title, body:n.body, read:n.read, tk:n.ticket_id||null, oid:n.order_id||null, link:n.link||null}));
   const TM = {}; tms.forEach(m=>(TM[m.ticket_id] = TM[m.ticket_id] || []).push({from:m.from_admin?'a':'u', text:m.body, t:fmtTs(m.created_at), img:m.image}));
   S.tickets = tks.map(t=>({id:t.id, from:t.user_id, role:t.role, subject:t.subject, cat:t.category, prio:t.priority, rank:t.rank, sla:t.sla_hours, status:t.status,
     created:Date.parse(t.created_at), msgs:TM[t.id]||[], unreadAdmin:t.unread_admin, unreadUser:t.unread_user}));
@@ -1930,6 +2113,7 @@ async function loadAll(){
   S.stockLog = slog.map(x=>({pid:x.product_id, sk:x.seller_id, title:title(x.product_id), delta:x.delta, stock:x.stock, reason:x.reason, t:fmtTs(x.created_at)}));
   S.payouts = pays.map(x=>({sk:x.seller_id, amount:x.amount, ref:x.ref, date:fmtTs(x.created_at)}));
   S.subPays = subs.map(x=>({sk:x.seller_id, plan:x.plan, amount:x.amount, ref:x.ref||'', how:x.how, date:fmtTs(x.created_at), ts:Date.parse(x.created_at)}));
+  S.follows = fols.map(f=>({bk:f.buyer_id, sk:f.seller_id})); S.claims = cls.map(c=>({bk:c.buyer_id, cid:c.coupon_id})); S.reviews = revs.map(r=>({oid:r.order_id, bk:r.buyer_id, sk:r.seller_id, stars:r.stars}));
   S.expenses = exps.map(x=>({what:x.concept, amount:x.amount, date:fmtTs(x.created_at)}));
   S.alerts = alerts.map(a=>({when:fmtTs(a.created_at), who:a.who||'', text:a.content||'', reason:a.reason||'', where:a.place||''}));
   if(summary) S.earnings = {commissions:+summary.commissions, official:+summary.official, domicilios:+summary.courier_to_pay, subs:+summary.subs, proc:+summary.proc};
@@ -2042,7 +2226,7 @@ async function doRegister(e, role){
    ===================================================================== */
 function showNotifs(){
   const k = me().key, list = S.notifs.filter(n=>n.to===k);
-  openModal(`<div class="mpad"><h2>Notificaciones</h2>${list.length?list.map(n=>`<div class="notif ${n.read?'':'new'}"><b>${esc(n.title)}</b><span class="note">${n.t}</span><div style="white-space:pre-wrap">${esc(n.body)}</div>${n.tk?`<button class="btn sm" style="margin-top:8px" onclick="openTicket(${n.tk})">${me().role==='admin'?'Abrir solicitud':'Ver respuesta'}</button>`:''}</div>`).join(''):'<p class="empty">No tienes notificaciones.</p>'}</div>`, true);
+  openModal(`<div class="mpad"><h2>Notificaciones</h2>${notifHtml(list)}</div>`, true);
   if(list.some(n=>!n.read)){ list.forEach(n=>n.read=true); $('#acct').innerHTML = headerRight(); api.rpc('mark_notifications_read').catch(()=>{}); }
 }
 async function sendMsg(text){
@@ -2240,6 +2424,20 @@ async function adminActivate(k){ await act(()=>api.rpc('admin_activate_plan', {s
 async function adminSuspend(k){ if(!confirm('¿Desactivar el plan de '+SEL(k).name+'?')) return; await act(()=>api.rpc('suspend_plan', {sid:k, why:'manual'}), 'Plan desactivado.'); }
 async function adminBlock(k){ if(!confirm('¿Bloquear a '+SEL(k).name+'? Sus productos dejan de mostrarse.')) return; await act(()=>api.rpc('admin_set_user_status', {uid:k, st:'bloqueada'}), 'Cuenta bloqueada.'); }
 async function pardon(k){ await act(()=>api.rpc('admin_set_user_status', {uid:k, st:'activa'}), 'Cuenta reactivada.'); }
+async function adminBoost(k, on){ await act(()=>api.rpc('admin_set_boost', {sid:k, turn_on:on}), on?'Prioridad activada. Le avisamos a la tienda.':'Prioridad quitada.', {close:false}); }
+/* seguir tiendas, redimir cupones, calificar y verificar cuentas (los avisos los manda el servidor) */
+function notifyFollowers(){}
+async function toggleFollow(sk){
+  if(!isRole('buyer')){ loginModal('Inicia sesión como comprador para seguir tiendas y enterarte de sus promociones.'); return; }
+  const was=follows(ME.id, sk);
+  await act(()=> was ? api.del('follows', {buyer_id:ME.id, seller_id:sk}) : api.ins('follows', [{buyer_id:ME.id, seller_id:sk}]),
+    was ? 'Dejaste de seguir esta tienda.' : '¡Ahora sigues esta tienda! Te avisamos de sus cupones y ofertas.', {close:false}); }
+async function claimCoupon(cid){
+  if(!isRole('buyer')){ loginModal('Inicia sesión como comprador para guardar cupones.'); return; }
+  if(claimed(ME.id, cid)) return;
+  await act(()=>api.ins('coupon_claims', [{buyer_id:ME.id, coupon_id:cid}]), '¡Cupón guardado! Se aplica solo cuando compres en esta tienda.', {close:false}); }
+async function rateOrder(id, n){ await act(()=>api.ins('reviews', [{order_id:id, buyer_id:ME.id, seller_id:O(id).sk, stars:n}]), '¡Gracias por calificar!', {close:false}); }
+async function verifyBank(k){ await act(()=>api.rpc('admin_verify_bank', {sid:k}), 'Cuenta verificada. Ya puedes transferirle.', {close:false}); }
 async function adminTogglePause(id){ await act(()=>api.upd('products', {paused:!P(id).paused}, {id})); }
 function resetDemo(){} function confirmClaim(){} function reportPay(){} function demoApprove(){}
 

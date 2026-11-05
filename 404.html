@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>MER-K</title>
+<script>
+// Enlaces como merkshopping.com/tienda/casa-bonita llevan a la tienda dentro de la página
+var p = location.pathname.replace(/^\/+|\/+$/g, '');
+location.replace('/' + (p ? '#' + p : ''));
+</script></head><body></body></html>
