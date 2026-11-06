@@ -154,9 +154,9 @@ legend{font-weight:800;font-size:13.5px;padding:0 6px;color:var(--blue)}
 .gth{width:58px;height:58px;border-radius:10px;border:2px solid transparent;background-color:#F6F5FA;background-size:cover;background-position:center;cursor:pointer;padding:0}
 .gth.on{border-color:var(--blue)}
 .pfotos{display:flex;gap:10px;flex-wrap:wrap}
-.pfoto{position:relative;width:92px;height:92px;border-radius:12px;background-size:cover;background-position:center;background-color:#F6F5FA;border:1px solid #E6E3EF}
-.pfoto .pdel,.pfoto .pmv{position:absolute;top:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
-.pfoto .pdel{right:4px}.pfoto .pmv{left:4px;font-size:12px}
+.pphoto{position:relative;width:92px;height:92px;border-radius:12px;background-size:cover;background-position:center;background-color:#F6F5FA;border:1px solid #E6E3EF}
+.pphoto .pdel,.pphoto .pmv{position:absolute;top:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.pphoto .pdel{right:4px}.pphoto .pmv{left:4px;font-size:12px}
 .pcover{position:absolute;left:4px;bottom:4px;background:var(--blue);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px}
 .padd{width:92px;height:92px;border-radius:12px;border:2px dashed #C9C4DA;display:grid;place-items:center;align-content:center;cursor:pointer;font-size:28px;font-weight:700;color:#7A7490;gap:0;margin:0}
 .padd span{font-size:11px}
@@ -333,6 +333,9 @@ details summary{cursor:pointer}
 .pfoto{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .hello{font-size:13.5px;color:var(--ink2)}
 @media (max-width:780px){.hello{display:inline-flex;font-size:0;padding:2px}.hello .avatar{font-size:12px}}
+
+.dangerbox{border:1.5px solid #F2C4C4}
+.dangerbox h3{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -547,7 +550,7 @@ function photoPicker(p){
     <div class="pfotos" id="pfotos">${photoPickerInner()}</div></fieldset>`;
 }
 function photoPickerInner(){
-  return PF_PHOTOS.map((f,i)=>`<div class="pfoto" style="background-image:url(${f.url||f.prev})">${i===0?'<span class="pcover">Portada</span>':`<button type="button" class="pmv" onclick="movePhoto(${i})" title="Poner de portada">★</button>`}<button type="button" class="pdel" onclick="delPhoto(${i})" aria-label="Quitar foto">×</button></div>`).join('')
+  return PF_PHOTOS.map((f,i)=>`<div class="pphoto" style="background-image:url(${f.url||f.prev})">${i===0?'<span class="pcover">Portada</span>':`<button type="button" class="pmv" onclick="movePhoto(${i})" title="Poner de portada">★</button>`}<button type="button" class="pdel" onclick="delPhoto(${i})" aria-label="Quitar foto">×</button></div>`).join('')
     + (PF_PHOTOS.length<MAX_FOTOS ? `<label class="padd"><b style="font-size:30px;line-height:1">+</b><span>Agregar foto</span><input id="fi" type="file" accept="image/*" multiple onchange="addPhotos(this)"></label>` : '');
 }
 function addPhotos(inp){
@@ -2131,7 +2134,44 @@ function profileTab(){
         <div class="row2"><label>Contraseña nueva<input id="ppNew" type="password" minlength="8" required autocomplete="new-password"></label>
           <label>Repítela<input id="ppNew2" type="password" minlength="8" required autocomplete="new-password"></label></div>
         <p class="note" style="margin:0">Mínimo 8 caracteres. Si algún día no puedes entrar, usa "¿Olvidaste tu contraseña?" al iniciar sesión.</p>
-        <div><button class="btn ghost">Cambiar contraseña</button></div></form></div></div></div>`;
+        <div><button class="btn ghost">Cambiar contraseña</button></div></form></div>
+      ${canDeleteAccount()?`<div class="panel dangerbox"><h3>Eliminar cuenta</h3>
+        <p class="note" style="margin:0 0 10px">Si ya no quieres usar MER-K, puedes borrar tu cuenta. Se borran tus datos personales${me().role==='seller'?', tu tienda y tus productos':', tus direcciones y las tiendas que sigues'}. Esto no se puede deshacer.</p>
+        <button class="btn bad sm" onclick="deleteAccountModal()">Eliminar mi cuenta</button></div>`:''}</div></div>`;
+}
+const ACTIVE_ST=['pagado','comanda','preparando','agendado','despachado','entregado','reclamo'];
+function canDeleteAccount(){ const u=me(); if(!u||u.role==='admin') return false; return !(u.role==='seller' && SEL(u.key).plan==='oficial'); }
+/* Lo que impide borrar la cuenta (pedidos en curso o plata pendiente) */
+function deleteBlockers(){
+  const u=me(), out=[];
+  const act=S.orders.filter(o=>ACTIVE_ST.includes(o.status) && (u.role==='seller' ? o.sk===u.key : o.bk===u.key));
+  if(act.length) out.push(`Tienes ${act.length} pedido${act.length>1?'s':''} en curso (${act.slice(0,4).map(o=>'#'+o.id).join(', ')}${act.length>4?'…':''}). Espera a que terminen, incluida la garantía.`);
+  if(u.role==='seller' && SEL(u.key).available>0) out.push(`MER-K todavía te debe transferir ${cop(SEL(u.key).available)}. Espera esa transferencia antes de borrar la cuenta.`);
+  return out;
+}
+function deleteAccountModal(){
+  const bl=deleteBlockers(), seller=me().role==='seller';
+  if(bl.length){ openModal(`<div class="mpad"><h2>Todavía no puedes eliminar tu cuenta</h2>${bl.map(t=>`<p class="note" style="font-size:15px">• ${t}</p>`).join('')}<p class="note">Si necesitas ayuda, escríbenos desde Soporte.</p><div><button class="btn" onclick="closeModal()">Entendido</button></div></div>`, true); return; }
+  openModal(`<div class="mpad"><h2>¿Eliminar tu cuenta?</h2>
+    <p>Esto es lo que pasa:</p>
+    <ul class="note" style="font-size:14.5px;line-height:1.6">
+      <li>Se borran tu nombre, celular, cédula, foto${seller?', datos bancarios':''} y direcciones.</li>
+      ${seller?'<li>Tu tienda deja de aparecer y se borran todos tus productos y cupones.</li>':'<li>Dejas de seguir tiendas y se borran tus cupones guardados.</li>'}
+      <li>Ya no podrás entrar con este correo. Si algún día vuelves, te registras de nuevo.</li>
+      <li>MER-K guarda solo el registro de las compras y ventas ya hechas, porque la ley lo exige para la contabilidad.</li></ul>
+    <form class="form" onsubmit="deleteAccount(event)"><label>Para confirmar escribe <b>ELIMINAR</b><input id="delConf" autocomplete="off" required></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn bad">Sí, eliminar mi cuenta</button><button type="button" class="btn ghost" onclick="closeModal()">Cancelar</button></div></form></div>`, true);
+}
+function deleteConfirmed(){ if($('#delConf').value.trim().toUpperCase()!=='ELIMINAR'){ toast('Escribe ELIMINAR para confirmar.'); return false; } return true; }
+function deleteAccount(e){ e.preventDefault(); if(!deleteConfirmed()) return; const u=me();
+  if(deleteBlockers().length){ deleteAccountModal(); return; }
+  if(u.role==='seller'){ const k=u.key, s=SEL(k);
+    S.products=S.products.filter(p=>p.s!==k); S.coupons=(S.coupons||[]).filter(c=>c.sk!==k);
+    Object.assign(s,{name:'Tienda eliminada', owner:'', phone:'', doc:'', addr:'', email:'', bank:null, avatar:null, store:{}, deleted:true, status:'bloqueada'}); }
+  else { if(S.buyers[u.key]) Object.assign(S.buyers[u.key],{name:'Cuenta eliminada', email:'', phone:'', doc:'', addresses:[], avatar:null, deleted:true}); }
+  const k=u.key; S.follows=(S.follows||[]).filter(f=>f.bk!==k && f.sk!==k); S.claims=(S.claims||[]).filter(c=>c.bk!==k);
+  const mu=myUser(); S.users=S.users.filter(x=>x!==mu);
+  S.session=null; save(); closeModal(); location.hash='#inicio'; render(); toast('Tu cuenta fue eliminada. Gracias por haber estado en MER-K.');
 }
 let PF_IMG=null;
 function previewAvatar(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>shrink(rd.result, img=>{ PF_IMG=img; const el=$('#pfPrev'); el.style.backgroundImage=`url(${img})`; el.textContent=''; }); rd.readAsDataURL(f); }
@@ -2616,6 +2656,15 @@ async function saveEmail(e){ e.preventDefault(); const em=$('#peNew').value.trim
   if(!validEmail(em)){ toast('Escribe un correo válido.'); return; }
   try{ await api.auth.setEmail(em); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo nuevo</h2><p class="sub">Te enviamos un enlace a <b>${esc(em)}</b>. Ábrelo para terminar el cambio. Mientras tanto sigues entrando con tu correo actual.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); }
   catch(x){ toast(friendly(x)); } }
+async function deleteAccount(e){ e.preventDefault(); if(!deleteConfirmed()) return;
+  const btn=e.submitter; if(btn) btn.disabled=true;
+  try{ const r = await api.rpc('delete_my_account', {});
+    if(r && r.ok===false){ toast(r.message||'No se pudo eliminar la cuenta.'); if(btn) btn.disabled=false; return; }
+    try{ await api.auth.signOut(); }catch(_){}
+    ME=null; PROFILE=null; S.session=null; closeModal(); location.hash='#inicio'; await reload();
+    toast('Tu cuenta fue eliminada. Gracias por haber estado en MER-K.');
+  }catch(err){ toast('No se pudo eliminar: '+(err.message||err)); if(btn) btn.disabled=false; }
+}
 async function changePassword(e){ e.preventDefault();
   if($('#ppNew').value!==$('#ppNew2').value){ toast('Las contraseñas nuevas no coinciden.'); return; }
   try{ await api.auth.setPassword($('#ppNew').value); toast('¡Contraseña actualizada!'); render(); }catch(x){ toast(friendly(x)); } }
