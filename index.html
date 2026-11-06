@@ -308,6 +308,14 @@ details summary{cursor:pointer}
 .msend{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
 .msend textarea{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;font:inherit;resize:vertical}
 @media (max-width:760px){.messenger{grid-template-columns:1fr}}
+/* perfil */
+.hello{display:inline-flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;font:inherit;color:inherit;padding:2px 6px;border-radius:999px}
+.hello:hover{background:#F3F0FA}
+.avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--lav-soft);color:#5B3FC0;display:inline-grid;place-items:center;font-weight:800;font-size:12px;flex-shrink:0;background-size:cover;background-position:center}
+.avatar.big{width:84px;height:84px;font-size:28px;font-family:'Fredoka',sans-serif}
+.pfoto{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.hello{font-size:13.5px;color:var(--ink2)}
+@media (max-width:780px){.hello{display:inline-flex;font-size:0;padding:2px}.hello .avatar{font-size:12px}}
 </style>
 </head>
 <body>
@@ -602,7 +610,7 @@ function headerRight(){
   const unread = S.notifs.filter(n=>n.to===s.key && !n.read).length;
   const name = s.role==='admin' ? 'Administración' : s.role==='seller' ? SEL(s.key).name : BUY(s.key).name.split(' ')[0];
   return `<button class="bell" onclick="showNotifs()" aria-label="Notificaciones">🔔${unread?`<span>${unread}</span>`:''}</button>
-    <span class="hello">Hola, <b>${esc(name)}</b></span><button class="btn ghost sm" onclick="logout()">Salir</button>`;
+    <button class="hello" onclick="goProfile()" title="Mi perfil">${avatarHtml()}Hola, <b>${esc(name)}</b></button><button class="btn ghost sm" onclick="logout()">Salir</button>`;
 }
 function navLinks(){
   const s = me(), L = [['inicio','Inicio'],['ofertas','Ofertas']];
@@ -872,7 +880,7 @@ function setState(o, st, note, opts={}){
 function viewBuyer(){
   if(!isRole('buyer')) return gate('buyer');
   const bk=me().key, b=BUY(bk), t=S.ui.buyTab, mine=S.orders.filter(o=>o.bk===bk);
-  const tabs=[['compras','Mis compras', mine.filter(o=>!['liberado','devuelto'].includes(o.status)).length],['direcciones','Mis direcciones'],['cupones','Mis cupones y tiendas'],['cuenta','Mi cuenta'],['soporte','Soporte',tkUnread(bk)]];
+  const tabs=[['compras','Mis compras', mine.filter(o=>!['liberado','devuelto'].includes(o.status)).length],['direcciones','Mis direcciones'],['cupones','Mis cupones y tiendas'],['cuenta','Mi perfil'],['soporte','Soporte',tkUnread(bk)]];
   let body='';
   if(t==='compras') body = mine.length ? mine.map(o=>`<div class="panel" id="ord-${o.id}">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
@@ -890,9 +898,7 @@ function viewBuyer(){
       <label>Dirección<input id="aDir" required placeholder="Calle, carrera, número, apto"></label>
       <div class="row2"><label>Barrio, municipio o ciudad<select id="aCity" ${otherToggle('aCity','aCityO')}>${cityOptions(S.loc)}</select><input id="aCityO" placeholder="Escribe tu municipio" style="display:none"></label><label>Indicaciones<input id="aNotes" placeholder="Portería, torre…"></label></div>
       <div><button class="btn">Guardar dirección</button></div></form></div></div>`;
-  if(t==='cuenta') body = `<div class="panel"><h3>Mi cuenta</h3><p><b>${esc(b.name)}</b> · ${esc(b.email)} · Cuenta ${statusBadge(b.status)}</p>
-    <p class="note">Tu celular y tu correo solo los ve MER-K. A los vendedores solo les llega el nombre, la dirección y el teléfono de entrega para la guía.</p>
-    <p class="note">Advertencias por compartir datos de contacto: ${b.warnings} de 3.</p></div>`;
+  if(t==='cuenta') body = profileTab() + `<div class="panel"><p class="note" style="margin:0">Cuenta ${statusBadge(b.status)} · Advertencias por compartir datos de contacto: ${b.warnings} de 3. Tu celular y tu correo solo los ve MER-K; a los vendedores solo les llega el nombre, la dirección y el teléfono de entrega para la guía.</p></div>`;
   if(t==='soporte') body = supportTab(bk);
   if(t==='cupones') body = buyerCouponsTab(bk);
   return `<h2>Mis compras</h2><p class="sub">Sigue cada pedido paso a paso. Te avisamos con una notificación 🔔 cada vez que cambia.</p>
@@ -938,7 +944,7 @@ function viewSeller(){
   const pend=sales.filter(o=>['comanda','preparando'].includes(o.status)).length;
   const sum=(st)=>S.orders.filter(o=>o.sk===sk && st.includes(o.status)).reduce((a,o)=>a+o.sellerGross,0);
   const lk=f=>can(sk,f)?'':' 🔒';
-  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['cuentas','Mis cuentas'+lk('cuentas')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)]];
+  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['cuentas','Mis cuentas'+lk('cuentas')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)],['perfil','Mi perfil']];
   let body='';
   if(t==='resumen') body = `<div class="kpis">
       <div class="kpi"><small>Pedidos por despachar</small><div>${pend}</div></div>
@@ -969,6 +975,7 @@ function viewSeller(){
   if(t==='tienda') body = storeTab(sk);
   if(t==='cuentas') body = ledgerTab(sk);
   if(t==='soporte') body = supportTab(sk);
+  if(t==='perfil') body = profileTab();
   if(t==='productos') body = `<div class="panel"><h3>Mis productos (${mine.length}${lim===Infinity?', sin límite':' de '+lim})</h3>
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td>${p.stock}</td>
@@ -1144,7 +1151,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración']];
+  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1181,6 +1188,7 @@ function viewAdmin(){
       <div class="panel"><h3>Tarifas de la domiciliaria</h3><div class="tw"><table><tr><th>Destino</th><th>Tarifa base</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div><p class="note" style="margin:10px 0 0">Únicamente se cubren estas zonas. Se pueden editar en Configuración.</p></div>`; }
   if(t==='soporte') body = adminSupport();
   if(t==='mensajes') body = adminMessenger();
+  if(t==='perfil') body = profileTab();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
       <td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)}</span></td><td>${PLAN_INFO[s.plan].name}</td><td>${s.plan==='gratis'?'$0':cop(planPrice(s.plan))}</td><td>${s.sub?fdate(s.sub.due):'—'}</td><td>${SUB_BADGE[st]||'<span class="badge lav">Gratis</span>'}</td>
@@ -1590,7 +1598,6 @@ function storeTab(sk){
       <div><h3 style="margin:0">Personalizar mi tienda</h3><span class="note">Dirección de tu tienda: <b>merkshopping.com/tienda/${esc(st.slug)}</b></span></div>
       <a class="btn ghost sm" href="${storeUrl(sk)}" style="text-decoration:none">Ver mi tienda</a></div>
     ${shareBox(sk)}
-    <div class="protect" style="margin-bottom:16px">Como en Mercado Libre, tu tienda muestra solo tu nombre, tu descripción, tus productos, tus calificaciones, tus cupones y tus envíos. No se permiten teléfonos, WhatsApp, Instagram, correos ni enlaces: todo pasa por el filtro anti-contacto.</div>
     <form class="panel form" onsubmit="saveStore(event)">
       <label>Sobre nosotros (descripción de la tienda)<textarea id="stAbout" rows="3" maxlength="600" placeholder="Cuenta quiénes son y qué venden">${esc(st.about)}</textarea></label>
       ${cus?`<label>Eslogan<input id="stSlogan" maxlength="80" value="${esc(st.slogan)}" placeholder="Ej: Detalles hechos a mano en Medellín"></label>
@@ -2049,6 +2056,57 @@ function sendThread(th, text){
   S.ui.msgDraft=''; save(); render(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50);
 }
 
+/* ---------- Mi perfil: foto, nombre, celular, documento, correo y contraseña ---------- */
+function myUser(){ return S.users.find(u=>u.key===me().key && u.role===me().role) || S.users.find(u=>u.key===me().key); }
+function myProfile(){
+  const s=me(), u=myUser()||{};
+  if(s.role==='seller'){ const x=SEL(s.key); return {name:x.owner, email:x.email||u.email, phone:x.phone, doc:x.doc, avatar:x.avatar}; }
+  if(s.role==='buyer'){ const x=BUY(s.key); return {name:x.name, email:x.email||u.email, phone:x.phone, doc:x.doc, avatar:x.avatar}; }
+  const a=S.adminProfile||{}; return {name:a.name||'Administración MER-K', email:u.email, phone:a.phone||'', doc:a.doc||'', avatar:a.avatar};
+}
+function avatarHtml(size){ const p=me()&&myProfile(); return p&&p.avatar ? `<img class="avatar" src="${p.avatar}" alt="">` : `<span class="avatar">${esc(initials((p&&p.name)||'?'))}</span>`; }
+function goProfile(){ const r=me().role; if(r==='buyer'){ S.ui.buyTab='cuenta'; goHash('#compras'); } else if(r==='seller'){ S.ui.sellTab='perfil'; goHash('#vender'); } else { S.ui.adminTab='perfil'; goHash('#admin'); } }
+function profileTab(){
+  const p=myProfile();
+  return `<div class="split"><div class="panel"><h3>Mis datos</h3><form class="form" onsubmit="saveProfile(event)">
+      <div class="pfoto"><div class="avatar big" id="pfPrev" style="${p.avatar?`background-image:url(${p.avatar})`:''}">${p.avatar?'':esc(initials(p.name||'?'))}</div>
+        <label class="btn ghost sm" style="cursor:pointer">Cambiar foto de perfil<input id="pfImg" type="file" accept="image/*" hidden onchange="previewAvatar(this)"></label></div>
+      <label>Nombre completo<input id="pfName" required maxlength="80" value="${esc(p.name||'')}"></label>
+      <div class="row2"><label>Celular<input id="pfPhone" required inputmode="numeric" maxlength="10" value="${esc(p.phone||'')}"></label>
+        <label>Cédula o NIT<input id="pfDoc" maxlength="15" value="${esc(p.doc||'')}"></label></div>
+      <p class="note" style="margin:0">Tu celular y tus datos solo los ve MER-K.</p>
+      <div><button class="btn">Guardar cambios</button></div></form></div>
+    <div><div class="panel"><h3>Correo</h3><form class="form" onsubmit="saveEmail(event)">
+        <label>Correo actual<input value="${esc(p.email||'')}" disabled></label>
+        <label>Correo nuevo<input id="peNew" type="email" required></label>
+        <div><button class="btn ghost">Cambiar correo</button></div></form></div>
+      <div class="panel"><h3>Contraseña</h3><form class="form" onsubmit="changePassword(event)">
+        <div class="row2"><label>Contraseña nueva<input id="ppNew" type="password" minlength="8" required autocomplete="new-password"></label>
+          <label>Repítela<input id="ppNew2" type="password" minlength="8" required autocomplete="new-password"></label></div>
+        <p class="note" style="margin:0">Mínimo 8 caracteres. Si algún día no puedes entrar, usa "¿Olvidaste tu contraseña?" al iniciar sesión.</p>
+        <div><button class="btn ghost">Cambiar contraseña</button></div></form></div></div></div>`;
+}
+let PF_IMG=null;
+function previewAvatar(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>shrink(rd.result, img=>{ PF_IMG=img; const el=$('#pfPrev'); el.style.backgroundImage=`url(${img})`; el.textContent=''; }); rd.readAsDataURL(f); }
+function profileInput(){
+  const name=$('#pfName').value.trim(), phone=$('#pfPhone').value.replace(/\s/g,''), doc=$('#pfDoc').value.trim();
+  if(!validPhone(phone)){ toast('El celular debe tener 10 dígitos y empezar por 3.'); return null; }
+  if(me().role!=='admin'){ const r=check(name); if(!r.ok){ toast('El nombre no puede tener datos de contacto.'); return null; } }
+  return {name, phone, doc};
+}
+function saveProfile(e){ e.preventDefault(); const d=profileInput(); if(!d) return; const s=me();
+  const t = s.role==='seller' ? SEL(s.key) : s.role==='buyer' ? BUY(s.key) : (S.adminProfile=S.adminProfile||{});
+  if(s.role==='seller') t.owner=d.name; else t.name=d.name; t.phone=d.phone; t.doc=d.doc; if(PF_IMG){ t.avatar=PF_IMG; PF_IMG=null; }
+  save(); toast('¡Tus datos quedaron guardados!'); render(); }
+function saveEmail(e){ e.preventDefault(); const u=myUser(), em=$('#peNew').value.trim().toLowerCase();
+  if(!validEmail(em)){ toast('Escribe un correo válido.'); return; }
+  if(S.users.some(x=>x.email===em)){ toast('Ya existe una cuenta con ese correo.'); return; }
+  u.email=em; const s=me(); if(s.role==='seller') SEL(s.key).email=em; if(s.role==='buyer') BUY(s.key).email=em;
+  save(); toast('Correo actualizado. Desde ahora inicias sesión con '+em+'.'); render(); }
+function changePassword(e){ e.preventDefault(); const u=myUser();
+  if($('#ppNew').value!==$('#ppNew2').value){ toast('Las contraseñas nuevas no coinciden.'); return; }
+  u.pass=h($('#ppNew').value); save(); toast('¡Contraseña actualizada!'); render(); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
@@ -2089,6 +2147,7 @@ function makeSupaApi(){
       signOut: async () => { await sb.auth.signOut(); },
       reset: async email => { const r = await sb.auth.resetPasswordForEmail(email, {redirectTo: location.origin + location.pathname}); if(r.error) throw r.error; },
       setPassword: async password => { const r = await sb.auth.updateUser({password}); if(r.error) throw r.error; },
+      setEmail: async email => { const r = await sb.auth.updateUser({email}, {emailRedirectTo: location.origin + location.pathname}); if(r.error) throw r.error; },
       onChange: cb => sb.auth.onAuthStateChange((ev, session) => cb(ev, session?.user || null))
     },
     live: cb => { try{ sb.channel('merk-live').on('postgres_changes', {event:'INSERT', schema:'public', table:'notifications'}, cb)
@@ -2494,6 +2553,22 @@ async function sendThread(th, text){
   try{ await api.ins('messages', [{thread:th, body:text}]); S.ui.msgDraft=''; await reload(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50); }
   catch(e){ toast(friendly(e)); }
 }
+/* ---------- Mi perfil (versión real) ---------- */
+function myProfile(){ const p=PROFILE||{}; return {name:p.name||'', email:ME?.email||p.email||'', phone:p.phone||'', doc:p.doc||'', avatar:p.avatar||null}; }
+async function saveProfile(e){ e.preventDefault(); const d=profileInput(); if(!d) return;
+  if(me().role!=='admin' && !(await checkText(d.name, 'Mi perfil'))) return;
+  await act(async()=>{
+    if(PF_IMG){ d.avatar = await api.upload('tiendas', `${ME.id}/avatar-${Date.now()}.jpg`, await toBlob(PF_IMG)); PF_IMG=null; }
+    const rows = await api.upd('profiles', d, {id:ME.id}); if(rows && rows[0]) PROFILE = rows[0];
+    if(me().role==='seller') await api.upd('sellers', {owner_name:d.name}, {id:ME.id});
+  }, '¡Tus datos quedaron guardados!', {close:false}); }
+async function saveEmail(e){ e.preventDefault(); const em=$('#peNew').value.trim().toLowerCase();
+  if(!validEmail(em)){ toast('Escribe un correo válido.'); return; }
+  try{ await api.auth.setEmail(em); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo nuevo</h2><p class="sub">Te enviamos un enlace a <b>${esc(em)}</b>. Ábrelo para terminar el cambio. Mientras tanto sigues entrando con tu correo actual.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); }
+  catch(x){ toast(friendly(x)); } }
+async function changePassword(e){ e.preventDefault();
+  if($('#ppNew').value!==$('#ppNew2').value){ toast('Las contraseñas nuevas no coinciden.'); return; }
+  try{ await api.auth.setPassword($('#ppNew').value); toast('¡Contraseña actualizada!'); render(); }catch(x){ toast(friendly(x)); } }
 function resetDemo(){} function confirmClaim(){} function reportPay(){} function demoApprove(){}
 
 /* =====================================================================
