@@ -140,11 +140,27 @@ legend{font-weight:800;font-size:13.5px;padding:0 6px;color:var(--blue)}
 /* modal */
 .scrim{position:fixed;inset:0;background:rgba(35,34,52,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 .scrim.open{display:flex}
-.modal{background:#fff;border-radius:22px;width:min(940px,100%);max-height:92vh;overflow:auto;position:relative}
+.modal{background:#fff;border-radius:22px;width:min(900px,100%);max-height:92vh;overflow-y:auto;overflow-x:hidden;position:relative}
 .modal.narrow{width:min(560px,100%)}
 .x{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:0;background:#F3F1F8;font-size:18px;z-index:2}
-.detail{display:grid;grid-template-columns:1fr 1fr}
-.detail .thumb{aspect-ratio:1;font-size:120px;border-radius:22px 0 0 22px}
+.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:start}
+.detail .dinfo{min-width:0;overflow-wrap:anywhere}
+.gallery{padding:22px 0 22px 22px;display:grid;gap:10px;position:sticky;top:0;min-width:0}
+.gmain{position:relative;width:100%;aspect-ratio:1;max-height:min(400px,56vh);border-radius:16px;background-color:#F6F5FA;background-size:contain;background-repeat:no-repeat;background-position:center;display:grid;place-items:center;font-size:96px;margin:0 auto}
+.garr{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:22px;line-height:1;cursor:pointer}
+.garr.l{left:8px}.garr.r{right:8px}
+.gcount{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px}
+.gthumbs{display:flex;gap:8px;flex-wrap:wrap}
+.gth{width:58px;height:58px;border-radius:10px;border:2px solid transparent;background-color:#F6F5FA;background-size:cover;background-position:center;cursor:pointer;padding:0}
+.gth.on{border-color:var(--blue)}
+.pfotos{display:flex;gap:10px;flex-wrap:wrap}
+.pfoto{position:relative;width:92px;height:92px;border-radius:12px;background-size:cover;background-position:center;background-color:#F6F5FA;border:1px solid #E6E3EF}
+.pfoto .pdel,.pfoto .pmv{position:absolute;top:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.pfoto .pdel{right:4px}.pfoto .pmv{left:4px;font-size:12px}
+.pcover{position:absolute;left:4px;bottom:4px;background:var(--blue);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px}
+.padd{width:92px;height:92px;border-radius:12px;border:2px dashed #C9C4DA;display:grid;place-items:center;align-content:center;cursor:pointer;font-size:28px;font-weight:700;color:#7A7490;gap:0;margin:0}
+.padd span{font-size:11px}
+.padd input{display:none}
 .dinfo{padding:28px 26px;display:flex;flex-direction:column;gap:11px}
 .dinfo h3{margin:0;font-family:'Fredoka',sans-serif;font-weight:600;font-size:23px;line-height:1.2}
 .seller{border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -180,7 +196,8 @@ legend{font-weight:800;font-size:13.5px;padding:0 6px;color:var(--blue)}
   .hero{grid-template-columns:1fr}
   .hero h1{font-size:34px}
   .detail{grid-template-columns:1fr}
-  .detail .thumb{border-radius:22px 22px 0 0;aspect-ratio:16/10;font-size:90px}
+  .gallery{padding:16px 16px 0;position:static}
+  .gmain{max-height:46vh}
   .split,.row2,.row3{grid-template-columns:1fr}
 }
 
@@ -512,6 +529,35 @@ const fdate = ts => new Date(ts).toLocaleDateString('es-CO',{weekday:'short',day
 function addBusinessDays(ts, n){ const d=new Date(ts); let k=0; while(k<n){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w!==0&&w!==6) k++; } return d.getTime(); }
 const thumbStyle = p => p.img ? `background-image:url(${p.img})` : `background:${COLORS[p.id % COLORS.length]}`;
 const thumbInner = p => p.img ? '' : p.e;
+const MAX_FOTOS = 5;
+const photosOf = p => (p.images && p.images.length) ? p.images : (p.img ? [p.img] : []);
+function galleryHtml(p){
+  const ims = photosOf(p);
+  if(!ims.length) return `<div class="gallery"><div class="gmain" style="background:${COLORS[p.id % COLORS.length]}">${p.e}</div></div>`;
+  return `<div class="gallery"><div class="gmain" id="gmain" data-i="0" style="background-image:url(${ims[0]})">${ims.length>1?`<button class="garr l" onclick="galStep(${p.id},-1)" aria-label="Foto anterior">‹</button><button class="garr r" onclick="galStep(${p.id},1)" aria-label="Foto siguiente">›</button><span class="gcount" id="gcount">1 / ${ims.length}</span>`:''}</div>
+    ${ims.length>1?`<div class="gthumbs">${ims.map((u,i)=>`<button class="gth ${i?'':'on'}" style="background-image:url(${u})" onclick="galGo(${p.id},${i})" aria-label="Foto ${i+1}"></button>`).join('')}</div>`:''}</div>`;
+}
+function galGo(id, i){ const ims=photosOf(P(id)), m=$('#gmain'); if(!m||!ims.length) return; i=(i+ims.length)%ims.length; m.dataset.i=i; m.style.backgroundImage=`url(${ims[i]})`; const c=$('#gcount'); if(c) c.textContent=(i+1)+' / '+ims.length; document.querySelectorAll('.gth').forEach((b,k)=>b.classList.toggle('on',k===i)); }
+function galStep(id, d){ const m=$('#gmain'); galGo(id, (+m.dataset.i||0)+d); }
+/* Fotos del formulario de producto: {url} = ya guardada, {file, prev} = nueva */
+let PF_PHOTOS = [];
+function photoPicker(p){
+  PF_PHOTOS = p ? photosOf(p).map(url=>({url})) : [];
+  return `<fieldset><legend>Fotos del producto <span class="note" style="font-weight:600">(hasta ${MAX_FOTOS}; la primera es la portada)</span></legend>
+    <div class="pfotos" id="pfotos">${photoPickerInner()}</div></fieldset>`;
+}
+function photoPickerInner(){
+  return PF_PHOTOS.map((f,i)=>`<div class="pfoto" style="background-image:url(${f.url||f.prev})">${i===0?'<span class="pcover">Portada</span>':`<button type="button" class="pmv" onclick="movePhoto(${i})" title="Poner de portada">★</button>`}<button type="button" class="pdel" onclick="delPhoto(${i})" aria-label="Quitar foto">×</button></div>`).join('')
+    + (PF_PHOTOS.length<MAX_FOTOS ? `<label class="padd"><b style="font-size:30px;line-height:1">+</b><span>Agregar foto</span><input id="fi" type="file" accept="image/*" multiple onchange="addPhotos(this)"></label>` : '');
+}
+function addPhotos(inp){
+  const files=[...inp.files].slice(0, MAX_FOTOS-PF_PHOTOS.length);
+  if(inp.files.length>files.length) toast(`Máximo ${MAX_FOTOS} fotos por producto.`);
+  let left=files.length; if(!left) return;
+  files.forEach(file=>{ const rd=new FileReader(); rd.onload=()=>shrink(rd.result, prev=>{ if(prev) PF_PHOTOS.push({file, prev}); if(--left===0) $('#pfotos').innerHTML=photoPickerInner(); }, 1000); rd.readAsDataURL(file); });
+}
+function delPhoto(i){ PF_PHOTOS.splice(i,1); $('#pfotos').innerHTML=photoPickerInner(); }
+function movePhoto(i){ const [f]=PF_PHOTOS.splice(i,1); PF_PHOTOS.unshift(f); $('#pfotos').innerHTML=photoPickerInner(); }
 const me = () => S.session;
 const isRole = r => S.session && S.session.role === r;
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),3200); }
@@ -785,7 +831,7 @@ function shipBox(p, city){
 }
 function showProduct(id){
   const p = P(id), s = SEL(p.s), cps = publicCoupons(p.s); p.views=(p.views||0)+1; save(); track('view', id);
-  openModal(`<div class="detail"><div class="thumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
+  openModal(`<div class="detail">${galleryHtml(p)}
     <div class="dinfo"><span class="note">${esc(p.c)} · ${p.stock} disponibles</span><h3>${esc(p.t)}</h3>
       <div>${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}<span class="price" style="font-size:30px">${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
       <p class="note" style="margin:0">${esc(p.d)}</p>
@@ -1101,7 +1147,8 @@ function productForm(p){
       <label>Descuento (%)<input id="fdisc" type="number" min="0" max="80" value="${v.disc||0}"></label>
       <label>Unidades disponibles<input id="fs" type="number" min="0" required value="${v.stock}"></label></div>
     <div class="row2"><label>Categoría<select id="fc">${CATS.slice(1).map(c=>`<option ${c===v.c?'selected':''}>${c}</option>`).join('')}</select></label>
-      ${p?`<label>Estado<select id="fpause"><option value="0" ${!v.paused?'selected':''}>Publicado</option><option value="1" ${v.paused?'selected':''}>Pausado</option></select></label>`:`<label>Foto<input id="fi" type="file" accept="image/*"></label>`}</div>
+      ${p?`<label>Estado<select id="fpause"><option value="0" ${!v.paused?'selected':''}>Publicado</option><option value="1" ${v.paused?'selected':''}>Pausado</option></select></label>`:''}</div>
+    ${photoPicker(p)}
     <fieldset><legend>Envío</legend>
       <label class="check"><input type="checkbox" id="ffree" ${v.freeShip?'checked':''} onchange="$('#fncWrap').style.opacity=this.checked?.4:1"> Envío gratis para el comprador (el costo del envío lo asumo yo)</label>
       <label id="fncWrap" style="opacity:${v.freeShip?.4:1}">Costo del envío nacional (lo paga el comprador)<input id="fnc" type="number" min="0" step="500" value="${v.natCost??14000}"><span class="note" style="font-weight:500">Pon lo que te cobra la transportadora por enviar este producto (según su peso y tamaño).</span></label>
@@ -1117,11 +1164,11 @@ function saveProduct(e, id){
   const t=$('#ft').value.trim(), d=$('#fd').value.trim(), r=check(t+' \n '+d);
   if(!r.ok){ const m=strike(s, s.name, t+' — '+d, r.reason, id?'Edición de producto':'Publicación'); save(); toast('No se guardó: '+r.reason+'. '+m); return; }
   const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0)};
-  if(id){ Object.assign(P(id), data, {paused:$('#fpause').value==='1'}); save(); toast('Cambios guardados.'); closeModal(); return; }
-  const done=img=>{ S.products.unshift(Object.assign({id:S.nextId++, e:'📦', s:sk, img, paused:false}, data)); save(); S.ui.sellTab='productos'; toast('¡Producto publicado!'); render(); };
-  const f=$('#fi')?.files[0]; if(f){ const rd=new FileReader(); rd.onload=()=>shrink(rd.result, done); rd.readAsDataURL(f); } else done(null);
+  const images=PF_PHOTOS.map(f=>f.url||f.prev); data.images=images; data.img=images[0]||null;
+  if(id){ Object.assign(P(id), data, {paused:$('#fpause').value==='1'}); try{ save(); }catch(_){ toast('Las fotos ocupan mucho espacio en esta demo.'); return; } toast('Cambios guardados.'); closeModal(); return; }
+  S.products.unshift(Object.assign({id:S.nextId++, e:'📦', s:sk, paused:false}, data)); save(); S.ui.sellTab='productos'; toast('¡Producto publicado!'); render();
 }
-function shrink(src, cb){ const im=new Image(); im.onload=()=>{ const k=Math.min(1,600/Math.max(im.width,im.height)); const cv=document.createElement('canvas'); cv.width=im.width*k; cv.height=im.height*k; cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); cb(cv.toDataURL('image/jpeg',.8)); }; im.onerror=()=>cb(null); im.src=src; }
+function shrink(src, cb, max){ const im=new Image(); im.onload=()=>{ const k=Math.min(1,(max||600)/Math.max(im.width,im.height)); const cv=document.createElement('canvas'); cv.width=im.width*k; cv.height=im.height*k; cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); cb(cv.toDataURL('image/jpeg',.8)); }; im.onerror=()=>cb(null); im.src=src; }
 function plansHtml(sk){
   const s=SEL(sk), cur=s.plan, ss=subState(sk);
   const status = PAID.includes(cur) && s.sub ? `<div class="panel"><h3>Tu plan: ${PLAN_INFO[cur].name}</h3>
@@ -2413,9 +2460,12 @@ async function saveProduct(e, id){
   const t=$('#ft').value.trim(), d=$('#fd').value.trim();
   if(!(await checkText(t+' \n '+d, id?'Edición de producto':'Publicación'))) return;
   const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0)};
-  if(id){ row.paused = $('#fpause').value==='1'; await act(()=>api.upd('products', row, {id}), 'Cambios guardados.'); return; }
-  await act(async()=>{ const img = await uploadImage('productos', 'p'+Date.now(), $('#fi')?.files[0]);
-    await api.ins('products', [Object.assign(row, {seller_id:ME.id, images: img ? [img] : []})]); S.ui.sellTab='productos'; }, '¡Producto publicado!');
+  const photos=[...PF_PHOTOS];
+  const upPhotos = async()=>{ const out=[]; let n=0; for(const f of photos){ if(f.url){ out.push(f.url); continue; }
+      const u = await api.upload('productos', `${ME.id}/p${Date.now()}-${n++}.jpg`, await toBlob(f.prev)); if(u) out.push(u); } return out; };
+  if(id){ row.paused = $('#fpause').value==='1'; await act(async()=>{ row.images = await upPhotos(); await api.upd('products', row, {id}); }, 'Cambios guardados.'); return; }
+  await act(async()=>{ row.images = await upPhotos();
+    await api.ins('products', [Object.assign(row, {seller_id:ME.id})]); S.ui.sellTab='productos'; }, '¡Producto publicado!');
 }
 async function sellerAccept(id){
   const o=O(id);
