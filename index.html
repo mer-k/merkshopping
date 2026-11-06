@@ -1176,7 +1176,7 @@ function viewAdmin(){
       ${list.length?list.map(o=>`<div class="addr" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>Pedido #${o.id} · ${esc(o.title)}</b>
         <span>${o.status==='preparando'?'<span class="badge warn">Por agendar</span>':o.status==='agendado'?'<span class="badge blue">Agendado</span>':'<span class="badge">En camino</span>'}</span></div>
         <div style="margin-top:8px">${domiRoute(o)}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn sm" onclick="programForm(${o.id})">Agendar domicilio</button>`:o.status==='agendado'?`<button class="btn sm" onclick="markOnTheWay(${o.id});render()">Marcar en camino</button><button class="btn ghost sm" onclick="programForm(${o.id})">Reprogramar</button>`:`<button class="btn sm" onclick="adminDelivered(${o.id})">Marcar entregado</button>`}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn sm" onclick="programForm(${o.id})">Registrar domicilio</button>`:o.status==='agendado'?`<button class="btn sm" onclick="markOnTheWay(${o.id});render()">Marcar en camino</button><button class="btn ghost sm" onclick="programForm(${o.id})">Reprogramar</button>`:`<button class="btn sm" onclick="adminDelivered(${o.id})">Marcar entregado</button>`}
         <button class="btn ghost sm" onclick="manageOrder(${o.id})">Ver pedido</button></div></div>`).join(''):'<p class="empty">No hay domicilios pendientes.</p>'}</div>
       <div class="panel"><h3>Tarifas de la domiciliaria</h3><div class="tw"><table><tr><th>Destino</th><th>Tarifa base</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div><p class="note" style="margin:10px 0 0">Únicamente se cubren estas zonas. Se pueden editar en Configuración.</p></div>`; }
   if(t==='soporte') body = adminSupport();
@@ -1260,7 +1260,7 @@ function manageOrder(id){
       <form class="form" onsubmit="shareInfo(event,${o.id})"><label>Mensaje para el comprador (puedes editarlo)<textarea id="shareMsg" rows="4">${esc(shareText(o))}</textarea></label>
       <div><button class="btn">Compartir con el comprador</button></div></form></div>`:''}
     ${o.ship.mode==='merk'&&['preparando','agendado'].includes(o.status)?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.status==='agendado'?'Domicilio agendado':'2. Programar el domicilio'}</h3>${domiRoute(o)}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn" onclick="programForm(${o.id})">Agendar domicilio</button>`:`<button class="btn" onclick="markOnTheWay(${o.id})">Marcar en camino</button><button class="btn ghost" onclick="programForm(${o.id})">Reprogramar</button>`}</div></div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn" onclick="programForm(${o.id})">Registrar domicilio</button>`:`<button class="btn" onclick="markOnTheWay(${o.id})">Marcar en camino</button><button class="btn ghost" onclick="programForm(${o.id})">Reprogramar</button>`}</div></div>`:''}
     ${o.status==='comanda'?'<div class="todo" style="margin:0 0 14px">Esperando que el vendedor acepte la comanda.</div>':''}
     ${o.status==='preparando'&&!o.pendingInfo&&o.ship.mode!=='merk'?`<div class="todo" style="margin:0 0 14px">Esperando que el vendedor envíe ${o.ship.type==='nat'?'la guía de '+esc(o.ship.carrier):'los datos de su domiciliario'}.</div>`:''}
     <div class="panel" style="margin:0"><h3>Actualizar estado para el comprador</h3><form class="form" onsubmit="adminState(event,${o.id})">
@@ -1305,7 +1305,7 @@ const dLabel = iso => fdate(Date.parse(iso+'T12:00'));
 const SLOTS = ['8:00 a. m. a 12:00 m.','12:00 m. a 6:00 p. m.','En el transcurso del día'];
 function programForm(id){
   const o=O(id), d=nextBizISO(1);
-  openModal(`<div class="mpad"><h2>Agendar domicilio · Pedido #${o.id}</h2><p class="sub">Primero agéndalo en la página de la domiciliaria y luego registra aquí los datos.</p>
+  openModal(`<div class="mpad"><h2>Registrar domicilio · Pedido #${o.id}</h2><p class="sub">Agéndalo primero en la página de la mensajería. Luego registra aquí los datos y MER-K les avisa al vendedor y al comprador.</p>
     ${domiRoute(o)}
     <form class="form" style="margin-top:14px" onsubmit="saveProgram(event,${o.id})">
       <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="note" style="align-self:center">Rápido:</span>
