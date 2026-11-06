@@ -293,6 +293,21 @@ details summary{cursor:pointer}
 .notif .nbody{white-space:pre-wrap;max-height:4.4em;overflow:hidden}
 .notif .go{display:inline-block;margin-top:6px;font-weight:800;font-size:13px;color:var(--blue)}
 .panel.hl{box-shadow:0 0 0 3px var(--lav);transition:box-shadow .3s}
+/* mensajería con vendedores */
+.messenger{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+.mlist{max-height:620px;overflow:auto}
+.msearch{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px}
+.mrow{display:block;width:100%;text-align:left;border:0;background:none;border-radius:12px;padding:10px;cursor:pointer}
+.mrow:hover{background:#F6F2FF}.mrow.on{background:var(--lav-soft)}
+.mrow .badge{margin-left:6px}
+.mhead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}
+.mbody{display:flex;flex-direction:column;gap:8px;max-height:400px;min-height:160px;overflow:auto;padding:4px 2px}
+.msg{align-self:flex-start;max-width:78%;background:#F3F1F8;border-radius:14px 14px 14px 4px;padding:8px 12px;font-size:14px;white-space:pre-wrap}
+.msg.me{align-self:flex-end;background:var(--blue);color:#fff;border-radius:14px 14px 4px 14px}
+.msg small{display:block;font-size:11px;opacity:.7;margin-top:2px}
+.msend{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
+.msend textarea{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;font:inherit;resize:vertical}
+@media (max-width:760px){.messenger{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -355,6 +370,8 @@ const STATES = {
   reclamo:    {label:'Garantía o reclamo en revisión', buyer:'Estamos revisando tu caso. Tu dinero sigue protegido.'},
   devuelto:   {label:'Dinero devuelto',          buyer:'Te devolvimos el dinero.'}
 };
+const BUYER_TITLES = {pagado:'✅ Tu pago fue confirmado', comanda:'📦 Tu pedido fue enviado a la tienda', preparando:'🧑‍🍳 Tu pedido está en preparación', agendado:'🛵 Tu domicilio quedó programado',
+  despachado:'🚚 Tu pedido va en camino', entregado:'🎉 Tu pedido fue entregado', liberado:'✔️ Compra finalizada', reclamo:'🛟 Estamos revisando tu caso', devuelto:'💸 Te devolvimos el dinero'};
 const FLOW = ['pagado','comanda','preparando','despachado','entregado','liberado'];
 const FLOW_DOM = ['pagado','comanda','preparando','agendado','despachado','entregado','liberado'];
 const flowOf = o => o.ship.type==='dom' && o.ship.mode==='merk' ? FLOW_DOM : FLOW;
@@ -848,7 +865,7 @@ function deliveryHtml(o){
 function timelineHtml(o){ return `<div class="tl">${o.timeline.map(x=>`<div><b>${esc(STATES[x.s]?.label||x.s)}</b> <span class="note">${x.t}</span>${x.note?`<div class="note">${esc(x.note)}</div>`:''}</div>`).join('')}</div>`; }
 function setState(o, st, note, opts={}){
   o.status=st; o.timeline.push({t:now(), s:st, note: note || STATES[st].buyer});
-  if(!opts.silentBuyer) notify(o.bk, `Pedido #${o.id}: ${STATES[st].label}`, `${o.title}\n${note || STATES[st].buyer}`);
+  if(!opts.silentBuyer) notify(o.bk, `${BUYER_TITLES[st]||STATES[st].label} · Pedido #${o.id}`, `${o.title}\n${note || STATES[st].buyer}`, {link:'o:'+o.id});
 }
 
 /* ---------- Panel del comprador ---------- */
@@ -940,7 +957,7 @@ function viewSeller(){
         ${o.status==='preparando' && o.pendingInfo?'<span class="badge blue">Datos enviados a MER-K</span>':''}
         ${o.status==='preparando' && !o.pendingInfo && o.ship.type==='nat'?`<button class="btn sm" onclick="guiaForm(${o.id})">Enviar guía a MER-K</button>`:''}
         ${o.status==='preparando' && !o.pendingInfo && o.ship.mode==='propio'?`<button class="btn sm" onclick="domiForm(${o.id})">Enviar datos del domiciliario</button>`:''}
-        <button class="btn ghost sm" onclick="openChat('o${o.id}:s','${sk}')">Escribir a MER-K</button></div></div>
+        ${msgEnabled(sk)?`<button class="btn ghost sm" onclick="S.ui.sellTab='mensajes';render()">Escribir a MER-K</button>`:''}</div></div>
       ${sellerTodo(o)}
       ${['comanda','preparando'].includes(o.status)?`<div class="comanda">${esc(comandaText(o))}</div>`:`<details style="margin:8px 0"><summary class="note">Ver comanda</summary><div class="comanda">${esc(comandaText(o))}</div></details>`}${stepsHtml(o)}${deliveryHtml(o)}
       ${o.status==='entregado'?`<div class="note" style="margin-top:6px">Tu dinero se libera el <b>${fdate(o.releaseAt)}</b></div>`:''}</div>`).join('')
@@ -967,7 +984,7 @@ function viewSeller(){
         <li>Envío nacional: llevas el pedido a la transportadora que eligió el comprador y nos envías la guía. Domicilio en Medellín: usas tu domiciliario o nos pides uno (si el comprador no pagó domicilio, la tarifa se descuenta de tu pago).</li></ul></div>
     <div class="panel"><h3>Tarifas de domicilio en Medellín y alrededores</h3><div class="tw"><table><tr><th>Zona</th><th>Tarifa</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div></div>`;
   if(t==='mensajes'){ const keys=Object.keys(S.chats).filter(k=>(k[0]==='p'&&P(tPid(k))?.s===sk)||(k[0]==='o'&&k.endsWith(':s')&&O(tPid(k))?.sk===sk)).filter(k=>S.chats[k].length);
-    body = `<div class="panel"><h3>Mensajes</h3><p class="note" style="margin-top:-6px">Preguntas de compradores sobre tus productos y conversaciones con MER-K sobre tus pedidos.</p>${keys.length?keys.map(k=>`<div class="addr"><div><b>${esc(chatTitle(k))}</b><br><span class="note">${S.chats[k].filter(m=>!m.sys).length} mensajes</span></div><button class="btn ghost sm" onclick="openChat('${k}','${sk}')">Abrir</button></div>`).join(''):'<p class="empty">Aún no hay mensajes.</p>'}</div>`; }
+    body = sellerMessenger(sk) + `<div class="panel"><h3>Preguntas de compradores</h3><p class="note" style="margin-top:-6px">Lo que los compradores te preguntan sobre tus productos.</p>${keys.length?keys.map(k=>`<div class="addr"><div><b>${esc(chatTitle(k))}</b><br><span class="note">${S.chats[k].filter(m=>!m.sys).length} mensajes</span></div><button class="btn ghost sm" onclick="openChat('${k}','${sk}')">Abrir</button></div>`).join(''):'<p class="empty">Aún no hay mensajes.</p>'}</div>`; }
   if(t==='dinero'){ const pays=S.payouts.filter(x=>x.sk===sk);
     body = sk===OFFICIAL ? `<div class="panel"><h3>Dinero de la tienda oficial</h3><p>Las ventas de la tienda oficial no pagan comisión ni se transfieren: ya están en la cuenta de MER-K.</p><p class="note">Ingresos: <b>${cop(S.earnings.official)}</b></p></div>`
     : `<div class="kpis"><div class="kpi"><small>En pedidos en curso</small><div>${cop(sum(['pagado','comanda','preparando','despachado','reclamo']))}</div></div>
@@ -991,7 +1008,7 @@ function comandaText(o){
   const s=SEL(o.sk), days=S.cfg.holdDays;
   const entrega = o.ship.type==='nat'
     ? `ENVÍO NACIONAL por ${o.ship.carrier.toUpperCase()} (la eligió el comprador) · desde ${o.origin} hasta ${o.addr.city}${o.ship.free?' · envío gratis: lo asumes tú':''}`
-    : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${o.ship.mode?' · '+DOM_MODES[o.ship.mode]:' · elige si usas domiciliario de MER-K o propio'}`;
+    : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${' · lo recoge el domiciliario de MER-K (te avisamos día y hora)'}`;
   return `🧾 COMANDA MER-K · Pedido #${o.id}
 Producto: ${o.title} (1 und.)
 Vendedor: ${s.name}
@@ -1007,6 +1024,7 @@ Plazo para despachar: 2 días hábiles.
 function sellerAccept(id){
   const o=O(id);
   if(o.ship.type==='nat'){ setState(o,'preparando'); notify('admin',`Pedido #${o.id} en preparación`, SEL(o.sk).name+' aceptó la comanda.'); save(); render(); return; }
+  chooseDelivery(o.id, 'merk'); render(); return;
   const merkCost = o.ship.tarifa, s=SEL(o.sk);
   openModal(`<div class="mpad"><h2>¿Cómo vas a entregar el pedido #${o.id}?</h2><p class="sub">Domicilio a ${esc(o.addr.city)} · tarifa ${cop(merkCost)}</p>
     <div class="form">
@@ -1029,11 +1047,11 @@ function sellerTodo(o){
 function chooseDelivery(id, mode, quiet){
   const o=O(id); o.ship.mode=mode;
   o.sellerGross = mode==='merk' ? o.price - (o.ship.free ? o.ship.tarifa : 0) : o.price + o.ship.cost;
-  setState(o,'preparando', mode==='merk'?'El vendedor está preparando tu pedido. MER-K enviará un domiciliario a recogerlo.':undefined);
+  setState(o,'preparando', `${SEL(o.sk).name} aceptó tu pedido y ya inició la preparación.${mode==='merk'?' Cuando esté listo, MER-K programa el domicilio y te avisamos quién te lo lleva y cuándo (Medellín y alrededores: 1 a 2 días hábiles).':''}`);
   const s=SEL(o.sk);
   if(mode==='merk'){ o.readyPickup=true; notify('admin',`🛵 Solicitud de domiciliario · Pedido #${o.id}`, `${s.name} pide domiciliario de MER-K.\nRecoger en: ${s.addr} (${s.city})\nEntregar en: ${o.addr.dir}, ${o.addr.city}\nTarifa: ${cop(o.ship.tarifa)}${o.ship.free?' (la paga el vendedor)':''}\nAgéndalo en Administración → Domicilios.`); }
   else notify('admin',`Pedido #${o.id} en preparación`, `${s.name} aceptó la comanda · entrega con domiciliario propio.`);
-  save(); if(quiet) return; closeModal(); toast('Comanda aceptada.');
+  save(); if(quiet) return; closeModal(); toast(mode==='merk'?'Comanda aceptada. MER-K programa el domiciliario y te avisa quién recoge.':'Comanda aceptada.');
 }
 function readyPickup(id){ const o=O(id); o.readyPickup=true; notify('admin',`Pedido #${o.id} listo para recoger`, `${SEL(o.sk).name} · ${SEL(o.sk).addr}. Asigna el domiciliario.`); save(); toast('Le avisamos a MER-K para que envíe el domiciliario.'); render(); }
 function guiaForm(id){
@@ -1126,7 +1144,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración']];
+  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1162,6 +1180,7 @@ function viewAdmin(){
         <button class="btn ghost sm" onclick="manageOrder(${o.id})">Ver pedido</button></div></div>`).join(''):'<p class="empty">No hay domicilios pendientes.</p>'}</div>
       <div class="panel"><h3>Tarifas de la domiciliaria</h3><div class="tw"><table><tr><th>Destino</th><th>Tarifa base</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div><p class="note" style="margin:10px 0 0">Únicamente se cubren estas zonas. Se pueden editar en Configuración.</p></div>`; }
   if(t==='soporte') body = adminSupport();
+  if(t==='mensajes') body = adminMessenger();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
       <td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)}</span></td><td>${PLAN_INFO[s.plan].name}</td><td>${s.plan==='gratis'?'$0':cop(planPrice(s.plan))}</td><td>${s.sub?fdate(s.sub.due):'—'}</td><td>${SUB_BADGE[st]||'<span class="badge lav">Gratis</span>'}</td>
@@ -1247,7 +1266,7 @@ function manageOrder(id){
     <div class="panel" style="margin:0"><h3>Actualizar estado para el comprador</h3><form class="form" onsubmit="adminState(event,${o.id})">
       <div class="row2"><label>Nuevo estado<select id="aSt">${Object.entries(STATES).filter(([k])=>!['liberado'].includes(k)).map(([k,v])=>`<option value="${k}" ${k===next?'selected':''}>${v.label}</option>`).join('')}</select></label>
       <label>Mensaje para el comprador (opcional)<input id="aNote" placeholder="Si lo dejas vacío, va el mensaje por defecto"></label></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Actualizar y notificar</button><button type="button" class="btn ghost" onclick="openChat('o${o.id}:b','admin')">Chat con el comprador</button><button type="button" class="btn ghost" onclick="openChat('o${o.id}:s','admin')">Chat con el vendedor</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Actualizar y notificar</button><button type="button" class="btn ghost" onclick="openChat('o${o.id}:b','admin')">Chat con el comprador</button><button type="button" class="btn ghost" onclick="adminMsgSeller('${o.sk}', 'Hola ${esc(SEL(o.sk).name)} 👋 Te escribo por el pedido #${o.id} (${esc(o.title)}). ¿Cómo va? ')">Escribir al vendedor</button>
       ${o.status==='entregado'&&!LIVE?`<button type="button" class="btn ghost" onclick="release(O(${o.id}));save();closeModal();toast('Garantía terminada (simulado).')">Simular fin de garantía</button>`:''}</div></form></div></div>`);
 }
 function addExpense(e){ e.preventDefault(); S.expenses.unshift({what:$('#eWhat').value, amount:+$('#eAmt').value, date:now()}); save(); toast('Gasto registrado.'); render(); }
@@ -1306,8 +1325,8 @@ function programForm(id){
 function setProg(p,d){ $('#pPickD').value=p; $('#pDelD').value=d; const id=+$('#modal h2').textContent.split('#')[1]; progMsg(id); }
 function progMsg(id){
   const o=O(id), who=$('#pWho').value.trim()||'[domiciliario]', pd=$('#pPickD').value, pt=$('#pPickT').value, dd=$('#pDelD').value, dt=$('#pDelT').value;
-  $('#pMsgB').value = `¡Tu pedido #${o.id} fue programado! El domiciliario ${who} te lo estará entregando el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}.`;
-  $('#pMsgS').value = `Domicilio agendado para el pedido #${o.id}: ${who} pasa a recoger el ${dLabel(pd)}, ${pt.toLowerCase()}, en ${SEL(o.sk).addr}. Ten el pedido empacado y marcado con el #${o.id}.`;
+  $('#pMsgB').value = `¡Tu pedido #${o.id} quedó registrado para domicilio! 🛵 Te lo entrega ${who}, mensajero de MER-K, el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}. Recuerda que en Medellín y alrededores las entregas son de 1 a 2 días hábiles.`;
+  $('#pMsgS').value = `Hola ${SEL(o.sk).name} 👋 Domicilio programado para el pedido #${o.id} (${o.title}): el mensajero ${who} de MER-K pasa a recogerlo el ${dLabel(pd)}, ${pt.toLowerCase()}, en ${SEL(o.sk).addr}. Por favor ten el pedido empacado y marcado con el #${o.id}.`;
 }
 function saveProgram(e,id){ e.preventDefault(); const o=O(id), name=$('#pWho').value.trim();
   o.pickup={name, who:name+' (MER-K)', when:`${dLabel($('#pPickD').value)}, ${$('#pPickT').value}`, deliver:`${dLabel($('#pDelD').value)}, ${$('#pDelT').value}`};
@@ -1465,7 +1484,7 @@ function populateDemo(){
   // Mensajes y alertas del filtro
   at(23); S.chats['p1:b2']=[{from:'b',text:'Hola, ¿tienen garantía de fábrica?'},{from:'s',text:'¡Hola! Sí, tienen 6 meses de garantía.'}];
   S.chats['o'+o7.id+':b']=[{from:'b',text:'Hola, ¿ya despacharon mi pedido?'},{from:'a',text:'¡Hola Andrés! Sí, va por Envía. La guía y la fecha de entrega están en tu pedido.'}];
-  S.chats['o'+o9.id+':s']=[{from:'s',text:'El bolso ya está empacado, quedo atento al domiciliario.'}];
+  S.chats['m'+o9.sk]=[{from:'a',text:`Hola ${SEL(o9.sk).name} 👋 Te escribo por el pedido #${o9.id} (${o9.title}). ¿Ya lo tienes listo para el domiciliario?`, t:now()},{from:'s',text:'¡Hola! Sí, ya está empacado y marcado. Quedo atento al domiciliario.', t:now()}];
   S.chats['p6:b3']=[{from:'b',text:'¿Lo tienes en negro?'},{sys:1,text:'Mensaje bloqueado (Mención de WhatsApp). Advertencia 1 de 3: los datos de contacto no están permitidos.'}];
   BUY('b3').warnings=1;
   at(6); S.alerts.unshift({when:now(), who:'TecnoMed', text:'Escríbeme al tres cero cero uno dos tres…', reason:'Número de teléfono (en cifras, letras o símbolos)', where:'Chat'});
@@ -1921,6 +1940,7 @@ function notifLink(n){
   if(/plan|mensualidad/i.test(n.title)) return 'plan';
   if(/transferimos|dinero/i.test(n.title)) return 'dinero';
   if(/inventario|agotado/i.test(n.title)) return 'inventario';
+  if(/mensaje de mer-k/i.test(n.title)) return 'mensajes';
   if(/pregunta|vendedor respondió/i.test(n.title)) return 'mensajes';
   if(/cuenta bancaria/i.test(n.title)) return 'pagos';
   if(/anti-contacto/i.test(n.title)) return 'alertas';
@@ -1945,6 +1965,7 @@ function openNotif(i){
     return; }
   if(role==='seller' && ['plan','dinero','inventario','mensajes','soporte'].includes(l)){ S.ui.sellTab=l; return goHash('#vender'); }
   if(role==='admin' && ['pagos','alertas','soporte','planes'].includes(l)){ S.ui.adminTab=l; return goHash('#admin'); }
+  if(role==='admin' && l.startsWith('msj:')) return adminMsgSeller(l.slice(4));
   if(role==='buyer' && l==='soporte'){ S.ui.buyTab='soporte'; return goHash('#compras'); }
   render();
 }
@@ -1992,6 +2013,41 @@ function buyerCouponsTab(bk){
 
 /* ---------- Cuenta bancaria nueva: MER-K la verifica antes de transferir ---------- */
 function verifyBank(k){ SEL(k).bankPending=false; notify(k,'🏦 Verificamos tu cuenta bancaria', 'Tu cuenta nueva quedó verificada. Las próximas transferencias llegan allí.', {link:'dinero'}); save(); toast('Cuenta verificada.'); render(); }
+
+/* ---------- Mensajería MER-K ↔ vendedores (el vendedor responde cuando MER-K le escribe primero) ---------- */
+const msgThread = sk => 'm' + sk;
+const msgEnabled = sk => (S.chats[msgThread(sk)]||[]).some(m=>m.from==='a');
+function msgPending(){ return Object.keys(S.sellers).filter(k=>{ const c=S.chats[msgThread(k)]||[]; return c.length && c[c.length-1].from==='s'; }).length; }
+function msgBubbles(list, mine){
+  return list.length ? list.map(m=>`<div class="msg ${m.from===mine?'me':m.sys?'sys':''}">${esc(m.text)}${m.t?`<small>${m.t}</small>`:''}</div>`).join('') : '<p class="empty">Aún no hay mensajes.</p>';
+}
+function adminMsgSeller(sk, draft){ S.ui.adminTab='mensajes'; S.ui.msgSeller=sk; S.ui.msgDraft=draft||''; $('#scrim').classList.remove('open'); goHash('#admin'); setTimeout(()=>{ const i=$('#msgIn'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }, 200); }
+function adminMessenger(){
+  const q=deacc((S.ui.msgQ||'').toLowerCase()), all=Object.keys(S.sellers).filter(k=>k!==OFFICIAL);
+  const last=k=>{ const c=S.chats[msgThread(k)]||[]; return c[c.length-1]; };
+  const list=all.filter(k=>!q || deacc(SEL(k).name.toLowerCase()).includes(q)).sort((a,b)=>(last(b)?1:0)-(last(a)?1:0));
+  const sel=S.ui.msgSeller && S.sellers[S.ui.msgSeller] ? S.ui.msgSeller : null, conv=sel ? (S.chats[msgThread(sel)]||[]) : [];
+  return `<div class="messenger"><div class="panel mlist"><h3>Vendedores</h3><input class="msearch" placeholder="Buscar tienda…" value="${esc(S.ui.msgQ||'')}" oninput="S.ui.msgQ=this.value;render();setTimeout(()=>{const e=$('.msearch');e.focus();e.setSelectionRange(e.value.length,e.value.length)},0)">
+      ${list.map(k=>{ const l=last(k); return `<button class="mrow ${k===sel?'on':''}" onclick="S.ui.msgSeller='${k}';S.ui.msgDraft='';render()"><b>${esc(SEL(k).name)}</b>${l&&l.from==='s'?'<span class="badge warn">Por responder</span>':''}<br><span class="note">${l?esc((l.from==='a'?'Tú: ':'')+l.text).slice(0,60):'Sin mensajes'}</span></button>`; }).join('')||'<p class="empty">No hay vendedores.</p>'}</div>
+    <div class="panel mconv">${sel?`<div class="mhead"><div><h3 style="margin:0">${esc(SEL(sel).name)}</h3><span class="note">${esc(SEL(sel).owner)} · ${esc(SEL(sel).city)} · ${planBadge(sel)}</span></div></div>
+      <div class="mbody" id="mbody">${msgBubbles(conv,'a')}</div>
+      <form class="msend" onsubmit="event.preventDefault();sendThread('${msgThread(sel)}',$('#msgIn').value)"><textarea id="msgIn" rows="2" placeholder="Escríbele al vendedor…" required>${esc(S.ui.msgDraft||'')}</textarea><button class="btn">Enviar</button></form>
+      <p class="note" style="margin:6px 0 0">${msgEnabled(sel)?'El vendedor ve este chat en su pestaña Mensajes y puede responderte.':'Cuando le envíes el primer mensaje, al vendedor se le habilita este chat para responderte.'}</p>`
+      :'<p class="empty" style="padding:40px 0">Elige un vendedor para escribirle. Úsalo para preguntar cómo va un pedido, recordar actualizar un estado o cualquier tema interno.</p>'}</div></div>`;
+}
+function sellerMessenger(sk){
+  const conv=S.chats[msgThread(sk)]||[];
+  if(!msgEnabled(sk)) return `<div class="panel"><h3>Mensajes de MER-K</h3><p class="note" style="margin:0">Aquí verás los mensajes del equipo de MER-K cuando te escriban, por ejemplo para preguntarte por un pedido. Si necesitas algo de nuestra parte, escríbenos en <a href="javascript:S.ui.sellTab='soporte';render()">Soporte</a>.</p></div>`;
+  return `<div class="panel"><h3>Mensajes de MER-K</h3><div class="mbody" id="mbody">${msgBubbles(conv,'s')}</div>
+    <form class="msend" onsubmit="event.preventDefault();sendThread('${msgThread(sk)}',$('#msgIn').value)"><textarea id="msgIn" rows="2" placeholder="Responde a MER-K…" required></textarea><button class="btn">Enviar</button></form></div>`;
+}
+function sendThread(th, text){
+  text=String(text||'').trim(); if(!text) return; const adm=isRole('admin'), sk=th.slice(1);
+  if(!adm && !msgEnabled(sk)){ toast('MER-K te escribirá primero por aquí.'); return; }
+  (S.chats[th]=S.chats[th]||[]).push({from:adm?'a':'s', text, t:now()});
+  if(adm) notify(sk,'💬 Mensaje de MER-K', text, {link:'mensajes'}); else notify('admin',`💬 ${SEL(sk).name} te respondió`, text, {link:'msj:'+sk});
+  S.ui.msgDraft=''; save(); render(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50);
+}
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
@@ -2104,7 +2160,7 @@ async function loadAll(){
   addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||''}); });
   const EV = {}; evs.forEach(e=>(EV[e.order_id] = EV[e.order_id] || []).push(e));
   S.orders = orders.filter(o=>!['pendiente_pago','rechazado'].includes(o.status)).map(o=>mapOrder(o, EV[o.id]));
-  S.chats = {}; msgs.forEach(m=>(S.chats[m.thread] = S.chats[m.thread] || []).push(m.role==='sys' ? {sys:1, text:m.body} : {from:m.role, text:m.body}));
+  S.chats = {}; msgs.forEach(m=>(S.chats[m.thread] = S.chats[m.thread] || []).push(m.role==='sys' ? {sys:1, text:m.body, t:fmtTs(m.created_at)} : {from:m.role, text:m.body, t:fmtTs(m.created_at)}));
   S.notifs = notifs.map(n=>({id:n.id, to:n.for_admin?'admin':n.user_id, ts:Date.parse(n.created_at), t:fmtTs(n.created_at), title:n.title, body:n.body, read:n.read, tk:n.ticket_id||null, oid:n.order_id||null, link:n.link||null}));
   const TM = {}; tms.forEach(m=>(TM[m.ticket_id] = TM[m.ticket_id] || []).push({from:m.from_admin?'a':'u', text:m.body, t:fmtTs(m.created_at), img:m.image}));
   S.tickets = tks.map(t=>({id:t.id, from:t.user_id, role:t.role, subject:t.subject, cat:t.category, prio:t.priority, rank:t.rank, sla:t.sla_hours, status:t.status,
@@ -2304,13 +2360,7 @@ async function saveProduct(e, id){
 }
 async function sellerAccept(id){
   const o=O(id);
-  if(o.ship.type==='nat'){ await act(()=>api.rpc('seller_accept', {oid:id, mode:null}), 'Comanda aceptada.'); return; }
-  const merkCost=o.ship.tarifa, s=SEL(o.sk);
-  openModal(`<div class="mpad"><h2>¿Cómo vas a entregar el pedido #${o.id}?</h2><p class="sub">Domicilio a ${esc(o.addr.city)} · tarifa ${cop(merkCost)}</p>
-    <div class="form">
-      <label class="opt"><input type="radio" name="dm" value="merk" checked><span><b>Que MER-K me envíe un domiciliario</b><br><span class="note">Pasa a recoger a ${esc(s.addr)}. ${o.ship.free?`Como ofreciste domicilio gratis, se descuentan ${cop(merkCost)} de tu pago.`:`El comprador ya pagó el domicilio (${cop(merkCost)}); MER-K se lo paga a la domiciliaria.`}</span></span></label>
-      <label class="opt"><input type="radio" name="dm" value="propio"><span><b>Tengo domiciliario propio</b><br><span class="note">${o.ship.free?'Lo llevas por tu cuenta (ofreciste domicilio gratis).':`Lo llevas tú y recibes el valor del domicilio (${cop(o.ship.cost)}) con tu pago.`}</span></span></label>
-      <button class="btn" onclick="chooseDelivery(${o.id}, $('input[name=dm]:checked').value)">Aceptar y preparar</button></div></div>`, true);
+  await act(()=>api.rpc('seller_accept', {oid:id, mode:o.ship.type==='dom'?'merk':null}), o.ship.type==='dom' ? 'Comanda aceptada. MER-K programa el domiciliario y te avisa quién recoge.' : 'Comanda aceptada.');
 }
 async function chooseDelivery(id, mode){ await act(()=>api.rpc('seller_accept', {oid:id, mode}), 'Comanda aceptada.'); }
 function readyPickup(){ toast('MER-K ya tiene tu solicitud de domiciliario.'); }
@@ -2439,6 +2489,11 @@ async function claimCoupon(cid){
 async function rateOrder(id, n){ await act(()=>api.ins('reviews', [{order_id:id, buyer_id:ME.id, seller_id:O(id).sk, stars:n}]), '¡Gracias por calificar!', {close:false}); }
 async function verifyBank(k){ await act(()=>api.rpc('admin_verify_bank', {sid:k}), 'Cuenta verificada. Ya puedes transferirle.', {close:false}); }
 async function adminTogglePause(id){ await act(()=>api.upd('products', {paused:!P(id).paused}, {id})); }
+async function sendThread(th, text){
+  text=String(text||'').trim(); if(!text) return;
+  try{ await api.ins('messages', [{thread:th, body:text}]); S.ui.msgDraft=''; await reload(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50); }
+  catch(e){ toast(friendly(e)); }
+}
 function resetDemo(){} function confirmClaim(){} function reportPay(){} function demoApprove(){}
 
 /* =====================================================================
