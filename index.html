@@ -382,6 +382,8 @@ details summary{cursor:pointer}
 }
 .adreq{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 @media (max-width:640px){ .adreq{grid-template-columns:52px minmax(0,1fr)} .adreq>div:last-child{grid-column:1/-1;justify-content:flex-start!important} }
+
+.btn.wa{background:#25D366;color:#fff;border-color:#1DA851}.btn.wa:hover{background:#1DA851}
 </style>
 </head>
 <body>
@@ -573,6 +575,7 @@ const SEL = k => S.sellers[k] || {name:'Tienda', plan:'gratis', city:'', rating:
 function BUY(k){ return S.buyers[k] || {name:(S.orders.find(o=>o.bk===k)?.addr.name)||'Comprador', email:'', phone:'', doc:'', warnings:0, status:'activa', addresses:[]}; }
 const finalPrice = p => Math.round(p.p * (1 - discOf(p)/100));
 const inArea = city => AREA_MED.includes(city);
+const courier = () => S.cfg.courier || 'Logística P y G';
 const etaDom = () => S.cfg.etaDom || '4 a 7 días hábiles';
 const etaNat = () => S.cfg.etaNat || '4 a 7 días hábiles';
 const zonePrice = city => S.cfg.zones?.[city] ?? S.cfg.domicilio;
@@ -1090,7 +1093,8 @@ function viewSeller(){
         <li>Si <b>no</b> es gratis, el comprador paga el envío junto con el producto: en Medellín y alrededores, la tarifa de domicilio de su zona; en el resto del país, el costo de envío nacional que pusiste en el producto.</li>
         <li>Si <b>es gratis</b>, el comprador no paga envío y tú asumes el costo.</li>
         <li>El valor del envío que paga el comprador te llega con tu pago, <b>sin comisión</b>. MER-K no paga envíos.</li>
-        <li>Envío nacional: llevas el pedido a la transportadora que eligió el comprador y nos envías la guía. Domicilio en Medellín: usas tu domiciliario o nos pides uno (si el comprador no pagó domicilio, la tarifa se descuenta de tu pago).</li></ul></div>
+        <li><b>Domicilio en Medellín y alrededores:</b> MER-K pone el domiciliario. Tú solo aceptas la comanda y tienes el pedido listo y empacado; nosotros programamos la recogida y te avisamos quién pasa por él y cuándo. Si ofreciste domicilio gratis, la tarifa se descuenta de tu pago.</li>
+        <li><b>Envío nacional:</b> llevas el pedido a la transportadora que eligió el comprador y nos envías el número de guía.</li></ul></div>
     <div class="panel"><h3>Tarifas de domicilio en Medellín y alrededores</h3><div class="tw"><table><tr><th>Zona</th><th>Tarifa</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div></div>`;
   if(t==='mensajes'){ const keys=Object.keys(S.chats).filter(k=>(k[0]==='p'&&P(tPid(k))?.s===sk)||(k[0]==='o'&&k.endsWith(':s')&&O(tPid(k))?.sk===sk)).filter(k=>S.chats[k].length);
     body = sellerMessenger(sk) + `<div class="panel"><h3>Preguntas de compradores</h3><p class="note" style="margin-top:-6px">Lo que los compradores te preguntan sobre tus productos.</p>${keys.length?keys.map(k=>`<div class="addr"><div><b>${esc(chatTitle(k))}</b><br><span class="note">${S.chats[k].filter(m=>!m.sys).length} mensajes</span></div><button class="btn ghost sm" onclick="openChat('${k}','${sk}')">Abrir</button></div>`).join(''):'<p class="empty">Aún no hay mensajes.</p>'}</div>`; }
@@ -1263,7 +1267,7 @@ function viewAdmin(){
       <td class="note">${esc(BUY(o.bk).name)} → ${esc(SEL(o.sk).name)}</td>
       <td class="note">${o.ship.type==='dom'?(o.ship.mode==='merk'?'Domicilio MER-K':'Domicilio propio'):esc(o.ship.carrier)}<br>${esc(o.addr.city)}</td>
       <td>${stepsHtml(o)}${o.readyPickup&&o.status==='preparando'?'<span class="badge warn">Pide domiciliario MER-K</span>':''}${o.pendingInfo&&o.status==='preparando'?'<span class="badge warn">Guía o domicilio por compartir</span>':''}</td>
-      <td style="text-align:right"><button class="btn ${o.status==='pagado'||(o.status==='preparando'&&(o.readyPickup||o.pendingInfo))?'':'ghost'} sm" onclick="manageOrder(${o.id})">Gestionar</button></td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no hay pedidos.</p>'}</div>`;
+      <td style="text-align:right;white-space:nowrap">${['agendado','despachado','entregado'].includes(o.status)?`<button class="btn wa sm" title="Enviar aviso por WhatsApp" onclick="openWa('${esc(o.addr.phone||'')}', waShipMsg(O(${o.id})))">📲 WhatsApp</button> `:''}<button class="btn ${o.status==='pagado'||(o.status==='preparando'&&(o.readyPickup||o.pendingInfo))?'':'ghost'} sm" onclick="manageOrder(${o.id})">Gestionar</button></td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no hay pedidos.</p>'}</div>`;
   if(t==='resumen'){
     const wOrders=S.orders.reduce((a,o)=>a+wompiCost(o.price+o.ship.cost),0), wSubs=S.subPays.reduce((a,x)=>a+wompiCost(x.amount),0);
     const gastos=S.expenses.reduce((a,x)=>a+x.amount,0), ingresos=S.earnings.commissions+S.earnings.subs+S.earnings.proc, neta=ingresos-wOrders-wSubs-gastos;
@@ -1357,6 +1361,7 @@ function viewAdmin(){
         <label>Días para dar por entregado si el comprador no confirma<input id="cdays" type="number" min="1" max="30" value="${S.cfg.autoDays}"></label></div>
       <div class="row2"><label>Tiempo de entrega en Medellín y alrededores<input id="cetaD" maxlength="40" value="${esc(etaDom())}" placeholder="4 a 7 días hábiles"></label>
         <label>Tiempo de entrega nacional (aprox.)<input id="cetaN" maxlength="40" value="${esc(etaNat())}" placeholder="4 a 7 días hábiles"></label></div>
+      <label>Empresa de mensajería de los domicilios<input id="ccour" maxlength="40" value="${esc(courier())}" placeholder="Logística P y G"><span class="note" style="font-weight:500">Así sale en los mensajes al comprador y al vendedor: “mensajero de …”.</span></label>
       <p class="note" style="margin:-4px 0 0">Así lo ven los compradores en los productos, en el carrito y en el pago. Escríbelo como “4 a 7 días hábiles”.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar configuración</button>${LIVE?'':'<button type="button" class="btn bad" onclick="resetDemo()">Reiniciar la demo</button>'}</div></form></div>`;
   return `<h2>Panel de administración</h2><p class="sub">Aquí coordinan todo como dueños de MER-K: pedidos y comandas, estados para el comprador, garantías y transferencias a los vendedores.</p>
@@ -1375,11 +1380,12 @@ function manageOrder(id){
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" onclick="sendComanda(${o.id})">Pago confirmado: enviar comanda</button><button class="btn ghost" onclick="copyComanda(${o.id})">Copiar texto</button></div></div>`:''}
     ${o.pendingInfo&&o.status==='preparando'?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.pendingInfo.kind==='guia'?'2. El vendedor envió la guía':'2. El vendedor envió los datos de su domiciliario'}</h3>
       <form class="form" onsubmit="shareInfo(event,${o.id})"><label>Mensaje para el comprador (puedes editarlo)<textarea id="shareMsg" rows="4">${esc(shareText(o))}</textarea></label>
-      <div><button class="btn">Compartir con el comprador</button></div></form></div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="WA_AFTER=false">Compartir con el comprador</button><button class="btn wa" onclick="WA_AFTER=true">Compartir y enviar WhatsApp</button></div></form></div>`:''}
     ${o.ship.mode==='merk'&&['preparando','agendado'].includes(o.status)?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.status==='agendado'?'Domicilio agendado':'2. Programar el domicilio'}</h3>${domiRoute(o)}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn" onclick="programForm(${o.id})">Registrar domicilio</button>`:`<button class="btn" onclick="markOnTheWay(${o.id})">Marcar en camino</button><button class="btn ghost" onclick="programForm(${o.id})">Reprogramar</button>`}</div></div>`:''}
     ${o.status==='comanda'?'<div class="todo" style="margin:0 0 14px">Esperando que el vendedor acepte la comanda.</div>':''}
     ${o.status==='preparando'&&!o.pendingInfo&&o.ship.mode!=='merk'?`<div class="todo" style="margin:0 0 14px">Esperando que el vendedor envíe ${o.ship.type==='nat'?'la guía de '+esc(o.ship.carrier):'los datos de su domiciliario'}.</div>`:''}
+    ${waPanel(o)}
     <div class="panel" style="margin:0"><h3>Actualizar estado para el comprador</h3><form class="form" onsubmit="adminState(event,${o.id})">
       <div class="row2"><label>Nuevo estado<select id="aSt">${Object.entries(STATES).filter(([k])=>!['liberado'].includes(k)).map(([k,v])=>`<option value="${k}" ${k===next?'selected':''}>${v.label}</option>`).join('')}</select></label>
       <label>Mensaje para el comprador (opcional)<input id="aNote" placeholder="Si lo dejas vacío, va el mensaje por defecto"></label></div>
@@ -1402,7 +1408,7 @@ function shareText(o){
     ? `Tu número de guía para el pedido #${o.id}, desde ${o.origin} hasta ${o.addr.city}, fue registrado con éxito por ${i.carrier}: ${i.guia}. Entrega estimada: ${f}, en horario de ${i.time.replace(/\.$/,'')}.${i.obs?' '+i.obs+'.':''}`
     : `Tu pedido #${o.id} va con el domiciliario ${i.who}. Entrega: ${f}, ${i.time}.`;
 }
-function shareInfo(e,id){ e.preventDefault(); const o=O(id), i=o.pendingInfo;
+function shareInfo(e,id){ e.preventDefault(); const o=O(id), i=o.pendingInfo; waAfterShare(o);
   o.delivery = i.kind==='guia' ? {kind:'guia', carrier:i.carrier, guia:i.guia, date:i.date, time:i.time} : {kind:'domi', who:i.who, date:i.date, time:i.time};
   o.pendingInfo=null; setState(o,'despachado', $('#shareMsg').value.trim());
   notify(o.sk, `Pedido #${o.id} despachado`, 'MER-K le compartió los datos de envío al comprador.');
@@ -1436,18 +1442,23 @@ function programForm(id){
       <label>Mensaje para el comprador<textarea id="pMsgB" rows="3"></textarea></label>
       <label>Mensaje para el vendedor<textarea id="pMsgS" rows="3"></textarea></label>
       <p class="note" style="margin:0">En Medellín y alrededores las entregas son en ${etaDom()}: los domicilios se agendan un día antes para recoger en la mañana y entregar en ruta.</p>
-      <button class="btn">Guardar y notificar al vendedor y al comprador</button></form></div>`);
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="WA_AFTER=false">Guardar y notificar</button><button class="btn wa" onclick="WA_AFTER=true">Guardar y enviar WhatsApp al comprador</button></div></form></div>`);
   $('#pWho').addEventListener('input',()=>progMsg(o.id)); progMsg(o.id);
 }
 function setProg(p,d){ $('#pPickD').value=p; $('#pDelD').value=d; const id=+$('#modal h2').textContent.split('#')[1]; progMsg(id); }
 function progMsg(id){
   const o=O(id), who=$('#pWho').value.trim()||'[domiciliario]', pd=$('#pPickD').value, pt=$('#pPickT').value, dd=$('#pDelD').value, dt=$('#pDelT').value;
-  $('#pMsgB').value = `¡Tu pedido #${o.id} quedó registrado para domicilio! 🛵 Te lo entrega ${who}, mensajero de MER-K, el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}. Recuerda que en Medellín y alrededores las entregas son de ${etaDom()}.`;
-  $('#pMsgS').value = `Hola ${SEL(o.sk).name} 👋 Domicilio programado para el pedido #${o.id} (${o.title}): el mensajero ${who} de MER-K pasa a recogerlo el ${dLabel(pd)}, ${pt.toLowerCase()}, en ${SEL(o.sk).addr}. Por favor ten el pedido empacado y marcado con el #${o.id}.`;
+  $('#pMsgB').value = `¡Tu pedido #${o.id} quedó registrado para domicilio! 🛵 Te lo entrega ${who}, mensajero de ${courier()}, el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}. Recuerda que en Medellín y alrededores las entregas son de ${etaDom()}.`;
+  $('#pMsgS').value = `Hola ${SEL(o.sk).name} 👋 Domicilio programado para el pedido #${o.id} (${o.title}): el mensajero ${who} de ${courier()} pasa a recogerlo el ${dLabel(pd)}, ${pt.toLowerCase()}, en ${SEL(o.sk).addr}. Por favor ten el pedido empacado y marcado con el #${o.id}.`;
 }
-function saveProgram(e,id){ e.preventDefault(); const o=O(id), name=$('#pWho').value.trim();
-  o.pickup={name, who:name+' (MER-K)', when:`${dLabel($('#pPickD').value)}, ${$('#pPickT').value}`, deliver:`${dLabel($('#pDelD').value)}, ${$('#pDelT').value}`};
-  o.delivery={kind:'domi', who:name+' (MER-K)', date:$('#pDelD').value, time:$('#pDelT').value, guia:'DOM-'+String(o.id).padStart(6,'0')}; o.readyPickup=false;
+let WA_AFTER=false;
+function waAfterSchedule(o){ if(!WA_AFTER) return; WA_AFTER=false; const who=$('#pWho').value.trim(), dd=$('#pDelD').value, dt=$('#pDelT').value;
+  openWa(o.addr.phone, waShipMsg(Object.assign({}, o, {delivery:{kind:'domi', who, date:dd, time:dt, guia:'DOM-'+String(o.id).padStart(6,'0')}}))); }
+function waAfterShare(o){ if(!WA_AFTER) return; WA_AFTER=false; const i=o.pendingInfo||{};
+  openWa(o.addr.phone, o.ship.type==='nat' ? waShipMsg(Object.assign({}, o, {delivery:{kind:'guia', carrier:i.carrier||o.ship.carrier, guia:i.guia}})) : $('#shareMsg').value); }
+function saveProgram(e,id){ e.preventDefault(); const o=O(id), name=$('#pWho').value.trim(); waAfterSchedule(o);
+  o.pickup={name, who:name+' ('+courier()+')', when:`${dLabel($('#pPickD').value)}, ${$('#pPickT').value}`, deliver:`${dLabel($('#pDelD').value)}, ${$('#pDelT').value}`};
+  o.delivery={kind:'domi', who:name+' ('+courier()+')', date:$('#pDelD').value, time:$('#pDelT').value, guia:'DOM-'+String(o.id).padStart(6,'0')}; o.readyPickup=false;
   setState(o,'agendado', $('#pMsgB').value.trim());
   notify(o.sk, `🛵 Domicilio agendado · Pedido #${o.id}`, $('#pMsgS').value.trim());
   save(); toast('Domicilio agendado. Avisamos al vendedor y al comprador.'); closeModal(); }
@@ -1473,7 +1484,7 @@ function savePayout(e,k){ e.preventDefault(); const s=SEL(k), amount=s.available
   S.orders.filter(o=>o.sk===k && o.status==='liberado' && !o.liquidated).forEach(o=>o.liquidated=true);
   notify(k, 'Te transferimos tu dinero', `${cop(amount)} a tu cuenta ${s.bank.banco} ${s.bank.num}. Comprobante: ${ref}`);
   save(); toast(`Transferencia de ${cop(amount)} registrada.`); closeModal(); }
-function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
+function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
 function adminDelivered(id){ markDelivered(O(id),'Pedido entregado.'); save(); render(); }
 function adminSuspend(k){ suspendPlan(k,'manual'); save(); toast('Plan desactivado.'); render(); }
 function adminBlock(k){ SEL(k).status='bloqueada'; save(); render(); }
@@ -2607,6 +2618,33 @@ function sellerCalcPanel(sk){
       <div id="scOut">${sellerCalcRows(sk)}</div></div></div>`;
 }
 
+
+/* =====================================================================
+   AVISOS POR WHATSAPP AL COMPRADOR (desde el WhatsApp de MER-K)
+   Abre WhatsApp con el mensaje ya escrito; solo hay que tocar Enviar.
+   ===================================================================== */
+function waNumber(phone){ let d=String(phone||'').replace(/\D/g,''); if(d.length===10 && d[0]==='3') d='57'+d; return d; }
+function waLink(phone, text){ return `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(text)}`; }
+function openWa(phone, text){ if(!waNumber(phone)){ toast('Este pedido no tiene celular del comprador.'); return; } window.open(waLink(phone, text), '_blank', 'noopener'); }
+function orderProducts(o){ return (o.items&&o.items.length?o.items:[{title:o.title, qty:1}]).map(l=>l.title+(l.qty>1?` (x${l.qty})`:'')).join(', '); }
+function waShipMsg(o){
+  const name=String(o.addr?.name||BUY(o.bk).name||'').trim().split(' ')[0], store=SEL(o.sk).name, prods=orderProducts(o), d=o.delivery||{}, pk=o.pickup||{};
+  const hi=`Hola ${name} 👋 Tu pedido #${o.id} de la tienda ${store} (${prods})`;
+  if(o.ship.type==='nat'){
+    const car=d.carrier||o.ship.carrier||'la transportadora', guia=d.guia||'[número de guía]';
+    return `${hi} ya fue despachado 📦\n\nTransportadora: ${car}\nNúmero de guía: ${guia}\n\nPuedes rastrearlo en la página de ${car}. ¡Gracias por comprar en MER-K! 💜`;
+  }
+  const who=String(d.who||pk.who||'nuestro mensajero').replace(/ \([^)]*\)$/,''), when=d.date?`${dLabel(d.date)}${d.time?', '+d.time.toLowerCase():''}`:(pk.deliver||'');
+  return `${hi} ya fue despachado 🛵\n\nTe lo entrega ${who}, mensajero de ${courier()}${when?', el '+when:''}.\nCódigo de seguimiento: ${d.guia||'DOM-'+String(o.id).padStart(6,'0')}\nDirección: ${addrLine(o.addr)}\n\n¡Gracias por comprar en MER-K! 💜`;
+}
+function waPanel(o){
+  if(!['agendado','despachado','entregado'].includes(o.status) && !o.delivery) return '';
+  return `<div class="panel" style="margin:0 0 14px;border-color:#25D366"><h3>📲 Avisar al comprador por WhatsApp</h3>
+    <p class="note" style="margin-top:-6px">Se abre el WhatsApp de MER-K con este mensaje listo para ${esc(o.addr.name||'el comprador')} (${esc(o.addr.phone||'sin celular')}). Revisa los datos y toca Enviar.</p>
+    <div class="form"><textarea id="waMsg" rows="7">${esc(waShipMsg(o))}</textarea>
+    <div><button type="button" class="btn wa" onclick="openWa('${esc(o.addr.phone||'')}', $('#waMsg').value)">Abrir WhatsApp y enviar</button></div></div></div>`;
+}
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
@@ -3055,9 +3093,9 @@ async function closeTicket(id){ await act(()=>api.rpc('admin_close_ticket', {tid
    ADMINISTRACIÓN
    ===================================================================== */
 async function sendComanda(id){ await act(()=>api.rpc('admin_send_comanda', {oid:id}), 'Comanda enviada al vendedor.'); }
-async function shareInfo(e,id){ e.preventDefault(); await act(()=>api.rpc('admin_share_info', {oid:id, msg:$('#shareMsg').value.trim()}), 'Datos compartidos con el comprador.'); }
-async function saveProgram(e,id){ e.preventDefault(); const name=$('#pWho').value.trim();
-  const pickup={name, who:name+' (MER-K)', when:`${dLabel($('#pPickD').value)}, ${$('#pPickT').value}`, deliver:`${dLabel($('#pDelD').value)}, ${$('#pDelT').value}`, deliver_date:$('#pDelD').value, deliver_time:$('#pDelT').value};
+async function shareInfo(e,id){ e.preventDefault(); waAfterShare(O(id)); await act(()=>api.rpc('admin_share_info', {oid:id, msg:$('#shareMsg').value.trim()}), 'Datos compartidos con el comprador.'); }
+async function saveProgram(e,id){ e.preventDefault(); waAfterSchedule(O(id)); const name=$('#pWho').value.trim();
+  const pickup={name, who:name+' ('+courier()+')', when:`${dLabel($('#pPickD').value)}, ${$('#pPickT').value}`, deliver:`${dLabel($('#pDelD').value)}, ${$('#pDelT').value}`, deliver_date:$('#pDelD').value, deliver_time:$('#pDelT').value};
   await act(()=>api.rpc('admin_schedule', {oid:id, pickup, buyer_msg:$('#pMsgB').value.trim(), seller_msg:$('#pMsgS').value.trim()}), 'Domicilio agendado. Avisamos al vendedor y al comprador.'); }
 async function markOnTheWay(id){ await act(()=>api.rpc('admin_on_the_way', {oid:id}), 'Pedido en camino.'); }
 async function adminState(e,id){ e.preventDefault(); const st=$('#aSt').value, note=$('#aNote').value.trim();
@@ -3070,7 +3108,7 @@ async function resolveClaim(id, how){ if(how==='refund' && !confirm('¿Devolver 
   await act(()=>api.rpc('admin_resolve_claim', {oid:id, how}), how==='refund'?'Dinero devuelto al comprador.':'Pago liberado al vendedor.'); }
 async function savePayout(e,k){ e.preventDefault(); const ref=$('#pRef').value.trim()+($('#pBank').value.trim()?' · '+$('#pBank').value.trim():'');
   await act(()=>api.rpc('admin_payout', {sid:k, reference:ref}), 'Transferencia registrada.'); }
-async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles';
+async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles';
   c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value);
   c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value;
   AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); c.autoDays=Math.max(1,+$('#cdays').value||5);
