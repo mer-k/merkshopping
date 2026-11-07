@@ -1121,7 +1121,7 @@ function comandaText(o){
   const s=SEL(o.sk), days=S.cfg.holdDays;
   const entrega = o.ship.type==='nat'
     ? `ENVÍO NACIONAL por ${o.ship.carrier.toUpperCase()} (la eligió el comprador) · desde ${o.origin} hasta ${o.addr.city}${o.ship.free?' · envío gratis: lo asumes tú':''}`
-    : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${' · lo recoge el domiciliario de MER-K (te avisamos día y hora)'}`;
+    : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${' · lo recoge el mensajero de '+courier()+' (te avisamos día y hora)'}`;
   return `🧾 COMANDA MER-K · Pedido #${o.id}
 Productos:
 ${(o.items&&o.items.length?o.items:[{title:o.title, qty:1}]).map(l=>'• '+l.title+' × '+l.qty).join('\n')}
