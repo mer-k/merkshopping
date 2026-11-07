@@ -336,6 +336,50 @@ details summary{cursor:pointer}
 
 .dangerbox{border:1.5px solid #F2C4C4}
 .dangerbox h3{color:var(--bad)}
+
+/* ---------- Carrito ---------- */
+.cartbtn{background:var(--blue-soft)}
+.buybtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.buybtns .btn{padding-left:10px;padding-right:10px}
+.cart{display:grid;gap:10px}
+.citem{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.cthumb{width:64px;height:64px;border-radius:10px;background-size:cover;background-position:center;display:grid;place-items:center;font-size:30px}
+.cinfo{display:grid;gap:2px;min-width:0}.cinfo b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qty{display:flex;align-items:center;gap:8px;margin-top:4px}
+.qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--lav-soft);font-weight:800;font-size:16px;line-height:1;cursor:pointer}
+.qty span{min-width:18px;text-align:center;font-weight:800}
+.cline{white-space:nowrap}
+/* ---------- Pago en 2 pasos ---------- */
+.costeps{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.costeps span{font-size:12.5px;font-weight:800;padding:5px 12px;border-radius:999px;background:var(--line);color:var(--ink2)}
+.costeps span.on{background:var(--blue);color:#fff}.costeps span.done{background:var(--pear-soft);color:var(--pear-d);cursor:pointer}
+.cogroup{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px;background:#fff}
+.cohead{font-weight:800;margin-bottom:6px}
+.coline{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px;align-items:center}
+.coline>span:last-child{white-space:nowrap;font-weight:700}
+.coline.good>span:last-child{color:var(--pear-d)}
+.cocar{border:1px solid var(--line);border-radius:8px;padding:3px 6px;font:inherit;font-size:13px;background:#fff}
+/* ---------- Banner publicitario ---------- */
+.adban{position:relative;overflow:hidden;border-radius:18px;margin:18px 0 6px;aspect-ratio:5/1;max-height:190px;width:100%;background:var(--lav-soft)}
+.adtrack{display:flex;height:100%;transition:transform .6s ease}
+.adslide{flex:0 0 100%;height:100%;display:block}
+.adslide img{width:100%;height:100%;object-fit:cover;display:block}
+.addots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.addots button{width:8px;height:8px;border-radius:50%;border:0;background:rgba(255,255,255,.6);padding:0;cursor:pointer}
+.addots button.on{background:#fff;width:20px;border-radius:99px}
+.adtag{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.45);color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px}
+.adempty{display:grid;place-items:center;text-align:center;background:linear-gradient(120deg,var(--blue-soft),var(--lav-soft) 55%,var(--pear-soft));border:2px dashed #CFC6E6;max-height:110px}
+.adempty div{display:grid;gap:2px;padding:10px 16px}.adempty b{font-size:18px;color:var(--blue-d)}.adempty span{color:var(--ink2);font-size:13.5px}
+.adempty .adtag{background:rgba(35,34,52,.25)}
+.adrow{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.adrow img{width:120px;aspect-ratio:5/1;object-fit:cover;border-radius:8px;background:var(--line)}
+@media (max-width:640px){
+  .buybtns{grid-template-columns:1fr}
+  .adban{aspect-ratio:3/1;border-radius:14px;margin-top:12px}
+  .adempty{aspect-ratio:auto;min-height:84px}
+  .adrow{grid-template-columns:90px minmax(0,1fr)}.adrow>div:last-child{grid-column:1/-1}
+  .citem{grid-template-columns:52px minmax(0,1fr)}.cthumb{width:52px;height:52px}.cline{grid-column:2}
+}
 </style>
 </head>
 <body>
@@ -412,7 +456,7 @@ function seed(){
   return {
     v:11,
     cfg:{ fees:{gratis:8, emprendedor:5, pro:3.5, oficial:0}, fixedFee:0, fixedUnder:0, prices:{emprendedor:39900, pro:89900}, limits:{gratis:15, emprendedor:150},
-          wompiPct:2.65, wompiFixed:700, iva:19, graceDays:3, domicilio:8000,
+          wompiPct:2.64, wompiFixed:690, iva:19, graceDays:3, domicilio:8000,
           zones:{...DOM_TARIFFS},
           carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{emprendedor:'', pro:''} },
     loc:'Medellín', locAsked:false, session:null,
@@ -470,6 +514,7 @@ function seed(){
 let S;
 let NEEDS_DEMO=false;
 S = blankState();
+if(S.cfg && S.cfg.wompiPct===2.65 && S.cfg.wompiFixed===700){ S.cfg.wompiPct=2.64; S.cfg.wompiFixed=690; }
 function save(){ try{ localStorage.setItem('merk-v11', JSON.stringify(S)); }catch(e){} }
 
 /* =================== FILTRO ANTI-CONTACTO =================== */
@@ -655,10 +700,10 @@ function shipLine(p){
 /* =================== SESIÓN =================== */
 function headerRight(){
   const s = me();
-  if(!s) return `<button class="btn ghost sm" onclick="loginModal()">Iniciar sesión</button><button class="btn sm" onclick="registerModal()">Crear cuenta</button>`;
+  if(!s) return `${cartBtn()}<button class="btn ghost sm" onclick="loginModal()">Iniciar sesión</button><button class="btn sm" onclick="registerModal()">Crear cuenta</button>`;
   const unread = S.notifs.filter(n=>n.to===s.key && !n.read).length;
   const name = s.role==='admin' ? 'Administración' : s.role==='seller' ? SEL(s.key).name : BUY(s.key).name.split(' ')[0];
-  return `<button class="bell" onclick="showNotifs()" aria-label="Notificaciones">🔔${unread?`<span>${unread}</span>`:''}</button>
+  return `${s.role==='buyer'?cartBtn():''}<button class="bell" onclick="showNotifs()" aria-label="Notificaciones">🔔${unread?`<span>${unread}</span>`:''}</button>
     <button class="hello" onclick="goProfile()" title="Mi perfil">${avatarHtml()}Hola, <b>${esc(name)}</b></button><button class="btn ghost sm" onclick="logout()">Salir</button>`;
 }
 function navLinks(){
@@ -778,6 +823,7 @@ function viewHome(){
       <div><b>Domicilios en Medellín y alrededores</b> en 1 a 2 días hábiles y envíos a toda Colombia.</div>
       <div><b>Chat seguro</b> y vendedores verificados.</div>
     </div></section>
+  ${bannerHtml()}
   ${featured.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${featured.map(card).join('')}</div>`:''}
   ${deals.length?`<div class="sec"><h3>Ofertas del día</h3><a class="note" href="#ofertas">Ver todas</a></div><div class="row">${deals.map(card).join('')}</div>`:''}`:''}
   <div class="chips">${CATS.map(c=>`<button class="chip ${S.ui.cat===c?'on':''}" onclick="S.ui.cat='${c}';render()">${c}</button>`).join('')}</div>
@@ -842,12 +888,13 @@ function showProduct(id){
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}${cps.length?`<div class="cpline">🎟️ Cupón de la tienda: ${cps.map(c=>`<b>${esc(c.code)}</b> (${couponLabel(c)})`).join(' · ')}</div>`:''}
       <div class="seller"><div><b>${esc(s.name)}</b><br><span class="note">${ratingLine(p.s)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
       <div class="protect"><b>Compra protegida:</b> tu pago queda en MER-K y tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="checkout(${p.id})">Comprar ahora</button>
-        <button class="btn ghost" onclick="openChat('p${p.id}','b')">Preguntar al vendedor</button></div></div></div>`);
+      <div class="buybtns"><button class="btn" onclick="buyNow(${p.id})">Comprar ahora</button><button class="btn lav" onclick="addToCart(${p.id})">🛒 Agregar y seguir comprando</button></div>
+      <button class="btn ghost sm" style="justify-self:start" onclick="openChat('p${p.id}','b')">Preguntar al vendedor</button></div></div>`);
 }
 
 /* ---------- Checkout ---------- */
-function checkout(id){
+function checkout(id){ return buyNow(id); }
+function checkoutOld(id){
   if(!isRole('buyer')){ loginModal(me()?'Para comprar necesitas una cuenta de comprador.':'Inicia sesión o crea tu cuenta de comprador para comprar.'); return; }
   const p=P(id), b=BUY(me().key), A=b.addresses;
   if(!A.length){ toast('Primero agrega una dirección de entrega.'); S.ui.buyTab='direcciones'; closeModal(); location.hash='#compras'; return; }
@@ -941,11 +988,12 @@ function viewBuyer(){
       ${rateBox(o)}<details style="margin-top:8px"><summary class="note">Ver historial del pedido</summary>${timelineHtml(o)}</details></div>`).join('')
     : '<div class="panel"><p class="empty">Aún no tienes compras.</p></div>';
   if(t==='direcciones') body = `<div class="split"><div class="panel"><h3>Mis direcciones</h3>
-    ${b.addresses.map(a=>`<div class="addr"><div><b>${esc(a.alias)}</b> · ${esc(a.name)}<br><span class="note">${esc(a.dir)}, ${esc(a.city)}${a.notes?' · '+esc(a.notes):''}</span></div><button class="btn bad sm" onclick="delAddr(${a.id})">Quitar</button></div>`).join('') || '<p class="empty">No tienes direcciones guardadas.</p>'}</div>
+    ${b.addresses.map(a=>`<div class="addr"><div><b>${esc(a.alias)}</b> · ${esc(a.name)}<br><span class="note">${esc(addrLine(a))}${a.phone?' · '+esc(a.phone):''}${a.notes?' · '+esc(a.notes):''}</span></div><button class="btn bad sm" onclick="delAddr(${a.id})">Quitar</button></div>`).join('') || '<p class="empty">No tienes direcciones guardadas.</p>'}</div>
     <div class="panel"><h3>Agregar dirección</h3><form class="form" onsubmit="addAddr(event)">
       <div class="row2"><label>Nombre (ej: Casa, Oficina)<input id="aAlias" required maxlength="20"></label><label>Quién recibe<input id="aName" required maxlength="40"></label></div>
-      <label>Dirección<input id="aDir" required placeholder="Calle, carrera, número, apto"></label>
-      <div class="row2"><label>Barrio, municipio o ciudad<select id="aCity" ${otherToggle('aCity','aCityO')}>${cityOptions(S.loc)}</select><input id="aCityO" placeholder="Escribe tu municipio" style="display:none"></label><label>Indicaciones<input id="aNotes" placeholder="Portería, torre…"></label></div>
+      <div class="row2"><label>Celular de quien recibe<input id="aPhone" required inputmode="numeric" maxlength="10" value="${esc(b.phone||'')}"></label><label>Municipio o ciudad<select id="aCity" ${otherToggle('aCity','aCityO')}>${cityOptions(S.loc)}</select><input id="aCityO" placeholder="Escribe tu municipio" style="display:none"></label></div>
+      <div class="row2"><label>Barrio<input id="aBarrio" required maxlength="60"></label><label>Dirección<input id="aDir" required placeholder="Calle, carrera, número, apto"></label></div>
+      <label>Punto de referencia<input id="aNotes" placeholder="Frente al parque, portería torre 2…"></label>
       <div><button class="btn">Guardar dirección</button></div></form></div></div>`;
   if(t==='cuenta') body = profileTab() + `<div class="panel"><p class="note" style="margin:0">Cuenta ${statusBadge(b.status)} · Advertencias por compartir datos de contacto: ${b.warnings} de 3. Tu celular y tu correo solo los ve MER-K; a los vendedores solo les llega el nombre, la dirección y el teléfono de entrega para la guía.</p></div>`;
   if(t==='soporte') body = supportTab(bk);
@@ -953,7 +1001,7 @@ function viewBuyer(){
   return `<h2>Mis compras</h2><p class="sub">Sigue cada pedido paso a paso. Te avisamos con una notificación 🔔 cada vez que cambia.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.buyTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
 }
-function addAddr(e){ e.preventDefault(); BUY(me().key).addresses.push({id:Date.now(), alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}); save(); toast('Dirección guardada.'); render(); }
+function addAddr(e){ e.preventDefault(); if(!validPhone($('#aPhone').value)){ toast('El celular debe tener 10 dígitos y empezar por 3.'); return; } BUY(me().key).addresses.push({id:Date.now(), alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), phone:$('#aPhone').value.replace(/\s/g,''), barrio:$('#aBarrio').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}); save(); toast('Dirección guardada.'); render(); }
 function delAddr(id){ const b=BUY(me().key); b.addresses=b.addresses.filter(a=>a.id!==id); save(); render(); }
 function gate(role){
   const what = {buyer:'tus compras', seller:'tu tienda', admin:'la administración'}[role];
@@ -1066,12 +1114,13 @@ function comandaText(o){
     ? `ENVÍO NACIONAL por ${o.ship.carrier.toUpperCase()} (la eligió el comprador) · desde ${o.origin} hasta ${o.addr.city}${o.ship.free?' · envío gratis: lo asumes tú':''}`
     : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${' · lo recoge el domiciliario de MER-K (te avisamos día y hora)'}`;
   return `🧾 COMANDA MER-K · Pedido #${o.id}
-Producto: ${o.title} (1 und.)
+Productos:
+${(o.items&&o.items.length?o.items:[{title:o.title, qty:1}]).map(l=>'• '+l.title+' × '+l.qty).join('\n')}
 Vendedor: ${s.name}
 Entrega: ${entrega}
 Destinatario: ${o.addr.name}
-Dirección: ${o.addr.dir}, ${o.addr.city}${o.addr.notes?' ('+o.addr.notes+')':''}
-Teléfono para la guía: ${o.addr.phone}
+Celular: ${o.addr.phone}
+Dirección: ${addrLine(o.addr)}${o.addr.notes?'\nPunto de referencia: '+o.addr.notes:''}
 Valor de la venta: ${cop(o.price)} · Comisión MER-K ${fmtPct(+(o.fee*100).toFixed(2))}: ${cop(commOf(o))} · Procesamiento de pago: ${cop(o.proc||0)}
 Recibes: ${cop(o.sellerGross - feeAmtOf(o))} cuando termine la garantía (${days} días hábiles después de entregado)
 Plazo para despachar: 2 días hábiles.
@@ -1164,7 +1213,8 @@ function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), r=check(t+' \n '+d);
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), r=check(t+' \n '+d), ban=bannedReason(t+' '+d);
+  if(ban){ bannedAlert(ban); return; }
   if(!r.ok){ const m=strike(s, s.name, t+' — '+d, r.reason, id?'Edición de producto':'Publicación'); save(); toast('No se guardó: '+r.reason+'. '+m); return; }
   const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0)};
   const images=PF_PHOTOS.map(f=>f.url||f.prev); data.images=images; data.img=images[0]||null;
@@ -1177,7 +1227,7 @@ function plansHtml(sk){
   const status = PAID.includes(cur) && s.sub ? `<div class="panel"><h3>Tu plan: ${PLAN_INFO[cur].name}</h3>
       <p>${SUB_BADGE[ss]} ${ss==='suspendido'?'Tu tienda funciona con las condiciones del plan Gratis hasta que pagues.':`Vence el <b>${fdate(s.sub.due)}</b>.`}</p>
       <p class="note">Mensualidad: ${cop(planPrice(cur))}. Si no pagas, tienes ${S.cfg.graceDays} días de gracia y después el plan se desactiva.</p>
-      ${S.subClaims.some(c=>c.sk===sk&&c.status==='pendiente')?'<p><span class="badge warn">Pago enviado · MER-K lo está confirmando</span></p>':''}<button class="btn" onclick="payPlan('${cur}')">Pagar mensualidad con Wompi</button></div>` : '';
+      ${S.subClaims.some(c=>c.sk===sk&&c.status==='pendiente')?'<p><span class="badge warn">Pago enviado · MER-K lo está confirmando</span></p>':''}<button class="btn" onclick="payPlan('${cur}')">Pagar mensualidad</button></div>` : '';
   return status + `<div class="plans">${['gratis','emprendedor','pro'].map(k=>`<div class="plan ${k==='emprendedor'?'hot':''}">
     ${k==='emprendedor'?'<span class="badge lav" style="align-self:flex-start">El más elegido</span>':''}
     <h3>${PLAN_INFO[k].name}</h3><div class="big">${k==='gratis'?'$0':cop(planPrice(k))}<span class="note"> ${k==='gratis'?'':'/ mes'}</span></div>
@@ -1201,7 +1251,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
+  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1214,7 +1264,7 @@ function viewAdmin(){
     const gastos=S.expenses.reduce((a,x)=>a+x.amount,0), ingresos=S.earnings.commissions+S.earnings.subs+S.earnings.proc, neta=ingresos-wOrders-wSubs-gastos;
     const pend=S.orders.filter(o=>!['liberado','devuelto'].includes(o.status)&&o.sk!==OFFICIAL).reduce((a,o)=>a+commOf(o),0);
     body = `<div class="profit"><div><small>Ganancia de MER-K</small><div class="big" style="${neta<0?'color:var(--bad)':''}">${cop(neta)}</div>${neta<0?'<span class="note">Todavía en negativo: los gastos de lanzamiento aún no se cubren con los ingresos.</span><br>':''}
-        <span class="note">Comisiones ${cop(S.earnings.commissions)} + mensualidades ${cop(S.earnings.subs)} + procesamiento cobrado ${cop(S.earnings.proc)} − Wompi ${cop(wOrders+wSubs)} − gastos ${cop(gastos)}</span></div>
+        <span class="note">Comisiones ${cop(S.earnings.commissions)} + mensualidades ${cop(S.earnings.subs)} + procesamiento cobrado ${cop(S.earnings.proc)} − pasarela de pagos ${cop(wOrders+wSubs)} − gastos ${cop(gastos)}</span></div>
         <div><small>Comisiones por ganar</small><div class="mid">${cop(pend)}</div><span class="note">En pedidos que aún no terminan la garantía</span></div>
         <div><small>Ventas tienda oficial</small><div class="mid">${cop(S.earnings.official)}</div><span class="note">Ingreso propio, antes de restar el costo de los productos</span></div></div>
       <h3 class="f" style="color:var(--blue);margin:6px 0 10px">Dinero de los vendedores (no es de MER-K)</h3>
@@ -1238,6 +1288,7 @@ function viewAdmin(){
       <div class="panel"><h3>Tarifas de la domiciliaria</h3><div class="tw"><table><tr><th>Destino</th><th>Tarifa base</th></tr>${AREA_MED.map(z=>`<tr><td>${esc(z)}</td><td>${cop(zonePrice(z))}</td></tr>`).join('')}</table></div><p class="note" style="margin:10px 0 0">Únicamente se cubren estas zonas. Se pueden editar en Configuración.</p></div>`; }
   if(t==='soporte') body = adminSupport();
   if(t==='mensajes') body = adminMessenger();
+  if(t==='publicidad') body = adminAdsTab();
   if(t==='perfil') body = profileTab();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
@@ -1290,7 +1341,7 @@ function viewAdmin(){
         <label>Porcentaje (%)<input id="wp" type="number" min="0" step="0.01" value="${S.cfg.wompiPct}"></label>
         <label>Valor fijo<input id="wf" type="number" min="0" step="10" value="${S.cfg.wompiFixed}"></label>
         <label>IVA (%)<input id="wi" type="number" min="0" value="${S.cfg.iva}"></label></div>
-        <span class="note">Pongan aquí la tarifa exacta que les dé Wompi. Se descuenta al vendedor y se muestra en la sección "¿Cuánto cuesta procesar un pago?".</span></fieldset>
+        <span class="note">Pongan aquí la tarifa exacta que les dé la pasarela de pagos (Efipay u otra). Se descuenta al vendedor y se muestra en la sección "¿Cuánto cuesta procesar un pago?".</span></fieldset>
       <fieldset><legend>Tarifas de envío (de ejemplo)</legend><div class="row3">
         ${CARRIERS.map((c,i)=>`<label>${c}<input id="car${i}" type="number" min="0" step="500" value="${S.cfg.carriers[c]}"></label>`).join('')}</div>
         <span class="note">En la versión real, las tarifas nacionales dependen del peso y el destino.</span></fieldset>
@@ -1308,11 +1359,11 @@ function manageOrder(id){
   const next = {pagado:'comanda', comanda:'preparando', preparando:o.ship.mode==='merk'?'agendado':'despachado', agendado:'despachado', despachado:'entregado'}[o.status];
   openModal(`<div class="mpad"><h2>Pedido #${o.id}</h2><p class="sub">${esc(o.title)} · ${o.created}</p>
     <div class="split">
-      <div class="panel" style="margin:0"><h3>Comprador</h3><p class="note" style="margin:0"><b>${esc(b.name)}</b><br>${esc(b.email)} · ${esc(b.phone)}<br>Entregar a: ${esc(o.addr.name)}<br>${esc(o.addr.dir)}, ${esc(o.addr.city)}${o.addr.notes?' ('+esc(o.addr.notes)+')':''}<br>Pagó ${cop(o.price+o.ship.cost)} con ${esc(o.pay)}</p></div>
+      <div class="panel" style="margin:0"><h3>Comprador</h3><p class="note" style="margin:0"><b>${esc(b.name)}</b><br>${esc(b.email)} · ${esc(b.phone)}<br>Entregar a: ${esc(o.addr.name)} · ${esc(o.addr.phone||'')}<br>${esc(addrLine(o.addr))}${o.addr.notes?'<br>Referencia: '+esc(o.addr.notes):''}<br>Pagó ${cop(o.price+o.ship.cost)} con ${esc(o.pay)}</p></div>
       <div class="panel" style="margin:0"><h3>Vendedor</h3><p class="note" style="margin:0"><b>${esc(s.name)}</b> · ${esc(s.owner)}<br>${esc(s.email)} · ${esc(s.phone)}<br>Despacha desde: ${esc(s.addr)}<br>Comisión ${fmtPct(+(o.fee*100).toFixed(2))}: ${cop(commOf(o))} · Procesamiento: ${cop(o.proc||0)} · Para el vendedor: ${cop(o.sellerGross-feeAmt)}</p></div></div>
     <div class="panel" style="margin:14px 0"><h3>Estado</h3>${stepsHtml(o)}${deliveryHtml(o)}${o.status==='entregado'?`<p class="note">Garantía hasta el <b>${fdate(o.releaseAt)}</b></p>`:''}
       <details style="margin-top:8px"><summary class="note">Historial que ve el comprador</summary>${timelineHtml(o)}</details></div>
-    ${o.status==='pagado'?`<div class="panel" style="margin:0 0 14px"><h3>1. Confirmar el pago y enviar la comanda</h3><p class="note" style="margin-top:-6px">Verifica en Wompi que entró el pago de ${cop(o.price+o.ship.cost)}. Al enviar, el vendedor recibe esta comanda con una notificación.</p><div class="comanda">${esc(comandaText(o))}</div>
+    ${o.status==='pagado'?`<div class="panel" style="margin:0 0 14px"><h3>1. Confirmar el pago y enviar la comanda</h3><p class="note" style="margin-top:-6px">Verifica en Efipay que entró el pago de ${cop(o.price+o.ship.cost)}. Al enviar, el vendedor recibe esta comanda con una notificación.</p><div class="comanda">${esc(comandaText(o))}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" onclick="sendComanda(${o.id})">Pago confirmado: enviar comanda</button><button class="btn ghost" onclick="copyComanda(${o.id})">Copiar texto</button></div></div>`:''}
     ${o.pendingInfo&&o.status==='preparando'?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.pendingInfo.kind==='guia'?'2. El vendedor envió la guía':'2. El vendedor envió los datos de su domiciliario'}</h3>
       <form class="form" onsubmit="shareInfo(event,${o.id})"><label>Mensaje para el comprador (puedes editarlo)<textarea id="shareMsg" rows="4">${esc(shareText(o))}</textarea></label>
@@ -1333,7 +1384,7 @@ function subPayForm(k){ const s=SEL(k), cur=PAID.includes(s.plan)?s.plan:'empren
   openModal(`<div class="mpad"><h2>Registrar pago de plan</h2><p class="sub">${esc(s.name)} · plan actual: ${PLAN_INFO[s.plan].name}</p>
     <form class="form" onsubmit="event.preventDefault();adminActivate('${k}')">
     <label>Plan pagado<select id="spPlan">${PAID.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${PLAN_INFO[p].name} · ${cop(planPrice(p))} al mes</option>`).join('')}</select></label>
-    <label>Número de comprobante o referencia de Wompi<input id="spRef" required></label>
+    <label>Número de comprobante o referencia del pago<input id="spRef" required></label>
     <p class="note" style="margin:0">El plan queda activo 30 días, se reactivan sus productos y al vendedor le llega la notificación.</p>
     <button class="btn">Registrar pago y activar</button></form></div>`, true); }
 function adminActivate(k){ const s=SEL(k), plan=$('#spPlan').value; if(s.plan!==plan){ s.plan=plan; s.sub=null; } paySub(k, $('#spRef').value.trim(), 'admin'); save(); closeModal(); toast('Pago registrado. Plan '+PLAN_INFO[plan].name+' activo 30 días.'); }
@@ -1354,7 +1405,7 @@ function copyComanda(id){ try{ navigator.clipboard.writeText(comandaText(O(id)))
 function domiRoute(o){
   const s=SEL(o.sk);
   return `<div class="split" style="gap:12px"><div class="route"><b>📦 Recoger en</b><br>${esc(s.name)} · ${esc(s.owner)}<br>${esc(s.addr)}<br><span class="note">${esc(s.city)} · Tel. ${esc(s.phone)}</span></div>
-    <div class="route"><b>🏠 Entregar a</b><br>${esc(o.addr.name)}<br>${esc(o.addr.dir)}${o.addr.notes?' ('+esc(o.addr.notes)+')':''}<br><span class="note">${esc(o.addr.city)} · Tel. ${esc(o.addr.phone)}</span></div></div>
+    <div class="route"><b>🏠 Entregar a</b><br>${esc(o.addr.name)}<br>${esc(o.addr.dir)}${o.addr.barrio?', barrio '+esc(o.addr.barrio):''}${o.addr.notes?'<br>Referencia: '+esc(o.addr.notes):''}<br><span class="note">${esc(o.addr.city)} · Tel. ${esc(o.addr.phone)}</span></div></div>
     <p class="note" style="margin:8px 0 0">Pedido #${o.id} · ${esc(o.title)} · Tarifa ${cop(o.ship.tarifa)}${o.ship.free?' (la paga el vendedor)':' (la pagó el comprador)'}${o.pickup?` · <b>Agendado:</b> ${esc(o.pickup.who)}, recoge ${esc(o.pickup.when)}, entrega ${esc(o.pickup.deliver)}`:''}</p>`;
 }
 function nextBizISO(n){ return new Date(addBusinessDays(T(), n)).toISOString().slice(0,10); }
@@ -2194,6 +2245,241 @@ function changePassword(e){ e.preventDefault(); const u=myUser();
   if($('#ppNew').value!==$('#ppNew2').value){ toast('Las contraseñas nuevas no coinciden.'); return; }
   u.pass=h($('#ppNew').value); save(); toast('¡Contraseña actualizada!'); render(); }
 
+
+/* =====================================================================
+   PRODUCTOS PROHIBIDOS (animales, armas, sexuales/pornográficos, drogas)
+   La misma lista está en la base de datos, así que no se puede saltar.
+   ===================================================================== */
+const BANNED = [
+  ['venta de animales', /\b(cachorr[oa]s?|gatit[oa]s?|perrit[oa]s?|camadas?|pedigree|pedigri|criaderos?|loros?|guacamayas?|periquitos?|canarios?|hamsters?|conejos?|conejitos?|pollitos?|gallinas?|gallos? finos?|caballos?|yeguas?|potros?|terneros?|novillos?|cerdos?|lechones?|tortugas?|iguanas?|serpientes?|pez|peces|hurones?|cuyes?|chinchillas?|labrador(es)?|golden retriever|pitbull|pit bull|bulldog|french poodle|poodle|pug|husky|chihuahua|schnauzer|yorkie|yorkshire|beagle|pastor aleman|rottweiler|shih tzu|pomerania|(perros?|gatos?|mascotas?|animales)( \w+)? en venta|vendo (un |una |mi |mis )?(perr[oa]s?|gat[oa]s?|mascotas?)|(perr[oa]s?|gat[oa]s?) (de raza|raza|persa|siames|angora|bengali|ragdoll|sphynx|esfinge|maine coon)|maine coon|ragdoll|british shorthair|sphynx|venta de (perros?|gatos?|animales|mascotas?))\b/, /\b(para (el |la |tu |su )?(perro|perros|perrito|perritos|gato|gatos|gatito|gatitos|mascota|mascotas|cachorro|cachorros|aves|peces|pez|conejo|conejos|hamster|tortuga|tortugas|caballo|caballos)|comida|alimento|concentrado|collar(es)?|correas?|arnes|camas?|juguetes?|ropa|platos?|jaulas?|acuarios?|pecera|rascador|arena|shampoo|cepillo|transportador|guacal|peluches?|disfraz|figuras?|estampad[oa]s?|cuadros?|accesorios?|forma de|decoracion|alcancia|tazas?|camisetas?|pijamas?|bordad[oa]s?|amigurumi|tejid[oa]s?|caliente|calientes|carne|chicharron|lomo|costillas?|tocino|chorizo|huevos?|caldo|sancocho|comedero|bebedero|vitaminas|antipulgas|desparasitante|snacks?|premios|galletas|huesos?|mordedor|pelotas?|tapete)\b/],
+  ['venta de armas', /\b(armas? de fuego|armas? blancas?|armas? traumaticas?|arma de balines|pistolas?|revolver(es)?|rifles?|escopetas?|carabinas?|municion(es)?|balas|traumaticas?|taser|paralizador(es)?|electrochoque|gas pimienta|manoplas?|punos? americanos?|nudilleras?|navajas?|cuchillos? tacticos?|ballestas?|explosivos?|polvora|silenciador(es)?)\b/, /\b(silicona|calor|agua|pintura|masajes?|masajeadora|clavos|grapas|juguetes?|burbujas|soldar|lavado|riego|limpieza|hidrolavadora|afeitar|barberia|barbero|tinta|impresora)\b/],
+  ['venta de productos sexuales o pornográficos', /\b(juguetes? sexual(es)?|juguetes? para adultos|vibrador(es)?|consolador(es)?|dildos?|masturbador(es)?|plug anal|bolas chinas|succionador(es)?|sex ?shop|porno|pornografia|pornografic[oa]s?|xxx|erotic[oa]s?|contenido (para )?adultos|videos? (para )?adultos|peliculas? (para )?adultos|lenceria erotica|bdsm|fetiches?|onlyfans|webcam (para )?adultos|lubricante intimo|retardante|potenciador sexual|viagra)\b/, /\b(concreto|cemento|construccion|nasal|bebe|bebes|leche)\b/],
+  ['venta de drogas', /\b(marihuana|cripy|cocaina|tusi|tussi|poppers?|extasis|lsd|hongos? alucinogenos?|metanfetamina|ketamina|cannabis recreativo|bareta)\b/, null],
+];
+function bannedReason(text){
+  const x=' '+deacc(String(text||'').toLowerCase()).replace(/[^a-z0-9+]+/g,' ')+' ';
+  for(const [label, bad, ok] of BANNED){ if(bad.test(x) && !(ok && ok.test(x))) return label; }
+  return null;
+}
+function bannedAlert(label){
+  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🚫</div><h2>Este producto no se puede publicar</h2>
+    <p class="sub">En MER-K no está permitida la <b>${esc(label)}</b>. Tampoco se permiten armas, animales, productos sexuales o pornográficos ni drogas.</p>
+    <p class="note">Si crees que es un error, cambia el título o la descripción, o escríbenos desde Soporte.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true);
+}
+
+/* =====================================================================
+   BANNER PUBLICITARIO (inicio, con o sin sesión)
+   ===================================================================== */
+function activeBanners(){ return (S.cfg.banners||[]).filter(b=>b && b.img && b.on!==false); }
+function bannerHtml(){
+  const list=activeBanners();
+  if(!list.length) return `<section class="adban adempty" aria-label="Espacio publicitario"><div><b>Espacio publicitario</b><span>Anuncia tu marca aquí y llega a miles de compradores en MER-K</span></div><span class="adtag">Publicidad</span></section>`;
+  return `<section class="adban" aria-label="Publicidad" data-n="${list.length}" data-i="0"><div class="adtrack">${list.map(b=>{ const img=`<img src="${esc(b.img)}" alt="${esc(b.alt||'Publicidad')}" loading="lazy">`;
+      return b.link?`<a class="adslide" href="${esc(b.link)}" target="_blank" rel="noopener sponsored">${img}</a>`:`<div class="adslide">${img}</div>`; }).join('')}</div>
+    ${list.length>1?`<div class="addots">${list.map((_,i)=>`<button aria-label="Anuncio ${i+1}" class="${i?'':'on'}" onclick="adGo(${i})"></button>`).join('')}</div>`:''}<span class="adtag">Publicidad</span></section>`;
+}
+function adGo(i){ const b=document.querySelector('.adban[data-n]'); if(!b) return; const n=+b.dataset.n; i=((i%n)+n)%n; b.dataset.i=i;
+  b.querySelector('.adtrack').style.transform=`translateX(-${i*100}%)`; b.querySelectorAll('.addots button').forEach((d,k)=>d.classList.toggle('on',k===i)); }
+setInterval(()=>{ const b=document.querySelector('.adban[data-n]'); if(b && +b.dataset.n>1 && document.visibilityState==='visible') adGo(+b.dataset.i+1); }, 5000);
+
+/* Administración → Publicidad */
+function adminAdsTab(){
+  const list=S.cfg.banners||[];
+  return `<div class="split"><div class="panel"><h3>Banners del inicio</h3><p class="note" style="margin-top:-6px">Se muestran arriba en la página de inicio a todos los visitantes, con o sin sesión. Si hay varios, rotan cada 5 segundos.</p>
+    ${list.length?list.map((b,i)=>`<div class="adrow"><img src="${esc(b.img)}" alt=""><div><b>${b.on===false?'<span class="badge warn">Pausado</span>':'<span class="badge">Activo</span>'}</b><br><span class="note">${b.link?esc(b.link):'Sin link'}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${i?`<button class="btn ghost sm" onclick="moveBanner(${i},-1)" title="Subir">↑</button>`:''}<button class="btn ghost sm" onclick="toggleBanner(${i})">${b.on===false?'Activar':'Pausar'}</button><button class="btn bad sm" onclick="delBanner(${i})">Quitar</button></div></div>`).join('')
+      :'<p class="empty">Aún no hay banners. Mientras tanto, en el inicio se ve un recuadro de “Espacio publicitario”.</p>'}</div>
+    <div class="panel"><h3>Agregar banner</h3><form class="form" onsubmit="addBanner(event)">
+      <label>Imagen del banner<input id="adImg" type="file" accept="image/*" required></label>
+      <p class="note" style="margin:-4px 0 0">Tamaño recomendado: <b>1600 × 320 px</b> (horizontal, 5 a 1). Deja los textos importantes en el centro, porque en celular se recortan un poco los bordes.</p>
+      <label>Link al tocar el banner (opcional)<input id="adLink" inputmode="url" placeholder="Ej: instagram.com/tumarca o https://…"></label>
+      <div><button class="btn">Publicar banner</button></div></form></div></div>`;
+}
+function readFileShrunk(file, max){ return new Promise(ok=>{ if(!file) return ok(null); const rd=new FileReader(); rd.onload=()=>shrink(rd.result, ok, max); rd.readAsDataURL(file); }); }
+async function storeBannerImage(dataUrl){ return dataUrl; }
+async function saveBanners(list, msg){ S.cfg.banners=list; save(); toast(msg); render(); }
+async function addBanner(e){
+  e.preventDefault(); const btn=e.target.querySelector('button.btn'); if(btn){ btn.disabled=true; btn.textContent='Subiendo…'; }
+  try{
+    const data=await readFileShrunk($('#adImg').files[0], 1600); if(!data){ toast('Elige una imagen.'); return; }
+    let link=$('#adLink').value.trim(); if(link && !/^https?:\/\//i.test(link)) link='https://'+link;
+    const img=await storeBannerImage(data);
+    await saveBanners([...(S.cfg.banners||[]), {id:Date.now(), img, link, on:true}], 'Banner publicado en el inicio.');
+  }catch(x){ toast(typeof friendly==='function'?friendly(x):String(x.message||x)); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='Publicar banner'; } }
+}
+function toggleBanner(i){ const l=[...(S.cfg.banners||[])]; l[i]={...l[i], on:l[i].on===false}; saveBanners(l, l[i].on?'Banner activado.':'Banner pausado.'); }
+function delBanner(i){ if(!confirm('¿Quitar este banner?')) return; const l=[...(S.cfg.banners||[])]; l.splice(i,1); saveBanners(l, 'Banner quitado.'); }
+function moveBanner(i,d){ const l=[...(S.cfg.banners||[])], j=i+d; if(j<0||j>=l.length) return; [l[i],l[j]]=[l[j],l[i]]; saveBanners(l, 'Orden actualizado.'); }
+
+/* =====================================================================
+   CARRITO DE COMPRAS (se guarda en este navegador)
+   ===================================================================== */
+const CART_KEY='merk-cart';
+function cartRaw(){ try{ const c=JSON.parse(localStorage.getItem(CART_KEY)||'[]'); return Array.isArray(c)?c.filter(i=>i&&i.pid):[]; }catch(e){ return []; } }
+function cartGet(){ return cartRaw().filter(i=>{ const p=P(i.pid); return p && !p.paused && p.stock>0; }).map(i=>({pid:i.pid, qty:Math.max(1, Math.min(+i.qty||1, P(i.pid).stock))})); }
+function cartSet(list){ try{ localStorage.setItem(CART_KEY, JSON.stringify(list)); }catch(e){} const a=$('#acct'); if(a) a.innerHTML=headerRight(); }
+function cartCount(){ return cartGet().reduce((n,i)=>n+i.qty,0); }
+function cartBtn(){ const n=cartCount(); return `<button class="bell cartbtn" onclick="showCart()" aria-label="Carrito de compras">🛒${n?`<span>${n}</span>`:''}</button>`; }
+function canShop(){ const s=me(); if(s && s.role!=='buyer'){ toast('Para comprar necesitas una cuenta de comprador.'); return false; } return true; }
+function addToCart(pid){
+  if(!canShop()) return;
+  const p=P(pid); if(!p || p.stock<1){ toast('Este producto se agotó.'); return; }
+  const c=cartRaw(), it=c.find(i=>i.pid===pid);
+  if(it){ if(it.qty>=p.stock){ toast(`Solo hay ${p.stock} disponibles y ya están en tu carrito.`); return; } it.qty++; } else c.push({pid, qty:1});
+  cartSet(c); closeModal(); toast('🛒 Agregado al carrito. ¡Sigue comprando!');
+}
+function showCart(){
+  const items=cartGet(); cartSet(items);
+  if(!items.length){ openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🛒</div><h2>Tu carrito está vacío</h2><p class="sub">Toca “Agregar y seguir comprando” en los productos que te gusten y aquí se van sumando.</p><button class="btn" onclick="closeModal();location.hash='#inicio'">Ver productos</button></div>`, true); return; }
+  const sub=items.reduce((a,i)=>a+finalPrice(P(i.pid))*i.qty,0), n=items.reduce((a,i)=>a+i.qty,0);
+  openModal(`<div class="mpad"><h2>🛒 Tu carrito</h2><p class="sub">${n} producto${n>1?'s':''}</p>
+    <div class="cart">${items.map(i=>{ const p=P(i.pid); return `<div class="citem"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
+      <div class="cinfo"><b>${esc(p.t)}</b><span class="note">${esc(SEL(p.s).name)} · ${cop(finalPrice(p))} c/u</span>
+        <div class="qty"><button onclick="cartQty(${p.id},-1)" aria-label="Quitar uno">−</button><span>${i.qty}</span><button onclick="cartQty(${p.id},1)" aria-label="Agregar uno">+</button><a class="note" href="javascript:cartRemove(${p.id})">Quitar</a></div></div>
+      <b class="cline">${cop(finalPrice(p)*i.qty)}</b></div>`; }).join('')}</div>
+    <table class="sum" style="margin-top:12px"><tr><td><b>Subtotal</b></td><td style="text-align:right"><b class="price">${cop(sub)}</b></td></tr></table>
+    <p class="note" style="margin:4px 0 14px">El domicilio o envío y los cupones se calculan en el siguiente paso.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1" onclick="startCheckout(cartGet(),'cart')">Pagar</button><button class="btn ghost" onclick="closeModal()">Seguir comprando</button></div></div>`, true);
+}
+function cartQty(pid, d){ const c=cartRaw(), it=c.find(i=>i.pid===pid), p=P(pid); if(!it) return; it.qty=(+it.qty||1)+d; if(p && it.qty>p.stock){ it.qty=p.stock; toast(`Solo hay ${p.stock} disponibles.`); } cartSet(c.filter(i=>i.qty>0)); showCart(); }
+function cartRemove(pid){ cartSet(cartRaw().filter(i=>i.pid!==pid)); showCart(); }
+
+/* =====================================================================
+   PAGO EN 2 PASOS: 1) datos de entrega  2) resumen, cupón y pago
+   ===================================================================== */
+let CO = {items:[]};
+const errText = e => typeof friendly==='function' ? friendly(e) : String(e?.message||e);
+function buyNow(pid){ if(!canShop()) return; startCheckout([{pid, qty:1}], 'now'); }
+function startCheckout(items, mode){
+  if(!isRole('buyer')){ loginModal(me()?'Para comprar necesitas una cuenta de comprador.':'Inicia sesión o crea tu cuenta de comprador para pagar. Tu carrito queda guardado.'); return; }
+  items=(items||[]).filter(i=>P(i.pid)); if(!items.length){ toast('Tu carrito está vacío.'); return; }
+  CO={items, mode, addr:null, carriers:{}, coupon:null, cpMsg:null, q:null};
+  coStep1();
+}
+function coSteps(n){ return `<div class="costeps"><span class="${n===1?'on':'done'}" ${n===2?'onclick="coStep1()"':''}>1. Datos de entrega</span><span class="${n===2?'on':''}">2. Pago</span></div>`; }
+function coStep1(){
+  const b=BUY(me().key), A=b.addresses||[], a=CO.addr || A.find(x=>x.city===S.loc) || A[0] || {name:b.name, phone:b.phone, city:S.loc};
+  openModal(`<div class="mpad">${coSteps(1)}<h2>¿A dónde te lo llevamos?</h2><p class="sub" style="margin-bottom:12px">Sirve para domicilios en Medellín y alrededores y para envíos a todo el país. Con estos datos programamos tu entrega.</p>
+    <form class="form" onsubmit="coSubmit1(event)">
+      ${A.length?`<label>Usar una dirección guardada<select id="coSaved" onchange="coPickSaved()"><option value="">Escribir una dirección nueva</option>${A.map(x=>`<option value="${x.id}" ${a.id===x.id?'selected':''}>${esc(x.alias)}: ${esc(x.dir)}, ${esc(x.city)}</option>`).join('')}</select></label>`:''}
+      <div class="row2"><label>Nombre completo de quien recibe<input id="coName" required minlength="3" maxlength="60" value="${esc(a.name||'')}"></label><label>Celular<input id="coPhone" required inputmode="numeric" maxlength="10" placeholder="3001234567" value="${esc(a.phone||b.phone||'')}"></label></div>
+      <div class="row2"><label>Municipio o ciudad<select id="coCity" ${otherToggle('coCity','coCityO')}>${cityOptions(a.city||S.loc)}</select><input id="coCityO" placeholder="Escribe tu municipio" style="display:none"></label><label>Barrio<input id="coBarrio" required maxlength="60" value="${esc(a.barrio||'')}"></label></div>
+      <label>Dirección<input id="coDir" required minlength="5" maxlength="120" placeholder="Calle, carrera, número, apto o casa" value="${esc(a.dir||'')}"></label>
+      <label>Punto de referencia<input id="coRef" maxlength="120" placeholder="Ej: frente al parque, portería torre 2, casa de rejas blancas" value="${esc(a.notes||'')}"></label>
+      <p class="alert" id="coErr" style="display:none"></p>
+      <button class="btn" style="width:100%">Continuar</button></form></div>`, true);
+  coFixCity(a.city||S.loc);
+}
+function coFixCity(city){ if(city && !CITIES.includes(city)){ $('#coCity').value=OTHER; $('#coCityO').style.display='block'; $('#coCityO').value=city; } }
+function coPickSaved(){
+  const a=(BUY(me().key).addresses||[]).find(x=>x.id==$('#coSaved').value); if(!a) return;
+  $('#coName').value=a.name||''; $('#coPhone').value=a.phone||BUY(me().key).phone||''; $('#coBarrio').value=a.barrio||''; $('#coDir').value=a.dir||''; $('#coRef').value=a.notes||'';
+  $('#coCity').innerHTML=cityOptions(a.city); $('#coCityO').style.display='none'; coFixCity(a.city);
+}
+async function coSubmit1(e){
+  e.preventDefault(); const err=t=>{ const el=$('#coErr'); el.textContent=t; el.style.display='block'; };
+  const d={name:$('#coName').value.trim(), phone:$('#coPhone').value.replace(/\s/g,''), city:readCity('coCity','coCityO'), barrio:$('#coBarrio').value.trim(), dir:$('#coDir').value.trim(), notes:$('#coRef').value.trim()};
+  if(!validPhone(d.phone)) return err('El celular debe tener 10 dígitos y empezar por 3.');
+  if(!d.city) return err('Escribe tu municipio.');
+  const btn=e.target.querySelector('button.btn'); btn.disabled=true; btn.textContent='Guardando…';
+  try{ CO.addr = await coSaveAddress(d); await coStep2(); }
+  catch(x){ err(errText(x)); btn.disabled=false; btn.textContent='Continuar'; }
+}
+/* Guarda la dirección para próximas compras (si ya existe, la actualiza) */
+async function coSaveAddress(d){
+  const b=BUY(me().key), A=b.addresses||(b.addresses=[]), ex=A.find(x=>deacc(x.dir.toLowerCase())===deacc(d.dir.toLowerCase()) && x.city===d.city);
+  if(ex){ Object.assign(ex, d); save(); return ex; }
+  const a=Object.assign({id:Date.now(), alias:A.length?'Entrega '+(A.length+1):'Principal'}, d); A.push(a); save(); return a;
+}
+async function coStep2(){
+  openModal(`<div class="mpad">${coSteps(2)}<h2>Revisa y paga</h2><div id="coBody"><p class="sub">Calculando domicilio o envío…</p></div></div>`, true);
+  if(!CO.coupon) coAutoCoupon();
+  await coQuote();
+}
+async function coQuote(){
+  try{
+    CO.q = await cartQuote(CO.items, CO.addr.city, CO.carriers, CO.coupon);
+    if(CO.coupon && !CO.q.coupon){ CO.cpMsg = CO.q.coupon_error || 'Ese cupón no aplica.'; CO.coupon=null; CO.q = await cartQuote(CO.items, CO.addr.city, CO.carriers, null); }
+  }catch(e){ $('#coBody').innerHTML=`<p class="alert">${esc(errText(e))}</p><button class="btn ghost" onclick="showCart()">Revisar carrito</button>`; return; }
+  coDraw();
+}
+const coStores = () => [...new Set(CO.items.map(i=>P(i.pid)?.s).filter(Boolean))];
+function coAutoCoupon(){ if(!isRole('buyer')) return; const bk=me().key, st=coStores();
+  const c=S.coupons.find(c=>st.includes(c.sk) && couponLive(c) && claimed(bk,c.id)); if(c) CO.coupon=c.code; }
+function coCouponHints(){ const st=coStores(), bk=me().key;
+  const list=S.coupons.filter(c=>st.includes(c.sk) && couponLive(c) && can(c.sk,'cupones') && (claimed(bk,c.id) || (c.pub && can(c.sk,'promos'))));
+  return list.length?`Cupones disponibles: ${list.map(c=>`<a href="javascript:coUse('${esc(c.code)}')"><b>${esc(c.code)}</b></a> (${couponLabel(c)} en ${esc(SEL(c.sk).name)})`).join(' · ')}`:''; }
+function coUse(code){ CO.coupon=code; CO.cpMsg=null; coQuote(); }
+function coApplyCoupon(){ const v=$('#coCode').value.trim().toUpperCase(); CO.coupon=v||null; CO.cpMsg=null; coQuote(); }
+function coClearCoupon(){ CO.coupon=null; CO.cpMsg=null; coQuote(); }
+function coSetCarrier(sk, v){ CO.carriers[sk]=v; coQuote(); }
+function coDraw(){
+  const q=CO.q, a=CO.addr, prod=q.groups.reduce((s,g)=>s+g.list,0), disc=q.groups.reduce((s,g)=>s+g.coupon_amount,0), ship=q.groups.reduce((s,g)=>s+g.ship_cost,0);
+  $('#coBody').innerHTML = `
+    <div class="shipbox"><b>📍 Entregar a ${esc(a.name)} · ${esc(a.phone)}</b><span>${esc(a.dir)}, barrio ${esc(a.barrio)}, ${esc(a.city)}${a.notes?' · '+esc(a.notes):''}</span><a class="note" href="javascript:coStep1()">Cambiar datos de entrega</a></div>
+    ${q.groups.map(g=>`<div class="cogroup"><div class="cohead">${esc(g.store)}${q.groups.length>1?' <span class="note">· llega en un pedido aparte</span>':''}</div>
+      ${g.lines.map(l=>`<div class="coline"><span>${esc(l.title)}${l.qty>1?` <span class="note">× ${l.qty}</span>`:''}</span><span>${cop(l.unit*l.qty)}</span></div>`).join('')}
+      ${g.coupon_amount?`<div class="coline good"><span>Cupón ${esc(g.coupon)}</span><span>−${cop(g.coupon_amount)}</span></div>`:''}
+      ${g.ship_type==='dom'
+        ? `<div class="coline"><span>🛵 Domicilio MER-K <span class="note">· ${esc(g.eta)}</span></span><span>${g.ship_cost?cop(g.ship_cost):'Gratis'}</span></div>`
+        : `<div class="coline"><span>📦 Envío nacional con <select class="cocar" onchange="coSetCarrier('${g.sk}',this.value)">${(q.carriers||CARRIERS).map(c=>`<option ${c===g.carrier?'selected':''}>${esc(c)}</option>`).join('')}</select></span><span>${g.ship_cost?cop(g.ship_cost):'Gratis'}</span></div><div class="note" style="margin-top:2px">${esc(g.eta)}</div>`}
+    </div>`).join('')}
+    <div style="margin-top:14px"><b style="font-size:14px">🎟️ ¿Tienes un cupón de descuento?</b>
+      <div class="cpbox" style="margin-top:6px"><input id="coCode" placeholder="Escribe el código" maxlength="15" style="text-transform:uppercase" value="${esc(CO.coupon||'')}"><button type="button" class="btn ghost sm" onclick="coApplyCoupon()">Redimir</button></div>
+      <div class="note" style="margin-top:6px">${CO.coupon?`<span class="badge">Cupón ${esc(CO.coupon)} aplicado</span> <a href="javascript:coClearCoupon()">Quitar</a>`:CO.cpMsg?`<span class="alert">${esc(CO.cpMsg)}</span>`:coCouponHints()}</div></div>
+    <div class="panel" style="margin:14px 0;padding:14px 16px"><table class="sum">
+      <tr><td>Productos</td><td style="text-align:right">${cop(prod)}</td></tr>
+      ${disc?`<tr><td>Descuento con cupón</td><td style="text-align:right;color:var(--pear-d);font-weight:800">−${cop(disc)}</td></tr>`:''}
+      <tr><td>Domicilio o envío</td><td style="text-align:right">${ship?cop(ship):'Gratis'}</td></tr>
+      <tr><td><b>Total a pagar</b></td><td style="text-align:right"><b class="price">${cop(q.total)}</b></td></tr></table></div>
+    <div class="protect" style="margin-bottom:14px">Tu dinero queda en MER-K. Tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir; si todo está bien, le pagamos al vendedor. Eliges el medio de pago (tarjeta, PSE, Nequi…) en la página segura de pago.</div>
+    <button class="btn" style="width:100%" id="coBtn" onclick="coPay()">Continuar al pago · ${cop(q.total)}</button>`;
+}
+/* Cotización del carrito (en la página real la calcula el servidor) */
+async function cartQuote(items, city, carriers, coupon){
+  const code=String(coupon||'').trim().toUpperCase(); let cpErr=code?'Ese cupón no aplica a los productos de tu compra.':null, cpUsed=null;
+  const groups={}; items.forEach(i=>{ const p=P(i.pid); if(!p || p.paused || p.stock<1) throw new Error('Uno de los productos ya no está disponible. Revisa tu carrito.');
+    if(p.stock<i.qty) throw new Error(`De "${p.t}" solo quedan ${p.stock} unidades.`); (groups[p.s]||(groups[p.s]=[])).push({p, qty:i.qty}); });
+  const out=Object.entries(groups).map(([sk, lines])=>{
+    const list=lines.reduce((a,l)=>a+finalPrice(l.p)*l.qty,0); let disc=0;
+    if(code && !cpUsed){ const c=S.coupons.find(x=>x.sk===sk && x.code===code);
+      if(c){ if(!can(sk,'cupones')) cpErr='Ese cupón no existe en esta tienda.'; else if(!couponLive(c)) cpErr='Ese cupón ya no está vigente.';
+        else if(c.min && list<c.min) cpErr=`Este cupón aplica en compras desde ${cop(c.min)} en ${SEL(sk).name}.`;
+        else { disc=Math.max(0, Math.min(list-1000, c.type==='pct'?Math.round(list*c.value/100):c.value)); cpUsed=code; cpErr=null; } } }
+    const allFree=lines.every(l=>l.p.freeShip); let ship;
+    if(inArea(city) && inArea(SEL(sk).city)){ const tarifa=zonePrice(city); ship={ship_type:'dom', tarifa, free:allFree, ship_cost:allFree?0:tarifa, carrier:null, eta:'Entrega en 1 a 2 días hábiles'}; }
+    else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'El tiempo de entrega depende de la transportadora'}; }
+    return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t, qty:l.qty, unit:finalPrice(l.p)})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
+  });
+  return {groups:out, total:out.reduce((a,g)=>a+g.total,0), coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
+}
+const linesTitle = lines => lines.map(l=>l.title+(l.qty>1?` ×${l.qty}`:'')).join(' + ');
+const addrLine = a => `${a.dir}${a.barrio?', barrio '+a.barrio:''}, ${a.city}`;
+/* Demo: el pago se aprueba al instante y se crea un pedido por tienda */
+function coPay(){
+  const q=CO.q, a=CO.addr, bk=me().key; if(!q) return;
+  const procAll=procParts(q.total).total, ids=q.groups.map(g=>createGroupOrder(g, bk, a, procAll, q.total).id);
+  if(CO.mode==='cart'){ const bought=new Set(CO.items.map(i=>i.pid)); cartSet(cartRaw().filter(i=>!bought.has(i.pid))); }
+  CO={items:[]}; save(); closeModal(); S.ui.buyTab='compras'; location.hash='#compras'; render();
+  toast(ids.length>1?`¡Pago recibido! Tu compra quedó en ${ids.length} pedidos, uno por tienda.`:'¡Pago recibido! Te avisamos cada cambio de tu pedido.');
+}
+function createGroupOrder(g, bk, a, procAll, total){
+  const sk=g.sk, price=g.price;
+  const o={id:S.nextOrder++, pid:g.lines[0].pid, items:g.lines.map(l=>({pid:l.pid, title:l.title, qty:l.qty, unit:l.unit})), sk, bk, title:linesTitle(g.lines), price, listPrice:g.list, origin:SEL(sk).city,
+    ship:{type:g.ship_type, mode:null, carrier:g.carrier, cost:g.ship_cost, free:!!g.free, tarifa:g.tarifa},
+    addr:{name:a.name, dir:a.dir, city:a.city, barrio:a.barrio||'', notes:a.notes||'', phone:a.phone||BUY(bk).phone}, pay:'Pasarela de pagos',
+    status:'pagado', fee:feeOf(sk), fixed:fixedOf(sk, price), proc: sk===OFFICIAL?0:Math.round(procAll*g.total/Math.max(1,total)), created:now(), ts:T(),
+    coupon:g.coupon?{code:g.coupon, amount:g.coupon_amount}:null, timeline:[{t:now(), s:'pagado', note:STATES.pagado.buyer}]};
+  o.sellerGross = price + g.ship_cost;
+  if(g.coupon){ const c=S.coupons.find(x=>x.sk===sk && x.code===g.coupon); if(c) c.used++; }
+  g.lines.forEach(l=>{ const p=P(l.pid); p.stock=Math.max(0,p.stock-l.qty); logStock(p, -l.qty, 'Venta · pedido #'+o.id); lowStockCheck(p); });
+  S.orders.unshift(o);
+  notify(bk, `✅ Tu pago fue confirmado · Pedido #${o.id}`, `Compraste "${o.title}" por ${cop(price+g.ship_cost)}. Tu dinero queda protegido en MER-K y te avisamos cada vez que tu pedido avance.`, {link:'o:'+o.id});
+  notify('admin', `Nuevo pedido #${o.id} · confirma el pago`, `${o.title} · ${cop(price+g.ship_cost)} · ${SEL(sk).name} → ${a.barrio?a.barrio+', ':''}${a.city} (${g.ship_type==='dom'?'domicilio':'envío por '+g.carrier})`);
+  return o;
+}
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
@@ -2248,7 +2534,7 @@ function blankState(){
   let p = {}; try{ p = JSON.parse(localStorage.getItem('merk-ui') || '{}'); }catch(e){}
   return { v:'live', loc:p.loc||'Medellín', locAsked:!!p.locAsked, session:null,
     cfg:{ fees:{gratis:8, emprendedor:5, pro:3.5, oficial:0}, fixedFee:0, fixedUnder:0, prices:{emprendedor:39900, pro:89900}, limits:{gratis:15, emprendedor:150},
-          wompiPct:2.65, wompiFixed:700, iva:19, graceDays:3, domicilio:15000, zones:{...DOM_TARIFFS}, carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{} },
+          wompiPct:2.64, wompiFixed:690, iva:19, graceDays:3, domicilio:15000, zones:{...DOM_TARIFFS}, carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{} },
     ui:Object.assign({cat:'Todo', q:'', sellTab:'resumen', adminTab:'pedidos', buyTab:'compras', sellFilter:'todos', tkFilter:'abierto'}, p.ui||{}),
     users:[], follows:[], claims:[], reviews:[], buyers:{}, sellers:{}, products:[], orders:[], chats:{}, frag:{}, payouts:[], alerts:[], notifs:[], subPays:[], expenses:[],
     coupons:[], tickets:[], subClaims:[], stockLog:[], earnings:{commissions:0, official:0, domicilios:0, subs:0, proc:0}, nextId:1, nextOrder:1, nextCoupon:1, nextTicket:1, nextClaim:1 };
@@ -2270,7 +2556,8 @@ function mapSeller(r, prof, priv){
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
     storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
 }
-function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
+const mapAddr = a => ({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||'', phone:a.phone||'', barrio:a.barrio||''});
+function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, items:r.items||null, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
   ship:r.ship, addr:r.addr, origin:r.origin||'', pay:r.pay_method||'', status:r.status, sellerGross:r.seller_gross, feeAmt:r.fee_amt, net:r.net,
   pendingInfo:r.pending_info, delivery:r.delivery, pickup:r.pickup, readyPickup:r.ready_pickup, deliveredAt:r.delivered_at?Date.parse(r.delivered_at):null,
   releaseAt:r.release_at?Date.parse(r.release_at):null, liquidated:r.liquidated, created:fmtTs(r.created_at), ts:Date.parse(r.created_at),
@@ -2303,7 +2590,7 @@ async function loadAll(){
   S.coupons = coupons.map(c=>({id:c.id, sk:c.seller_id, code:c.code, type:c.type, value:c.value, min:c.min_purchase, max:c.max_uses, used:c.used, until:c.until||'', active:c.active, pub:c.pub}));
   S.buyers = {};
   profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', warnings:p.warnings, status:p.status, role:p.role, addresses:[]}; });
-  addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||''}); });
+  addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push(mapAddr(a)); });
   const EV = {}; evs.forEach(e=>(EV[e.order_id] = EV[e.order_id] || []).push(e));
   S.orders = orders.filter(o=>!['pendiente_pago','rechazado'].includes(o.status)).map(o=>mapOrder(o, EV[o.id]));
   S.chats = {}; msgs.forEach(m=>(S.chats[m.thread] = S.chats[m.thread] || []).push(m.role==='sys' ? {sys:1, text:m.body, t:fmtTs(m.created_at)} : {from:m.role, text:m.body, t:fmtTs(m.created_at)}));
@@ -2330,7 +2617,7 @@ function friendly(e){
   if(/already registered|already been registered/i.test(m)) return 'Ya existe una cuenta con ese correo.';
   if(/rate limit/i.test(m)) return 'Hiciste muchos intentos seguidos. Espera unos minutos.';
   if(/Failed to fetch|NetworkError/i.test(m)) return 'No hay conexión. Revisa tu internet e inténtalo de nuevo.';
-  m = m.replace(/^CONTACTO:\s*/, 'No se guardó: ').replace(/^LIMITE:\s*/, '');
+  m = m.replace(/^CONTACTO:\s*/, 'No se guardó: ').replace(/^LIMITE:\s*/, '').replace(/^PROHIBIDO:\s*/, '');
   if(/row-level security|permission denied/i.test(m)) return 'No tienes permiso para hacer esto.';
   return m;
 }
@@ -2363,8 +2650,12 @@ async function setUser(user){
       }
     }
   }
+  if(user && PROFILE && user.email && PROFILE.email !== user.email){   // confirmó un correo nuevo: el perfil se pone al día
+    await api.rpc('sync_my_email').catch(()=>{}); PROFILE.email = user.email; EMAIL_UPDATED = true;
+  }
   await reload();
 }
+let EMAIL_UPDATED = false;
 function loginModal(msg){
   openModal(`<div class="mpad"><img src="${$('.logo img').src}" alt="MER-K" style="height:40px;margin-bottom:10px"><h2>Iniciar sesión</h2>${msg?`<p class="protect" style="margin:0 0 12px">${msg}</p>`:''}
     <form class="form" onsubmit="doLogin(event)"><label>Correo<input id="lEmail" type="email" required autocomplete="username"></label>
@@ -2442,7 +2733,8 @@ async function sendMsg(text){
 /* =====================================================================
    COMPRADOR
    ===================================================================== */
-async function addAddr(e){ e.preventDefault(); await act(()=>api.ins('addresses', [{buyer_id:ME.id, alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}]), 'Dirección guardada.'); }
+async function addAddr(e){ e.preventDefault(); if(!validPhone($('#aPhone').value)){ toast('El celular debe tener 10 dígitos y empezar por 3.'); return; }
+  await act(()=>api.ins('addresses', [{buyer_id:ME.id, alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), phone:$('#aPhone').value.replace(/\s/g,''), barrio:$('#aBarrio').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}]), 'Dirección guardada.'); }
 async function delAddr(id){ await act(()=>api.del('addresses', {id}), 'Dirección eliminada.'); }
 async function received(id){ await act(()=>api.rpc('buyer_received', {oid:id}), '¡Gracias! Tu garantía empezó a contar.'); }
 function claim(id){
@@ -2451,7 +2743,35 @@ function claim(id){
 }
 async function sendClaim(id){ await act(()=>api.rpc('buyer_claim', {oid:id, reason:$('#clText').value.trim()}), 'Reclamo abierto. Te escribimos pronto.'); }
 
-/* ---------- Compra con Wompi ---------- */
+/* ---------- Pagos con Efipay (redirección a su página segura) ---------- */
+async function openPayment(kind, body){
+  const r = await api.fn('efipay-checkout', Object.assign({kind}, body));
+  try{ localStorage.setItem('merk-paying', JSON.stringify({kind, ref:r.ref, at:Date.now()})); }catch(e){}
+  if(!r.url) throw new Error('No se pudo abrir el pago. Inténtalo de nuevo.');
+  location.href = r.url;
+}
+/* Carrito en la página real: el servidor calcula precios, cupón y envío */
+async function cartQuote(items, city, carriers, coupon){
+  const q = await api.rpc('quote_cart', {cart:items.map(i=>({pid:i.pid, qty:i.qty})), city, carriers:carriers||{}, coupon:coupon||null});
+  q.groups.forEach(g=>{ g.sk=g.seller_id; }); return q;
+}
+async function coSaveAddress(d){
+  const b=BUY(me().key), A=b.addresses||(b.addresses=[]), ex=A.find(x=>deacc(x.dir.toLowerCase())===deacc(d.dir.toLowerCase()) && x.city===d.city);
+  const row={name:d.name, dir:d.dir, city:d.city, notes:d.notes, phone:d.phone, barrio:d.barrio};
+  const r = ex ? (await api.upd('addresses', row, {id:ex.id}))[0] : (await api.ins('addresses', [Object.assign({buyer_id:ME.id, alias:A.length?'Entrega '+(A.length+1):'Principal'}, row)]))[0];
+  const a = mapAddr(r || Object.assign({id:ex?.id}, row)); if(ex) Object.assign(ex, a); else A.push(a); return a;
+}
+async function coPay(){
+  const btn=$('#coBtn'); btn.disabled=true; btn.textContent='Abriendo el pago…';
+  try{
+    try{ localStorage.setItem('merk-cart-paying', JSON.stringify(CO.mode==='cart' ? CO.items.map(i=>i.pid) : [])); }catch(e){}
+    await openPayment('cart', {items:CO.items.map(i=>({pid:i.pid, qty:i.qty})), address_id:CO.addr.id, carriers:CO.carriers, coupon:CO.coupon||null, pay_method:null});
+  }catch(e){ toast(friendly(e)); btn.disabled=false; btn.textContent=`Continuar al pago · ${cop(CO.q.total)}`; }
+}
+/* Banners: la imagen se sube al almacenamiento y la lista queda en la configuración */
+async function storeBannerImage(dataUrl){ return api.upload('tiendas', `${ME.id}/banner-${Date.now()}.jpg`, await toBlob(dataUrl)); }
+async function saveBanners(list, msg){ const c=JSON.parse(JSON.stringify(S.cfg)); c.banners=list; delete c.wompiLinks; delete c.fixedFee; delete c.fixedUnder; delete c.domicilio;
+  await act(()=>api.upd('config', {data:c}, {id:1}), msg); }
 let CO_Q = null;
 function findCoupon(code, p){ return CO_Q && CO_Q.code===String(code||'').toUpperCase() && CO_Q.pid===p.id ? CO_Q : null; }
 async function applyCoupon(id){
@@ -2467,26 +2787,25 @@ async function applyCoupon(id){
 async function pay(id){
   const {p, addr, sh, opt} = coState(id);
   if(p.stock<1){ toast('Este producto se agotó.'); return; }
-  const btn=$('#coBtn'); btn.disabled=true; btn.textContent='Abriendo Wompi…';
+  const btn=$('#coBtn'); btn.disabled=true; btn.textContent='Abriendo el pago…';
   try{
-    const r = await api.fn('wompi-checkout', {kind:'order', product_id:p.id, address_id:addr.id, carrier:sh.type==='nat'?opt.carrier:null, coupon:CO_CP||null, pay_method:$('#coPay').value});
-    try{ localStorage.setItem('merk-paying', JSON.stringify({kind:'order', ref:r.ref, at:Date.now()})); }catch(e){}
-    location.href = r.url;
+    await openPayment('order', {product_id:p.id, address_id:addr.id, carrier:sh.type==='nat'?opt.carrier:null, coupon:CO_CP||null, pay_method:$('#coPay').value});
   }catch(e){ toast(friendly(e)); btn.disabled=false; coRefresh(id); }
 }
-/* Al volver de Wompi: esperamos a que Wompi nos confirme el pago */
+/* Al volver de la pasarela: esperamos a que nos confirme el pago */
 async function wompiReturn(){
   let pend=null; try{ pend = JSON.parse(localStorage.getItem('merk-paying')||'null'); }catch(e){}
-  const q = new URLSearchParams(location.search); if(!pend || !q.get('id')) return;
+  const q = new URLSearchParams(location.search); if(!pend || !(q.get('pago') || q.get('ref_payco') || q.get('id'))) return;
   localStorage.removeItem('merk-paying'); history.replaceState(null, '', location.pathname + (pend.kind==='plan' ? '#vender' : '#compras'));
-  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">⏳</div><h2>Confirmando tu pago…</h2><p class="sub">Wompi nos está avisando. Esto toma unos segundos.</p></div>`, true);
+  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">⏳</div><h2>Confirmando tu pago…</h2><p class="sub">La pasarela de pagos nos está avisando. Esto toma unos segundos.</p></div>`, true);
   for(let i=0;i<12;i++){
     await new Promise(r=>setTimeout(r, 2500));
     const rows = await api.sel('payments', {eq:{ref:pend.ref}}).catch(()=>[]), st = rows[0]?.status;
-    if(st==='APPROVED'){ await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🎉</div><h2>¡Pago aprobado!</h2><p class="sub">${pend.kind==='plan'?'Tu plan ya está activo.':'Tu pedido quedó registrado. Te avisamos con la campanita cada vez que cambie.'}</p><button class="btn" onclick="closeModal()">Listo</button></div>`, true); return; }
-    if(st && st!=='PENDING'){ await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">😕</div><h2>El pago no fue aprobado</h2><p class="sub">Wompi respondió: ${esc(st)}. No se te cobró nada. Puedes intentarlo de nuevo.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); return; }
+    if(st==='APPROVED'){ try{ const bought=JSON.parse(localStorage.getItem('merk-cart-paying')||'[]'); if(bought.length) cartSet(cartRaw().filter(i=>!bought.includes(i.pid))); localStorage.removeItem('merk-cart-paying'); }catch(e){}
+      await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🎉</div><h2>¡Pago aprobado!</h2><p class="sub">${pend.kind==='plan'?'Tu plan ya está activo.':'Tu pedido quedó registrado. Te avisamos con la campanita cada vez que cambie.'}</p><button class="btn" onclick="closeModal()">Listo</button></div>`, true); return; }
+    if(st && st!=='PENDING'){ await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">😕</div><h2>El pago no fue aprobado</h2><p class="sub">Respuesta: ${esc(st==='DECLINED'?'rechazado':st==='VOIDED'?'cancelado':st==='ERROR'?'falló':st)}. No se te cobró nada. Puedes intentarlo de nuevo.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); return; }
   }
-  await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🕐</div><h2>Tu pago está en proceso</h2><p class="sub">Algunos pagos (como PSE o efectivo) tardan un poco. Te avisamos con la campanita apenas Wompi lo confirme.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true);
+  await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🕐</div><h2>Tu pago está en proceso</h2><p class="sub">Algunos pagos (como PSE o efectivo) tardan un poco. Te avisamos con la campanita apenas se confirme.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true);
 }
 
 /* =====================================================================
@@ -2497,7 +2816,8 @@ async function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim();
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), ban=bannedReason(t+' '+d);
+  if(ban){ bannedAlert(ban); return; }
   if(!(await checkText(t+' \n '+d, id?'Edición de producto':'Publicación'))) return;
   const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0)};
   const photos=[...PF_PHOTOS];
@@ -2528,12 +2848,12 @@ async function changePlan(k){
 }
 function payPlan(plan){
   openModal(`<div class="mpad"><h2>Plan ${PLAN_INFO[plan].name}</h2><p class="sub">${cop(planPrice(plan))} por 30 días.</p><ul class="note">${perksOf(plan).map(x=>`<li>${x}</li>`).join('')}</ul>
-    <p class="note">Pagas en la página segura de Wompi con tarjeta, PSE, Nequi o botón Bancolombia. Cuando Wompi aprueba el pago, tu plan se activa solo.</p>
-    <button class="btn" style="width:100%" id="ppBtn" onclick="goPayPlan('${plan}')">Pagar ${cop(planPrice(plan))} con Wompi</button></div>`, true);
+    <p class="note">Pagas en la página segura de Efipay con tarjeta, PSE u otros medios. Cuando el pago se aprueba, tu plan se activa solo.</p>
+    <button class="btn" style="width:100%" id="ppBtn" onclick="goPayPlan('${plan}')">Pagar ${cop(planPrice(plan))} </button></div>`, true);
 }
-async function goPayPlan(plan){ const b=$('#ppBtn'); b.disabled=true; b.textContent='Abriendo Wompi…';
-  try{ const r = await api.fn('wompi-checkout', {kind:'plan', plan}); try{ localStorage.setItem('merk-paying', JSON.stringify({kind:'plan', ref:r.ref, at:Date.now()})); }catch(e){} location.href = r.url; }
-  catch(e){ toast(friendly(e)); b.disabled=false; b.textContent='Pagar con Wompi'; } }
+async function goPayPlan(plan){ const b=$('#ppBtn'); b.disabled=true; b.textContent='Abriendo el pago…';
+  try{ await openPayment('plan', {plan}); }
+  catch(e){ toast(friendly(e)); b.disabled=false; b.textContent='Pagar'; } }
 function sellerPaySub(){ const s=SEL(me().key); payPlan(PAID.includes(s.plan)?s.plan:'emprendedor'); }
 
 async function saveStore(e){
@@ -2654,7 +2974,7 @@ async function saveProfile(e){ e.preventDefault(); const d=profileInput(); if(!d
   }, '¡Tus datos quedaron guardados!', {close:false}); }
 async function saveEmail(e){ e.preventDefault(); const em=$('#peNew').value.trim().toLowerCase();
   if(!validEmail(em)){ toast('Escribe un correo válido.'); return; }
-  try{ await api.auth.setEmail(em); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo nuevo</h2><p class="sub">Te enviamos un enlace a <b>${esc(em)}</b>. Ábrelo para terminar el cambio. Mientras tanto sigues entrando con tu correo actual.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); }
+  try{ await api.auth.setEmail(em); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo nuevo</h2><p class="sub">Te enviamos un enlace a <b>${esc(em)}</b>. Ábrelo desde este mismo navegador para terminar el cambio.</p><p class="note">Si también te llega un correo a tu dirección actual, ábrelo: por seguridad a veces se piden los dos. Mientras tanto sigues entrando con tu correo actual.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); }
   catch(x){ toast(friendly(x)); } }
 async function deleteAccount(e){ e.preventDefault(); if(!deleteConfirmed()) return;
   const btn=e.submitter; if(btn) btn.disabled=true;
@@ -2680,7 +3000,10 @@ async function boot(){
   api.auth.onChange((ev, user)=>{ if(ev==='PASSWORD_RECOVERY'){ recovering = true; newPasswordModal(); } if(ev==='SIGNED_OUT' && ME){ ME=null; PROFILE=null; S.session=null; render(); } });
   const user = await api.auth.user().catch(()=>null);
   await setUser(user);
-  if(/access_token|type=/.test(location.hash)) history.replaceState(null, '', location.pathname + (PROFILE?.role==='seller' ? '#vender' : '#inicio'));
+  const authMsg = /message=/.test(location.hash) ? decodeURIComponent(location.hash.split('message=')[1]||'').replace(/\+/g,' ') : '';
+  if(/access_token|type=|message=|error_description=/.test(location.hash)) history.replaceState(null, '', location.pathname + (PROFILE?.role==='seller' ? '#vender' : '#inicio'));
+  if(/confirm link sent to the other email/i.test(authMsg)) openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">✉️</div><h2>Te falta un paso</h2><p class="sub">Ya confirmaste uno de los enlaces. Por seguridad, abre también el enlace que te llegó a tu <b>otro correo</b> (el anterior o el nuevo) para terminar el cambio.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true);
+  else if(EMAIL_UPDATED) toast('✅ Tu correo quedó actualizado: '+(ME?.email||''));
   if(recovering) newPasswordModal();
   else if(!S.locAsked && !new URLSearchParams(location.search).get('id')) setTimeout(()=>askLocation(), 400);
   wompiReturn();
@@ -2692,7 +3015,7 @@ async function boot(){
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
-window.addEventListener('hashchange', ()=>{ if(/access_token|type=/.test(location.hash)) return; window.scrollTo(0,0); render(); });
+window.addEventListener('hashchange', ()=>{ if(/access_token|type=|message=|error_description=/.test(location.hash)) return; window.scrollTo(0,0); render(); });
 S.ui.q=''; boot();
 
 </script>
