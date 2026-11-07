@@ -380,6 +380,8 @@ details summary{cursor:pointer}
   .adrow{grid-template-columns:90px minmax(0,1fr)}.adrow>div:last-child{grid-column:1/-1}
   .citem{grid-template-columns:52px minmax(0,1fr)}.cthumb{width:52px;height:52px}.cline{grid-column:2}
 }
+.adreq{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+@media (max-width:640px){ .adreq{grid-template-columns:52px minmax(0,1fr)} .adreq>div:last-child{grid-column:1/-1;justify-content:flex-start!important} }
 </style>
 </head>
 <body>
@@ -424,7 +426,7 @@ const PLAN_INFO = {
 const PLAN_PERKS = {
   gratis:['Tienda virtual básica','Gestión de pedidos y ventas','Estadísticas básicas','Soporte estándar'],
   emprendedor:['Tienda personalizada con enlace para compartir','Gestión de inventario y pedidos','Estadísticas comerciales','Cupones de descuento','Mayor visibilidad','Soporte prioritario'],
-  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Prioridad en las búsquedas','Mis cuentas: ventas, gastos y ganancia del mes','Soporte preferencial']
+  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Prioridad en las búsquedas','MER-K paga publicidad de tus productos en Facebook e Instagram','Mis cuentas: ventas, gastos y ganancia del mes','Soporte preferencial']
 };
 const DOM_MODES = {merk:'Domiciliario de MER-K', propio:'Domiciliario propio del vendedor'};
 const COLORS = ['#F1F5C8','#EEE6FC','#E3E8F7','#FFFBDA','#E7DCFB','#E9EFB4','#DDE3F5','#F5F0FF'];
@@ -811,8 +813,8 @@ function viewHome(){
   const list = visibleProducts().filter(p => S.ui.cat==='Todo' || p.c===S.ui.cat)
     .filter(p => !q || deacc((p.t+' '+p.c+' '+p.d+' '+SEL(p.s).name).toLowerCase()).includes(q))
     .sort((a,b) => searchRank(a) - searchRank(b));
-  const deals = visibleProducts().filter(p=>discOf(p)>0).sort((a,b)=>discOf(b)-discOf(a)).slice(0,8);
-  const featured = visibleProducts().filter(isFeatured).slice(0,12);
+  const deals = visibleProducts().filter(p=>discOf(p)>0).sort((a,b)=>byRank(a,b) || discOf(b)-discOf(a)).slice(0,8);
+  const featured = visibleProducts().filter(p=>isFeatured(p) || p.priority).sort(byRank).slice(0,12);
   return `
   ${!q ? `<section class="hero">
     <div><h1>Compra y vende de todo, con tu dinero protegido.</h1>
@@ -860,7 +862,7 @@ function sellPlansSection(){
     <div style="margin-top:18px">${procBox()}</div></section>`;
 }
 function viewDeals(){
-  const deals = visibleProducts().filter(p=>discOf(p)>0).sort((a,b)=>discOf(b)-discOf(a));
+  const deals = visibleProducts().filter(p=>discOf(p)>0).sort((a,b)=>byRank(a,b) || discOf(b)-discOf(a));
   return `<h2>Ofertas</h2><p class="sub">Descuentos activos de los vendedores de MER-K.</p><div class="grid">${deals.map(card).join('') || '<p class="empty">No hay ofertas activas.</p>'}</div>`;
 }
 function card(p){
@@ -870,7 +872,7 @@ function card(p){
     <div class="cbody">${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}
       <div><span class="price">${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
       <div class="ptitle">${esc(p.t)}</div>${shipLine(p)}
-      ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}</span>${isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
+      ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
 }
 function shipBox(p, city){
   const sh = shipping(p, city);
@@ -1077,7 +1079,7 @@ function viewSeller(){
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td>${p.stock}</td>
       <td>${p.pausedByPlan?'<span class="badge bad">Pausado por plan vencido</span>':p.paused?'<span class="badge warn">Pausado</span>':p.stock<1?'<span class="badge bad">Agotado</span>':'<span class="badge">Publicado</span>'}</td>
-      <td><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button></td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>`;
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerAdsPanel(sk)}`;
   if(t==='publicar') body = `<div class="panel"><h3>Publicar un producto</h3><p class="note" style="margin-top:-6px">El título y la descripción pasan por el filtro anti-contacto. Las opciones de envío se configuran en la pestaña Envíos.</p>${productForm(null)}</div>`;
   if(t==='envios') body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
       <ul class="note" style="display:grid;gap:6px;padding-left:18px;margin:0">
@@ -1316,7 +1318,7 @@ function viewAdmin(){
   if(t==='productos') body = `<div class="panel"><h3>Todos los productos</h3><div class="tw"><table><tr><th>Producto</th><th>Vendedor</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th></tr>${S.products.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${esc(SEL(p.s).name)}</td><td>${cop(finalPrice(p))}${discOf(p)?` <span class="badge">-${discOf(p)}%</span>`:''}</td><td>${p.stock}</td>
       <td>${p.paused?'<span class="badge warn">Pausado</span>':'<span class="badge">Publicado</span>'}</td>
-      <td style="text-align:right"><button class="btn ghost sm" onclick="adminTogglePause(${p.id})">${p.paused?'Reactivar':'Pausar'}</button></td></tr>`).join('')}</table></div></div>`;
+      <td style="text-align:right;white-space:nowrap"><button class="btn ${p.priority?'lav':'ghost'} sm" onclick="adminSetPriority(${p.id},${!p.priority})">${p.priority?'⭐ Con prioridad':'⭐ Dar prioridad'}</button> <button class="btn ghost sm" onclick="adminTogglePause(${p.id})">${p.paused?'Reactivar':'Pausar'}</button></td></tr>`).join('')}</table></div></div>`;
   if(t==='reclamos') body = `<div class="panel"><h3>Garantías y reclamos</h3>${claims.length?`<table>${claims.map(o=>`<tr><td><b>#${o.id} ${esc(o.title)}</b><br><span class="note">${cop(o.price)} · ${esc(SEL(o.sk).name)} → ${esc(BUY(o.bk).name)}</span></td>
       <td style="text-align:right;white-space:nowrap"><button class="btn bad sm" onclick="resolveClaim(${o.id},'refund')">Devolver al comprador</button> <button class="btn sm" onclick="resolveClaim(${o.id},'ok')">Pagar al vendedor</button></td></tr>`).join('')}</table>`:'<p class="empty">No hay reclamos abiertos.</p>'}</div>`;
   if(t==='alertas') body = `<div class="panel"><h3>Alertas del filtro anti-contacto</h3>${S.alerts.length?`<div class="tw"><table><tr><th>Cuándo</th><th>Quién</th><th>Dónde</th><th>Qué intentó</th><th>Motivo</th></tr>${S.alerts.map(a=>`<tr><td class="note">${esc(a.when)}</td><td>${esc(a.who)}</td><td>${esc(a.where)}</td><td>${esc(a.text)}</td><td><span class="alert">${esc(a.reason)}</span></td></tr>`).join('')}</table></div>`:'<p class="empty">Sin alertas todavía.</p>'}</div>`;
@@ -1669,7 +1671,7 @@ function viewStore(slug){
   if(!sk || SEL(sk).status!=='activa') return `<div class="panel" style="text-align:center;padding:40px"><h2>Tienda no disponible</h2><p class="sub">Esta tienda no existe o está pausada.</p><a class="btn" href="#inicio" style="text-decoration:none">Volver al inicio</a></div>`;
   const s=SEL(sk), st=storeOf(sk), cus=can(sk,'tienda2'), adv=can(sk,'tienda3'), th=THEMES[cus?st.theme:'azul']||THEMES.azul;
   if(lastStoreVisit!==sk){ lastStoreVisit=sk; s.storeVisits=(s.storeVisits||0)+1; save(); track('store', sk); }
-  const list=visibleProducts().filter(p=>p.s===sk).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0));
+  const list=visibleProducts().filter(p=>p.s===sk).sort((a,b)=>((b.priority?2:0)+(b.featured?1:0))-((a.priority?2:0)+(a.featured?1:0)));
   const feat=adv?list.filter(p=>p.featured):[], flash=list.filter(flashOn), coupons=publicCoupons(sk), r=ratingOf(sk);
   const mine=isRole('seller') && me().key===sk, buyer=isRole('buyer') ? me().key : null, fol=buyer && follows(buyer, sk);
   return `<div class="store" style="--sa:${th.a};--sb:${th.b}">
@@ -1979,7 +1981,10 @@ function handleWompiReturn(){
 /* ---------- Prioridad en búsquedas (la da la administración a tiendas Pro) ---------- */
 const isBoosted = sk => !!(SEL(sk).boost && tierOf(sk)==='pro');
 const PLAN_RANK = {oficial:1, pro:2, emprendedor:3, gratis:4};
-const searchRank = p => (isBoosted(p.s) ? 0 : PLAN_RANK[effPlan(p.s)] ?? 4) * 2 + (isFeatured(p) ? 0 : 1);
+/* Orden en toda la página: 1) productos con prioridad de MER-K  2) tiendas Pro con prioridad  3) según el plan */
+const rankOf = p => p.priority ? 0 : isBoosted(p.s) ? 1 : 1 + (PLAN_RANK[effPlan(p.s)] ?? 4);
+const searchRank = p => rankOf(p) * 2 + (isFeatured(p) ? 0 : 1);
+const byRank = (a, b) => searchRank(a) - searchRank(b);
 function boostCell(k){
   if(tierOf(k)!=='pro') return '<span class="note">Solo para plan Pro</span>';
   return isBoosted(k) ? `<span class="badge lav">⭐ Activa</span><br><button class="btn ghost sm" style="margin-top:6px" onclick="adminBoost('${k}',false)">Quitar prioridad</button>`
@@ -2287,13 +2292,14 @@ function adminAdsTab(){
   const list=S.cfg.banners||[];
   return `<div class="split"><div class="panel"><h3>Banners del inicio</h3><p class="note" style="margin-top:-6px">Se muestran arriba en la página de inicio a todos los visitantes, con o sin sesión. Si hay varios, rotan cada 5 segundos.</p>
     ${list.length?list.map((b,i)=>`<div class="adrow"><img src="${esc(b.img)}" alt=""><div><b>${b.on===false?'<span class="badge warn">Pausado</span>':'<span class="badge">Activo</span>'}</b><br><span class="note">${b.link?esc(b.link):'Sin link'}</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${i?`<button class="btn ghost sm" onclick="moveBanner(${i},-1)" title="Subir">↑</button>`:''}<button class="btn ghost sm" onclick="toggleBanner(${i})">${b.on===false?'Activar':'Pausar'}</button><button class="btn bad sm" onclick="delBanner(${i})">Quitar</button></div></div>`).join('')
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${i?`<button class="btn ghost sm" onclick="moveBanner(${i},-1)" title="Subir">↑</button>`:''}<button class="btn ghost sm" onclick="editBanner(${i})">Cambiar</button><button class="btn ghost sm" onclick="toggleBanner(${i})">${b.on===false?'Activar':'Pausar'}</button><button class="btn bad sm" onclick="delBanner(${i})">Quitar</button></div></div>`).join('')
       :'<p class="empty">Aún no hay banners. Mientras tanto, en el inicio se ve un recuadro de “Espacio publicitario”.</p>'}</div>
     <div class="panel"><h3>Agregar banner</h3><form class="form" onsubmit="addBanner(event)">
       <label>Imagen del banner<input id="adImg" type="file" accept="image/*" required></label>
       <p class="note" style="margin:-4px 0 0">Tamaño recomendado: <b>1600 × 320 px</b> (horizontal, 5 a 1). Deja los textos importantes en el centro, porque en celular se recortan un poco los bordes.</p>
       <label>Link al tocar el banner (opcional)<input id="adLink" inputmode="url" placeholder="Ej: instagram.com/tumarca o https://…"></label>
-      <div><button class="btn">Publicar banner</button></div></form></div></div>`;
+      <div><button class="btn">Publicar banner</button></div></form></div></div>
+    ${adminAdRequests()}${adminPriorityPanel()}`;
 }
 function readFileShrunk(file, max){ return new Promise(ok=>{ if(!file) return ok(null); const rd=new FileReader(); rd.onload=()=>shrink(rd.result, ok, max); rd.readAsDataURL(file); }); }
 async function storeBannerImage(dataUrl){ return dataUrl; }
@@ -2308,6 +2314,17 @@ async function addBanner(e){
   }catch(x){ toast(typeof friendly==='function'?friendly(x):String(x.message||x)); }
   finally{ if(btn){ btn.disabled=false; btn.textContent='Publicar banner'; } }
 }
+function editBanner(i){ const b=(S.cfg.banners||[])[i]; if(!b) return;
+  openModal(`<div class="mpad"><h2>Cambiar banner</h2><img src="${esc(b.img)}" alt="" style="width:100%;aspect-ratio:5/1;object-fit:cover;border-radius:12px;margin-bottom:12px">
+    <form class="form" onsubmit="saveBannerEdit(event,${i})"><label>Imagen nueva (déjalo vacío para conservar la actual)<input id="ebImg" type="file" accept="image/*"></label>
+    <label>Link al tocar el banner (opcional)<input id="ebLink" inputmode="url" value="${esc(b.link||'')}" placeholder="Ej: instagram.com/tumarca"></label>
+    <div><button class="btn">Guardar cambios</button></div></form></div>`, true); }
+async function saveBannerEdit(e, i){ e.preventDefault(); const btn=e.target.querySelector('button.btn'); btn.disabled=true; btn.textContent='Guardando…';
+  try{ const l=[...(S.cfg.banners||[])], b={...l[i]}; const f=$('#ebImg').files[0];
+    if(f){ const data=await readFileShrunk(f, 1600); b.img=await storeBannerImage(data); }
+    let link=$('#ebLink').value.trim(); if(link && !/^https?:\/\//i.test(link)) link='https://'+link; b.link=link; l[i]=b;
+    closeModal(); await saveBanners(l, 'Banner actualizado para todos.'); }
+  catch(x){ toast(errText(x)); btn.disabled=false; btn.textContent='Guardar cambios'; } }
 function toggleBanner(i){ const l=[...(S.cfg.banners||[])]; l[i]={...l[i], on:l[i].on===false}; saveBanners(l, l[i].on?'Banner activado.':'Banner pausado.'); }
 function delBanner(i){ if(!confirm('¿Quitar este banner?')) return; const l=[...(S.cfg.banners||[])]; l.splice(i,1); saveBanners(l, 'Banner quitado.'); }
 function moveBanner(i,d){ const l=[...(S.cfg.banners||[])], j=i+d; if(j<0||j>=l.length) return; [l[i],l[j]]=[l[j],l[i]]; saveBanners(l, 'Orden actualizado.'); }
@@ -2480,11 +2497,91 @@ function createGroupOrder(g, bk, a, procAll, total){
   return o;
 }
 
+
+/* =====================================================================
+   PUBLICIDAD EN FACEBOOK E INSTAGRAM (beneficio del plan Pro)
+   El vendedor Pro la pide; MER-K crea y paga la campaña y la registra aquí.
+   ===================================================================== */
+const AD_ST = {pendiente:['Pendiente','warn'], en_campana:['En campaña','lav'], terminada:['Terminada',''], rechazada:['No aprobada','bad']};
+const adMonthly = () => S.cfg.adMonthly ?? 2;
+const productLink = p => 'https://merkshopping.com/#producto/' + p.id;
+const adActive = pid => (S.adRequests||[]).find(a=>a.pid===pid && ['pendiente','en_campana'].includes(a.status));
+const adsThisMonth = sk => { const m=new Date(); m.setDate(1); m.setHours(0,0,0,0); return (S.adRequests||[]).filter(a=>a.sk===sk && a.status!=='rechazada' && a.ts>=m.getTime()).length; };
+function adBadge(a){ const [l,c]=AD_ST[a.status]||[a.status,'']; return `<span class="badge ${c}">📣 ${l}</span>`; }
+/* Vendedor: botón en cada producto y resumen de sus solicitudes */
+function adCell(p){
+  if(tierOf(p.s)!=='pro') return '';
+  const a=adActive(p.id); if(a) return adBadge(a);
+  return `<button class="btn lav sm" onclick="askAd(${p.id})">📣 Pedir publicidad</button>`;
+}
+function sellerAdsPanel(sk){
+  if(tierOf(sk)!=='pro') return `<div class="panel">${upsell('Con el plan Pro, MER-K paga publicidad de tus productos en Facebook e Instagram y les da prioridad en la página.','pro')}</div>`;
+  const mine=(S.adRequests||[]).filter(a=>a.sk===sk), left=Math.max(0, adMonthly()-adsThisMonth(sk));
+  return `<div class="panel"><h3>📣 Publicidad pagada por MER-K</h3><p class="note" style="margin-top:-6px">Elige hasta <b>${adMonthly()}</b> producto${adMonthly()>1?'s':''} al mes y MER-K les hace campaña en Facebook e Instagram. Mientras dure la campaña, además salen de primeras en MER-K. Te quedan <b>${left}</b> este mes: toca “📣 Pedir publicidad” en el producto.</p>
+    ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Estado</th><th>Fechas</th><th>Nota de MER-K</th></tr>${mine.map(a=>`<tr><td>${esc(P(a.pid)?.t||'Producto')}</td><td>${adBadge(a)}</td><td class="note">${a.starts?dLabel(a.starts):'—'}${a.ends?' a '+dLabel(a.ends):''}</td><td class="note">${esc(a.adminNote||'')}</td></tr>`).join('')}</table></div>`:''}</div>`;
+}
+function askAd(pid){
+  const p=P(pid), sk=p.s; if(tierOf(sk)!=='pro'){ toast('La publicidad pagada por MER-K es del plan Pro.'); return; }
+  if(adsThisMonth(sk)>=adMonthly()){ toast(`Este mes ya pediste ${adMonthly()}. El próximo mes puedes pedir más.`); return; }
+  openModal(`<div class="mpad"><h2>📣 Pedir publicidad</h2><p class="sub">${esc(p.t)}</p>
+    <p class="note">MER-K crea y paga la campaña en Facebook e Instagram con la foto y el link de este producto. Te avisamos cuando arranque.</p>
+    <form class="form" onsubmit="sendAd(event,${pid})"><label>¿Qué quieres que resaltemos? (opcional)<textarea id="adNote" rows="3" maxlength="300" placeholder="Ej: es hecho a mano, ideal para regalo, tenemos envío gratis"></textarea></label>
+    <div><button class="btn">Enviar solicitud</button></div></form></div>`, true);
+}
+function sendAd(e, pid){ e.preventDefault(); const p=P(pid), note=$('#adNote').value.trim(), r=check(note);
+  if(!r.ok){ toast('No se envió: '+r.reason+'. No incluyas datos de contacto.'); return; }
+  (S.adRequests||(S.adRequests=[])).unshift({id:Date.now(), pid, sk:p.s, note, status:'pendiente', starts:null, ends:null, budget:null, adminNote:'', ts:T(), created:now()});
+  notify('admin','📣 Solicitud de publicidad', `${SEL(p.s).name} pide publicidad en Facebook e Instagram para "${p.t}". Revísala en Administración → Publicidad.`);
+  save(); closeModal(); toast('¡Solicitud enviada! Te avisamos cuando arranque la campaña.'); render(); }
+/* Administración: solicitudes, campañas y prioridad */
+function adminAdRequests(){
+  const list=(S.adRequests||[]).filter(a=>P(a.pid)), open=list.filter(a=>['pendiente','en_campana'].includes(a.status)), done=list.filter(a=>!['pendiente','en_campana'].includes(a.status)).slice(0,15);
+  const row=a=>{ const p=P(a.pid); return `<div class="adreq"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
+      <div><b>${esc(p.t)}</b> ${adBadge(a)}<br><span class="note">${esc(SEL(a.sk).name)} · pedida el ${esc(a.created||'')}${a.starts?` · campaña ${dLabel(a.starts)}${a.ends?' a '+dLabel(a.ends):''}`:''}${a.budget?' · '+cop(a.budget):''}</span>${a.note?`<div class="note">“${esc(a.note)}”</div>`:''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn ghost sm" onclick="copyText('${productLink(p)}','Link del producto copiado para el anuncio.')">Copiar link</button>${p.img?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(p.img)}" target="_blank" rel="noopener">Ver foto</a>`:''}<button class="btn sm" onclick="manageAd(${a.id})">Gestionar</button></div></div>`; };
+  return `<div class="panel"><h3>📣 Publicidad del plan Pro (Facebook e Instagram)</h3>
+    <p class="note" style="margin-top:-6px">Las tiendas Pro piden publicidad para sus productos. Ustedes crean la campaña en el Administrador de anuncios de Meta con el link y la foto del producto y la registran aquí: al marcarla <b>En campaña</b>, el producto queda con prioridad en MER-K y la tienda recibe el aviso.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><a class="btn lav sm" style="text-decoration:none" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns" target="_blank" rel="noopener">Abrir Administrador de anuncios de Meta ↗</a>
+      <form class="cpbox" style="margin:0" onsubmit="saveAdMonthly(event)"><span class="note" style="align-self:center">Solicitudes por tienda al mes:</span><input id="adMon" type="number" min="1" max="20" value="${adMonthly()}" style="width:70px"><button class="btn ghost sm">Guardar</button></form></div>
+    ${open.length?open.map(row).join(''):'<p class="empty">No hay solicitudes pendientes ni campañas activas.</p>'}
+    ${done.length?`<details style="margin-top:8px"><summary class="note">Ver campañas terminadas o no aprobadas (${done.length})</summary>${done.map(row).join('')}</details>`:''}</div>`;
+}
+function manageAd(id){
+  const a=S.adRequests.find(x=>x.id===id), p=P(a.pid);
+  openModal(`<div class="mpad"><h2>Campaña · ${esc(p.t)}</h2><p class="sub">${esc(SEL(a.sk).name)}${a.note?` · “${esc(a.note)}”`:''}</p>
+    <div class="shipbox" style="margin-bottom:12px"><b>Link para el anuncio</b><span style="word-break:break-all">${productLink(p)}</span><a class="note" href="javascript:copyText('${productLink(p)}','Link copiado.')">Copiar link</a></div>
+    <form class="form" onsubmit="saveAd(event,${id})">
+      <label>Estado<select id="adSt">${Object.entries(AD_ST).map(([k,[l]])=>`<option value="${k}" ${k===a.status?'selected':''}>${l}</option>`).join('')}</select></label>
+      <div class="row2"><label>Empieza<input id="adD1" type="date" value="${a.starts||''}"></label><label>Termina<input id="adD2" type="date" value="${a.ends||''}"></label></div>
+      <label>Presupuesto de la campaña (opcional, solo lo ve MER-K)<input id="adBud" type="number" min="0" step="1000" value="${a.budget||''}"></label>
+      <label>Mensaje para la tienda (opcional)<textarea id="adMsg" rows="2" maxlength="300">${esc(a.adminNote||'')}</textarea></label>
+      <div><button class="btn">Guardar y avisar a la tienda</button></div></form></div>`, true);
+}
+function saveAd(e, id){ e.preventDefault(); const a=S.adRequests.find(x=>x.id===id), p=P(a.pid), st=$('#adSt').value;
+  Object.assign(a, {status:st, starts:$('#adD1').value||null, ends:$('#adD2').value||null, budget:+$('#adBud').value||null, adminNote:$('#adMsg').value.trim()});
+  if(st==='en_campana'){ p.priority=true; notify(a.sk,'📣 Tu producto ya tiene publicidad', `"${p.t}" está en campaña en Facebook e Instagram${a.starts?' desde el '+dLabel(a.starts):''}${a.ends?' hasta el '+dLabel(a.ends):''}. Además sale de primeras en MER-K.${a.adminNote?'\n'+a.adminNote:''}`); }
+  if(st==='terminada'||st==='rechazada'){ if(!S.adRequests.some(x=>x.pid===a.pid && x.status==='en_campana')) p.priority=false;
+    notify(a.sk, st==='terminada'?'📣 Terminó la campaña de tu producto':'Solicitud de publicidad no aprobada', `"${p.t}"${st==='terminada'?': la campaña en Facebook e Instagram terminó.':': por ahora no pudimos hacer esta campaña.'}${a.adminNote?'\n'+a.adminNote:''}`); }
+  save(); closeModal(); toast('Campaña guardada. La tienda recibió el aviso.'); render(); }
+function saveAdMonthly(e){ e.preventDefault(); S.cfg.adMonthly=Math.max(1,+$('#adMon').value||2); save(); toast('Listo.'); render(); }
+function adminPriorityPanel(){
+  const pri=S.products.filter(p=>p.priority), boosted=Object.keys(S.sellers).filter(isBoosted);
+  return `<div class="panel"><h3>⭐ Prioridad en la página</h3><p class="note" style="margin-top:-6px">Lo que tenga prioridad sale <b>siempre de primeras</b>: en el inicio, en Destacados, en Ofertas, en las búsquedas y en cada categoría. Primero los productos con prioridad y después los de las tiendas con prioridad.</p>
+    <b style="font-size:14px">Productos con prioridad (${pri.length})</b>
+    ${pri.length?pri.map(p=>`<div class="addr"><div><b>${esc(p.t)}</b><br><span class="note">${esc(SEL(p.s).name)}${adActive(p.id)?.status==='en_campana'?' · en campaña':''}</span></div><button class="btn ghost sm" onclick="adminSetPriority(${p.id},false)">Quitar prioridad</button></div>`).join(''):'<p class="empty" style="margin:6px 0">Ninguno todavía. Dale prioridad desde Administración → Productos o al marcar una campaña “En campaña”.</p>'}
+    <b style="font-size:14px;display:block;margin-top:10px">Tiendas con prioridad (${boosted.length})</b>
+    ${boosted.length?boosted.map(k=>`<div class="addr"><div><b>${esc(SEL(k).name)}</b><br><span class="note">Todos sus productos salen arriba</span></div><button class="btn ghost sm" onclick="adminBoost('${k}',false)">Quitar prioridad</button></div>`).join(''):'<p class="empty" style="margin:6px 0">Ninguna. Se activa en Administración → Vendedores con “⭐ Dar prioridad” (tiendas Pro).</p>'}</div>`;
+}
+function adminSetPriority(pid, on){ const p=P(pid); p.priority=on; if(on) notify(p.s,'⭐ Tu producto tiene prioridad', `"${p.t}" ahora sale de primeras en MER-K: en el inicio, en las búsquedas y en su categoría.`); save(); toast(on?'Prioridad activada: sale de primeras.':'Prioridad quitada.'); render(); }
+function copyText(t, msg){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(msg||'Copiado.')).catch(()=>prompt('Copia este link:', t)); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
   autoRelease(); subCheck();
-  const v=(location.hash||'#inicio').slice(1), isStore=v.startsWith('tienda/'), key=isStore?'tienda':VIEWS[v]?v:'inicio';
+  let v=(location.hash||'#inicio').slice(1); const openPid = v.startsWith('producto/') ? +v.slice(9) : 0;
+  if(openPid){ history.replaceState(null, '', location.pathname + location.search + '#inicio'); v='inicio'; setTimeout(()=>{ if(P(openPid)) showProduct(openPid); }, 60); }
+  const isStore=v.startsWith('tienda/'), key=isStore?'tienda':VIEWS[v]?v:'inicio';
   if(!isStore) lastStoreVisit=null;
   $('#app').innerHTML = isStore ? viewStore(v.slice(7)) : VIEWS[key]();
   $('#locBtn').textContent = '📍 '+S.loc;
@@ -2545,7 +2642,7 @@ const fmtTs = ts => new Date(ts).toLocaleString('es-CO', {dateStyle:'short', tim
 
 /* ---------- Convertir filas de la base de datos al formato de la página ---------- */
 function mapProduct(r){ return {id:r.id, t:r.title, d:r.description, p:r.price, disc:r.disc, c:r.category, e:r.emoji, s:r.seller_id, stock:r.stock, paused:r.paused, pausedByPlan:r.paused_by_plan,
-  freeShip:r.free_ship, natCost:r.nat_cost, img:(r.images||[])[0]||null, images:r.images||[], sku:r.sku||'', featured:r.featured, views:r.views,
+  freeShip:r.free_ship, natCost:r.nat_cost, priority:!!r.priority, img:(r.images||[])[0]||null, images:r.images||[], sku:r.sku||'', featured:r.featured, views:r.views,
   flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null}; }
 function mapSeller(r, prof, priv){
   const b = priv?.bank || null;
@@ -2571,7 +2668,7 @@ async function loadAll(){
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
-  let profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
+  let ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
       T0('messages', {order:'created_at', asc:true}), T0('notifications', {order:'created_at', limit:150}), T0('tickets', {order:'created_at'}), T0('ticket_messages', {order:'created_at', asc:true})]);
@@ -2579,6 +2676,7 @@ async function loadAll(){
     if(role==='seller' || role==='admin') [slog, pays, subs] = await Promise.all([T0('stock_log', {order:'created_at', limit:300}), T0('payouts', {order:'created_at'}), T0('sub_payments', {order:'created_at'})]);
     if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
     revs = await T0('reviews');
+    if(role==='seller' || role==='admin') ads = await T0('ad_requests', {order:'created_at'});
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
@@ -2588,6 +2686,7 @@ async function loadAll(){
   OFFICIAL = sellers.find(r=>r.plan==='oficial')?.id || 'sin-tienda-oficial';
   S.products = products.map(mapProduct).reverse();
   S.coupons = coupons.map(c=>({id:c.id, sk:c.seller_id, code:c.code, type:c.type, value:c.value, min:c.min_purchase, max:c.max_uses, used:c.used, until:c.until||'', active:c.active, pub:c.pub}));
+  S.adRequests = ads.map(a=>({id:a.id, pid:a.product_id, sk:a.seller_id, note:a.note||'', status:a.status, starts:a.starts, ends:a.ends, budget:a.budget, adminNote:a.admin_note||'', ts:Date.parse(a.created_at), created:fmtTs(a.created_at)}));
   S.buyers = {};
   profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', warnings:p.warnings, status:p.status, role:p.role, addresses:[]}; });
   addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push(mapAddr(a)); });
@@ -2772,6 +2871,15 @@ async function coPay(){
 async function storeBannerImage(dataUrl){ return api.upload('tiendas', `${ME.id}/banner-${Date.now()}.jpg`, await toBlob(dataUrl)); }
 async function saveBanners(list, msg){ const c=JSON.parse(JSON.stringify(S.cfg)); c.banners=list; delete c.wompiLinks; delete c.fixedFee; delete c.fixedUnder; delete c.domicilio;
   await act(()=>api.upd('config', {data:c}, {id:1}), msg); }
+/* Publicidad del plan Pro y prioridad (las reglas las aplica el servidor) */
+async function sendAd(e, pid){ e.preventDefault(); const note=$('#adNote').value.trim();
+  if(!(await checkText(note, 'Solicitud de publicidad'))) return;
+  await act(()=>api.rpc('request_ad', {pid, msg:note}), '¡Solicitud enviada! Te avisamos cuando arranque la campaña.'); }
+async function saveAd(e, id){ e.preventDefault();
+  await act(()=>api.rpc('admin_ad_update', {rid:id, st:$('#adSt').value, d1:$('#adD1').value||null, d2:$('#adD2').value||null, amount:+$('#adBud').value||null, msg:$('#adMsg').value.trim()}), 'Campaña guardada. La tienda recibió el aviso.'); }
+async function adminSetPriority(pid, on){ await act(()=>api.rpc('admin_set_priority', {pid, turn_on:on}), on?'Prioridad activada: sale de primeras.':'Prioridad quitada.', {close:false}); }
+async function saveAdMonthly(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.adMonthly=Math.max(1,+$('#adMon').value||2); delete c.wompiLinks; delete c.fixedFee; delete c.fixedUnder; delete c.domicilio;
+  await act(()=>api.upd('config', {data:c}, {id:1}), 'Listo.', {close:false}); }
 let CO_Q = null;
 function findCoupon(code, p){ return CO_Q && CO_Q.code===String(code||'').toUpperCase() && CO_Q.pid===p.id ? CO_Q : null; }
 async function applyCoupon(id){
