@@ -371,8 +371,8 @@ details summary{cursor:pointer}
 .adempty{display:grid;place-items:center;text-align:center;background:linear-gradient(120deg,var(--blue-soft),var(--lav-soft) 55%,var(--pear-soft));border:2px dashed #CFC6E6;max-height:110px}
 .adempty div{display:grid;gap:2px;padding:10px 16px}.adempty b{font-size:18px;color:var(--blue-d)}.adempty span{color:var(--ink2);font-size:13.5px}
 .adempty .adtag{background:rgba(35,34,52,.25)}
-.adrow{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.adrow img{width:120px;aspect-ratio:5/1;object-fit:cover;border-radius:8px;background:var(--line)}
+.adrow{display:grid;grid-template-columns:240px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.adrow img{width:240px;aspect-ratio:5/1;object-fit:cover;border-radius:8px;background:var(--line)}
 @media (max-width:640px){
   .buybtns{grid-template-columns:1fr}
   .adban{aspect-ratio:3/1;border-radius:14px;margin-top:12px}
@@ -384,6 +384,19 @@ details summary{cursor:pointer}
 @media (max-width:640px){ .adreq{grid-template-columns:52px minmax(0,1fr)} .adreq>div:last-child{grid-column:1/-1;justify-content:flex-start!important} }
 
 .btn.wa{background:#25D366;color:#fff;border-color:#1DA851}.btn.wa:hover{background:#1DA851}
+.adprod{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px;padding:12px 22px;border:0;text-align:left;cursor:pointer;font:inherit;color:#fff;
+  background:linear-gradient(110deg,var(--blue) 0%,var(--blue-d) 55%,var(--lav) 100%)}
+.adpimg{height:100%;aspect-ratio:1;border-radius:14px;background-color:#fff;background-size:cover;background-position:center;display:grid;place-items:center;font-size:48px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.adptxt{display:grid;gap:4px;justify-items:start;min-width:0}
+.adptxt b{font-size:22px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.adpk{font-size:12px;font-weight:800;background:rgba(255,255,255,.18);padding:2px 10px;border-radius:99px}
+.adpprice{font-size:20px;font-weight:900;color:var(--pear)}.adpprice s{color:rgba(255,255,255,.7);font-size:14px;font-weight:600}
+.adptxt .btn{background:var(--pear);color:var(--ink);border-color:var(--pear)}
+@media (max-width:640px){ .adprod{gap:10px;padding:8px 12px} .adptxt b{font-size:15px} .adpprice{font-size:15px} .adptxt .btn{display:none} .adpk{font-size:10px} }
+.adarr{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.85);color:var(--ink);font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);opacity:0;transition:opacity .2s}
+.adban:hover .adarr{opacity:1}.adarr.l{left:10px}.adarr.r{right:10px}
+.adslide img{user-select:none}
+@media (max-width:640px){ .adarr{display:none} }
 </style>
 </head>
 <body>
@@ -428,7 +441,7 @@ const PLAN_INFO = {
 const PLAN_PERKS = {
   gratis:['Tienda virtual básica','Gestión de pedidos y ventas','Estadísticas básicas','Soporte estándar'],
   emprendedor:['Tienda personalizada con enlace para compartir','Gestión de inventario y pedidos','Estadísticas comerciales','Cupones de descuento','Mayor visibilidad','Soporte prioritario'],
-  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Prioridad en las búsquedas','MER-K paga publicidad de tus productos en Facebook e Instagram','Mis cuentas: ventas, gastos y ganancia del mes','Soporte preferencial']
+  pro:['Tienda personalizada avanzada','Estadísticas avanzadas','Herramientas promocionales','Productos destacados','Prioridad en las búsquedas','Tus productos destacados en el banner de inicio','Mis cuentas: ventas, gastos y ganancia del mes','Soporte preferencial']
 };
 const DOM_MODES = {merk:'Domiciliario de MER-K', propio:'Domiciliario propio del vendedor'};
 const COLORS = ['#F1F5C8','#EEE6FC','#E3E8F7','#FFFBDA','#E7DCFB','#E9EFB4','#DDE3F5','#F5F0FF'];
@@ -1049,7 +1062,7 @@ function viewSeller(){
   const pend=sales.filter(o=>['comanda','preparando'].includes(o.status)).length;
   const sum=(st)=>S.orders.filter(o=>o.sk===sk && st.includes(o.status)).reduce((a,o)=>a+o.sellerGross,0);
   const lk=f=>can(sk,f)?'':' 🔒';
-  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['cuentas','Mis cuentas'+lk('cuentas')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)],['perfil','Mi perfil']];
+  const tabs=[['resumen','Resumen'],['pedidos','Pedidos',pend],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['cupones','Cupones'+lk('cupones')],['promos','Promociones'+lk('promos')],['cuentas','Mis cuentas'+lk('cuentas')],['tienda','Mi tienda'],['envios','Envíos'],['mensajes','Mensajes'],['calculadora','🧮 Calculadora'],['dinero','Mi dinero'],['plan','Mi plan'],['soporte','Soporte',tkUnread(sk)],['perfil','Mi perfil']];
   let body='';
   if(t==='resumen') body = `<div class="kpis">
       <div class="kpi"><small>Pedidos por despachar</small><div>${pend}</div></div>
@@ -1085,7 +1098,8 @@ function viewSeller(){
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Recibes aprox.</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td><b>${cop(sellerNet(sk, finalPrice(p)).net)}</b></td><td>${p.stock}</td>
       <td>${p.pausedByPlan?'<span class="badge bad">Pausado por plan vencido</span>':p.paused?'<span class="badge warn">Pausado</span>':p.stock<1?'<span class="badge bad">Agotado</span>':'<span class="badge">Publicado</span>'}</td>
-      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerCalcPanel(sk)}${sellerAdsPanel(sk)}`;
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerAdsPanel(sk)}`;
+  if(t==='calculadora') body = sellerCalcPanel(sk);
   if(t==='publicar') body = `<div class="panel"><h3>Publicar un producto</h3><p class="note" style="margin-top:-6px">El título y la descripción pasan por el filtro anti-contacto. Las opciones de envío se configuran en la pestaña Envíos.</p>${productForm(null)}</div>`;
   if(t==='envios') body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
       <ul class="note" style="display:grid;gap:6px;padding-left:18px;margin:0">
@@ -1111,7 +1125,7 @@ function viewSeller(){
           <label>Número de cuenta<input id="bNum" required inputmode="numeric" pattern="[0-9]{6,20}" title="Solo números"></label>
           <div class="row2"><label>Titular<input id="bHolder" required value="${esc(s.owner)}"></label><label>Cédula o NIT del titular<input id="bId" required inputmode="numeric" pattern="[0-9]{6,12}" value="${esc(s.doc)}"></label></div>
           <p class="note" style="margin:0">Debe estar a nombre del vendedor. Solo MER-K la ve.</p><div><button class="btn">Guardar cuenta</button></div></form>`}</div>
-      <div class="panel"><h3>Transferencias recibidas</h3>${pays.length?`<table><tr><th>Fecha</th><th>Valor</th><th>Comprobante</th></tr>${pays.map(x=>`<tr><td>${x.date}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div></div>${sellerCalcPanel(sk)}`; }
+      <div class="panel"><h3>Transferencias recibidas</h3>${pays.length?`<table><tr><th>Fecha</th><th>Valor</th><th>Comprobante</th></tr>${pays.map(x=>`<tr><td>${x.date}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div></div>`; }
   if(t==='plan') body = sk===OFFICIAL ? `<div class="panel"><h3>Tienda oficial</h3><ul>${PLAN_INFO.oficial.perks.map(x=>`<li>${x}</li>`).join('')}</ul></div>` : plansHtml(sk);
   return `<h2>${esc(s.name)}</h2><div class="who">${planBadge(sk)} ${statusBadge(s.status)} <span class="note">${esc(s.city)}</span>
     <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="S.ui.sellTab='tienda';render()">🎨 Personalizar tienda</button><a class="btn ghost sm" style="text-decoration:none" href="${storeUrl(sk)}">Ver mi tienda</a><button class="btn ghost sm" onclick="S.ui.sellTab='soporte';render()">🛟 Soporte</button></span></div>
@@ -2292,55 +2306,89 @@ function bannedAlert(label){
 /* =====================================================================
    BANNER PUBLICITARIO (inicio, con o sin sesión)
    ===================================================================== */
-function activeBanners(){ return (S.cfg.banners||[]).filter(b=>b && b.img && b.on!==false); }
-function bannerHtml(){
-  const list=activeBanners();
-  if(!list.length) return `<section class="adban adempty" aria-label="Espacio publicitario"><div><b>Espacio publicitario</b><span>Anuncia tu marca aquí y llega a miles de compradores en MER-K</span></div><span class="adtag">Publicidad</span></section>`;
-  return `<section class="adban" aria-label="Publicidad" data-n="${list.length}" data-i="0"><div class="adtrack">${list.map(b=>{ const img=`<img src="${esc(b.img)}" alt="${esc(b.alt||'Publicidad')}" loading="lazy">`;
-      return b.link?`<a class="adslide" href="${esc(b.link)}" target="_blank" rel="noopener sponsored">${img}</a>`:`<div class="adslide">${img}</div>`; }).join('')}</div>
-    ${list.length>1?`<div class="addots">${list.map((_,i)=>`<button aria-label="Anuncio ${i+1}" class="${i?'':'on'}" onclick="adGo(${i})"></button>`).join('')}</div>`:''}<span class="adtag">Publicidad</span></section>`;
+const MAX_BANNERS = 4;
+const bnTime = v => v ? new Date(v.length<=10 ? v+'T00:00' : v).getTime() : null;
+function bannerState(b){ if(b.on===false) return 'pausado'; const n=Date.now(), a=bnTime(b.start), z=bnTime(b.end);
+  if(a && n<a) return 'programado'; if(z && n>z) return 'vencido'; return 'activo'; }
+const BN_ST = {activo:['Se está mostrando',''], programado:['Programado','lav'], vencido:['Terminó','bad'], pausado:['Pausado','warn']};
+function activeBanners(){ return (S.cfg.banners||[]).filter(b=>b && b.img && bannerState(b)==='activo'); }
+function prodSlide(p){ return `<button class="adslide adprod" onclick="showProduct(${p.id})" aria-label="Ver ${esc(p.t)}">
+    <div class="adpimg" style="${thumbStyle(p)}">${thumbInner(p)}</div>
+    <div class="adptxt"><span class="adpk">⭐ Destacado · ${esc(SEL(p.s).name)}</span><b>${esc(p.t)}</b><span class="adpprice">${discOf(p)>0?`<s>${cop(p.p)}</s> `:''}${cop(finalPrice(p))}</span><span class="btn sm">Ver producto</span></div></button>`; }
+function imgSlide(b){
+  const img=`<img src="${esc(b.img)}" alt="${esc(b.name||'Publicidad')}" loading="lazy" draggable="false">`;
+  if(b.sk && S.sellers[b.sk]) return `<a class="adslide" href="${storeUrl(b.sk)}" aria-label="Ver la tienda ${esc(SEL(b.sk).name)}">${img}</a>`;
+  if(b.link) return `<a class="adslide" href="${esc(b.link)}" target="_blank" rel="noopener sponsored">${img}</a>`;
+  return `<div class="adslide">${img}</div>`;
 }
-function adGo(i){ const b=document.querySelector('.adban[data-n]'); if(!b) return; const n=+b.dataset.n; i=((i%n)+n)%n; b.dataset.i=i;
+function bannerHtml(){
+  const list=[...activeBanners().map(b=>imgSlide(b)), ...bannerProducts().map(p=>prodSlide(p))];
+  if(!list.length) return `<section class="adban adempty" aria-label="Espacio publicitario"><div><b>Espacio publicitario</b><span>Anuncia tu marca aquí y llega a miles de compradores en MER-K</span></div><span class="adtag">Publicidad</span></section>`;
+  return `<section class="adban" aria-label="Publicidad" data-n="${list.length}" data-i="0" ontouchstart="adTouch(event)" ontouchend="adTouchEnd(event)"><div class="adtrack">${list.join('')}</div>
+    ${list.length>1?`<button class="adarr l" onclick="adStep(-1)" aria-label="Anterior">‹</button><button class="adarr r" onclick="adStep(1)" aria-label="Siguiente">›</button>
+    <div class="addots">${list.map((_,i)=>`<button aria-label="Banner ${i+1}" class="${i?'':'on'}" onclick="adGo(${i})"></button>`).join('')}</div>`:''}<span class="adtag">Publicidad</span></section>`;
+}
+let AD_PAUSE=0, AD_X=null;
+function adGo(i, auto){ const b=document.querySelector('.adban[data-n]'); if(!b) return; const n=+b.dataset.n; i=((i%n)+n)%n; b.dataset.i=i; if(!auto) AD_PAUSE=Date.now();
   b.querySelector('.adtrack').style.transform=`translateX(-${i*100}%)`; b.querySelectorAll('.addots button').forEach((d,k)=>d.classList.toggle('on',k===i)); }
-setInterval(()=>{ const b=document.querySelector('.adban[data-n]'); if(b && +b.dataset.n>1 && document.visibilityState==='visible') adGo(+b.dataset.i+1); }, 5000);
+function adStep(d){ const b=document.querySelector('.adban[data-n]'); if(b) adGo(+b.dataset.i+d); }
+function adTouch(e){ AD_X=e.touches[0].clientX; }
+function adTouchEnd(e){ if(AD_X===null) return; const dx=e.changedTouches[0].clientX-AD_X; AD_X=null; if(Math.abs(dx)>40) adStep(dx<0?1:-1); }
+setInterval(()=>{ const b=document.querySelector('.adban[data-n]'); if(b && +b.dataset.n>1 && document.visibilityState==='visible' && Date.now()-AD_PAUSE>8000) adGo(+b.dataset.i+1, true); }, 5000);
 
-/* Administración → Publicidad */
+/* Administración → Publicidad: hasta 4 banners, cada uno de una tienda y con fecha y hora */
+const bnLabel = v => { const t=bnTime(v); if(!t) return ''; const d=new Date(t); return `${fdate(t)}, ${d.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'})}`; };
+const nowLocal = (addDays=0) => { const d=new Date(Date.now()+addDays*864e5); d.setSeconds(0,0); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16); };
+const bnCount = () => (S.cfg.banners||[]).filter(b=>bannerState(b)!=='vencido').length;
+function storeOptions(sel){ return `<option value="">Ninguna (usar un link)</option>`+Object.entries(S.sellers).filter(([k,s])=>s.status==='activa').sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([k,s])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(s.name)}</option>`).join(''); }
+function bannerFields(b={}){
+  return `<label>Nombre del banner<input id="bnName" required maxlength="60" placeholder="Ej: Promo de noviembre Casa Bonita" value="${esc(b.name||'')}"></label>
+    <label>¿De qué tienda es? Al tocar el banner, la gente llega a su perfil<select id="bnStore">${storeOptions(b.sk)}</select></label>
+    <label>Link (solo si no es de una tienda de MER-K)<input id="bnLink" inputmode="url" placeholder="Ej: instagram.com/marca" value="${esc(b.link||'')}"></label>
+    <div class="row2"><label>Se muestra desde<input id="bnStart" type="datetime-local" required value="${esc(b.start||nowLocal())}"></label><label>Hasta<input id="bnEnd" type="datetime-local" required value="${esc(b.end||nowLocal(7))}"></label></div>`;
+}
+function readBannerFields(){
+  let link=$('#bnLink').value.trim(); if(link && !/^https?:\/\//i.test(link)) link='https://'+link;
+  const d={name:$('#bnName').value.trim(), sk:$('#bnStore').value||'', link, start:$('#bnStart').value, end:$('#bnEnd').value};
+  if(bnTime(d.end)<=bnTime(d.start)) throw new Error('La fecha y hora final debe ser después de la inicial.');
+  return d;
+}
 function adminAdsTab(){
-  const list=S.cfg.banners||[];
-  return `<div class="split"><div class="panel"><h3>Banners del inicio</h3><p class="note" style="margin-top:-6px">Se muestran arriba en la página de inicio a todos los visitantes, con o sin sesión. Si hay varios, rotan cada 5 segundos.</p>
-    ${list.length?list.map((b,i)=>`<div class="adrow"><img src="${esc(b.img)}" alt=""><div><b>${b.on===false?'<span class="badge warn">Pausado</span>':'<span class="badge">Activo</span>'}</b><br><span class="note">${b.link?esc(b.link):'Sin link'}</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${i?`<button class="btn ghost sm" onclick="moveBanner(${i},-1)" title="Subir">↑</button>`:''}<button class="btn ghost sm" onclick="editBanner(${i})">Cambiar</button><button class="btn ghost sm" onclick="toggleBanner(${i})">${b.on===false?'Activar':'Pausar'}</button><button class="btn bad sm" onclick="delBanner(${i})">Quitar</button></div></div>`).join('')
+  const list=S.cfg.banners||[], full=bnCount()>=MAX_BANNERS;
+  return `<div class="panel"><h3>Banners del inicio (${bnCount()} de ${MAX_BANNERS})</h3><p class="note" style="margin-top:-6px">Se deslizan solos cada 5 segundos en la página de inicio, para todos los visitantes. Cada banner se muestra solo entre su fecha y hora de inicio y de fin. Al tocarlo, la gente llega al perfil de la tienda.</p>
+    ${list.length?list.map((b,i)=>{ const st=bannerState(b), [l,c]=BN_ST[st]; return `<div class="adrow"><img src="${esc(b.img)}" alt=""><div><b>${esc(b.name||'Banner '+(i+1))}</b> <span class="badge ${c}">${l}</span><br><span class="note">${b.sk&&S.sellers[b.sk]?'🏪 '+esc(SEL(b.sk).name):b.link?'🔗 '+esc(b.link):'Sin enlace'}<br>${b.start?bnLabel(b.start):'Desde ya'} → ${b.end?bnLabel(b.end):'sin fecha final'}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${i?`<button class="btn ghost sm" onclick="moveBanner(${i},-1)" title="Subir">↑</button>`:''}<button class="btn ghost sm" onclick="editBanner(${i})">Cambiar</button><button class="btn ghost sm" onclick="toggleBanner(${i})">${b.on===false?'Activar':'Pausar'}</button><button class="btn bad sm" onclick="delBanner(${i})">Quitar</button></div></div>`; }).join('')
       :'<p class="empty">Aún no hay banners. Mientras tanto, en el inicio se ve un recuadro de “Espacio publicitario”.</p>'}</div>
-    <div class="panel"><h3>Agregar banner</h3><form class="form" onsubmit="addBanner(event)">
+    <div class="panel"><h3>Agregar banner</h3>${full?`<p class="empty">Ya tienes ${MAX_BANNERS} banners. Quita uno o espera a que termine alguno para agregar otro.</p>`:`<form class="form" onsubmit="addBanner(event)">
       <label>Imagen del banner<input id="adImg" type="file" accept="image/*" required></label>
       <p class="note" style="margin:-4px 0 0">Tamaño recomendado: <b>1600 × 320 px</b> (horizontal, 5 a 1). Deja los textos importantes en el centro, porque en celular se recortan un poco los bordes.</p>
-      <label>Link al tocar el banner (opcional)<input id="adLink" inputmode="url" placeholder="Ej: instagram.com/tumarca o https://…"></label>
-      <div><button class="btn">Publicar banner</button></div></form></div></div>
+      ${bannerFields()}
+      <div><button class="btn">Publicar banner</button></div></form>`}</div>
     ${adminAdRequests()}${adminPriorityPanel()}`;
 }
 function readFileShrunk(file, max){ return new Promise(ok=>{ if(!file) return ok(null); const rd=new FileReader(); rd.onload=()=>shrink(rd.result, ok, max); rd.readAsDataURL(file); }); }
 async function storeBannerImage(dataUrl){ return dataUrl; }
 async function saveBanners(list, msg){ S.cfg.banners=list; save(); toast(msg); render(); }
 async function addBanner(e){
-  e.preventDefault(); const btn=e.target.querySelector('button.btn'); if(btn){ btn.disabled=true; btn.textContent='Subiendo…'; }
+  e.preventDefault(); const btn=e.target.querySelector('button.btn');
   try{
+    if(bnCount()>=MAX_BANNERS){ toast(`Máximo ${MAX_BANNERS} banners.`); return; }
+    const d=readBannerFields(); if(!d.sk && !d.link && !confirm('Este banner no lleva a ninguna tienda ni link. ¿Publicarlo así?')) return;
+    if(btn){ btn.disabled=true; btn.textContent='Subiendo…'; }
     const data=await readFileShrunk($('#adImg').files[0], 1600); if(!data){ toast('Elige una imagen.'); return; }
-    let link=$('#adLink').value.trim(); if(link && !/^https?:\/\//i.test(link)) link='https://'+link;
     const img=await storeBannerImage(data);
-    await saveBanners([...(S.cfg.banners||[]), {id:Date.now(), img, link, on:true}], 'Banner publicado en el inicio.');
-  }catch(x){ toast(typeof friendly==='function'?friendly(x):String(x.message||x)); }
+    await saveBanners([...(S.cfg.banners||[]), Object.assign({id:Date.now(), img, on:true}, d)], bannerState(d)==='programado'?'Banner programado: sale en la fecha y hora que pusiste.':'Banner publicado en el inicio.');
+  }catch(x){ toast(errText(x)); }
   finally{ if(btn){ btn.disabled=false; btn.textContent='Publicar banner'; } }
 }
 function editBanner(i){ const b=(S.cfg.banners||[])[i]; if(!b) return;
   openModal(`<div class="mpad"><h2>Cambiar banner</h2><img src="${esc(b.img)}" alt="" style="width:100%;aspect-ratio:5/1;object-fit:cover;border-radius:12px;margin-bottom:12px">
     <form class="form" onsubmit="saveBannerEdit(event,${i})"><label>Imagen nueva (déjalo vacío para conservar la actual)<input id="ebImg" type="file" accept="image/*"></label>
-    <label>Link al tocar el banner (opcional)<input id="ebLink" inputmode="url" value="${esc(b.link||'')}" placeholder="Ej: instagram.com/tumarca"></label>
-    <div><button class="btn">Guardar cambios</button></div></form></div>`, true); }
-async function saveBannerEdit(e, i){ e.preventDefault(); const btn=e.target.querySelector('button.btn'); btn.disabled=true; btn.textContent='Guardando…';
-  try{ const l=[...(S.cfg.banners||[])], b={...l[i]}; const f=$('#ebImg').files[0];
-    if(f){ const data=await readFileShrunk(f, 1600); b.img=await storeBannerImage(data); }
-    let link=$('#ebLink').value.trim(); if(link && !/^https?:\/\//i.test(link)) link='https://'+link; b.link=link; l[i]=b;
-    closeModal(); await saveBanners(l, 'Banner actualizado para todos.'); }
+    ${bannerFields(b)}<div><button class="btn">Guardar cambios</button></div></form></div>`, true); }
+async function saveBannerEdit(e, i){ e.preventDefault(); const btn=e.target.querySelector('button.btn');
+  try{ const l=[...(S.cfg.banners||[])], b=Object.assign({...l[i]}, readBannerFields()); btn.disabled=true; btn.textContent='Guardando…';
+    const f=$('#ebImg').files[0]; if(f){ const data=await readFileShrunk(f, 1600); b.img=await storeBannerImage(data); }
+    l[i]=b; closeModal(); await saveBanners(l, 'Banner actualizado para todos.'); }
   catch(x){ toast(errText(x)); btn.disabled=false; btn.textContent='Guardar cambios'; } }
 function toggleBanner(i){ const l=[...(S.cfg.banners||[])]; l[i]={...l[i], on:l[i].on===false}; saveBanners(l, l[i].on?'Banner activado.':'Banner pausado.'); }
 function delBanner(i){ if(!confirm('¿Quitar este banner?')) return; const l=[...(S.cfg.banners||[])]; l.splice(i,1); saveBanners(l, 'Banner quitado.'); }
@@ -2516,76 +2564,78 @@ function createGroupOrder(g, bk, a, procAll, total){
 
 
 /* =====================================================================
-   PUBLICIDAD EN FACEBOOK E INSTAGRAM (beneficio del plan Pro)
-   El vendedor Pro la pide; MER-K crea y paga la campaña y la registra aquí.
+   PRODUCTOS DESTACADOS EN EL BANNER (beneficio del plan Pro)
+   El vendedor Pro pide que un producto salga en el banner del inicio;
+   MER-K lo aprueba y el producto aparece en el banner y con prioridad.
    ===================================================================== */
-const AD_ST = {pendiente:['Pendiente','warn'], en_campana:['En campaña','lav'], terminada:['Terminada',''], rechazada:['No aprobada','bad']};
+const AD_ST = {pendiente:['Pendiente','warn'], en_campana:['En el banner','lav'], terminada:['Terminado',''], rechazada:['No aprobado','bad']};
 const adMonthly = () => S.cfg.adMonthly ?? 2;
 const productLink = p => 'https://merkshopping.com/#producto/' + p.id;
 const adActive = pid => (S.adRequests||[]).find(a=>a.pid===pid && ['pendiente','en_campana'].includes(a.status));
 const adsThisMonth = sk => { const m=new Date(); m.setDate(1); m.setHours(0,0,0,0); return (S.adRequests||[]).filter(a=>a.sk===sk && a.status!=='rechazada' && a.ts>=m.getTime()).length; };
-function adBadge(a){ const [l,c]=AD_ST[a.status]||[a.status,'']; return `<span class="badge ${c}">📣 ${l}</span>`; }
+function adBadge(a){ const [l,c]=AD_ST[a.status]||[a.status,'']; return `<span class="badge ${c}">⭐ ${l}</span>`; }
+/* Productos que hoy están en el banner (aprobados y dentro de sus fechas) */
+function bannerProducts(){ const today=todayISO();
+  return (S.adRequests||[]).filter(a=>a.status==='en_campana' && (!a.starts || a.starts<=today) && (!a.ends || a.ends>=today))
+    .map(a=>P(a.pid)).filter(p=>p && !p.paused && p.stock>0 && SEL(p.s).status==='activa'); }
 /* Vendedor: botón en cada producto y resumen de sus solicitudes */
 function adCell(p){
   if(tierOf(p.s)!=='pro') return '';
   const a=adActive(p.id); if(a) return adBadge(a);
-  return `<button class="btn lav sm" onclick="askAd(${p.id})">📣 Pedir publicidad</button>`;
+  return `<button class="btn lav sm" onclick="askAd(${p.id})">⭐ Destacar en el banner</button>`;
 }
 function sellerAdsPanel(sk){
-  if(tierOf(sk)!=='pro') return `<div class="panel">${upsell('Con el plan Pro, MER-K paga publicidad de tus productos en Facebook e Instagram y les da prioridad en la página.','pro')}</div>`;
+  if(tierOf(sk)!=='pro') return `<div class="panel">${upsell('Con el plan Pro tus productos pueden salir en el banner de la página de inicio de MER-K y tener prioridad en la página.','pro')}</div>`;
   const mine=(S.adRequests||[]).filter(a=>a.sk===sk), left=Math.max(0, adMonthly()-adsThisMonth(sk));
-  return `<div class="panel"><h3>📣 Publicidad pagada por MER-K</h3><p class="note" style="margin-top:-6px">Elige hasta <b>${adMonthly()}</b> producto${adMonthly()>1?'s':''} al mes y MER-K les hace campaña en Facebook e Instagram. Mientras dure la campaña, además salen de primeras en MER-K. Te quedan <b>${left}</b> este mes: toca “📣 Pedir publicidad” en el producto.</p>
+  return `<div class="panel"><h3>⭐ Tus productos en el banner de MER-K</h3><p class="note" style="margin-top:-6px">Elige hasta <b>${adMonthly()}</b> producto${adMonthly()>1?'s':''} al mes para que salgan en el banner de la página de inicio, el que ven todos los compradores. Mientras estén en el banner, además salen de primeras en MER-K. Te quedan <b>${left}</b> este mes: toca “⭐ Destacar en el banner” en el producto.</p>
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Estado</th><th>Fechas</th><th>Nota de MER-K</th></tr>${mine.map(a=>`<tr><td>${esc(P(a.pid)?.t||'Producto')}</td><td>${adBadge(a)}</td><td class="note">${a.starts?dLabel(a.starts):'—'}${a.ends?' a '+dLabel(a.ends):''}</td><td class="note">${esc(a.adminNote||'')}</td></tr>`).join('')}</table></div>`:''}</div>`;
 }
 function askAd(pid){
-  const p=P(pid), sk=p.s; if(tierOf(sk)!=='pro'){ toast('La publicidad pagada por MER-K es del plan Pro.'); return; }
+  const p=P(pid), sk=p.s; if(tierOf(sk)!=='pro'){ toast('Salir en el banner es un beneficio del plan Pro.'); return; }
   if(adsThisMonth(sk)>=adMonthly()){ toast(`Este mes ya pediste ${adMonthly()}. El próximo mes puedes pedir más.`); return; }
-  openModal(`<div class="mpad"><h2>📣 Pedir publicidad</h2><p class="sub">${esc(p.t)}</p>
-    <p class="note">MER-K crea y paga la campaña en Facebook e Instagram con la foto y el link de este producto. Te avisamos cuando arranque.</p>
-    <form class="form" onsubmit="sendAd(event,${pid})"><label>¿Qué quieres que resaltemos? (opcional)<textarea id="adNote" rows="3" maxlength="300" placeholder="Ej: es hecho a mano, ideal para regalo, tenemos envío gratis"></textarea></label>
+  openModal(`<div class="mpad"><h2>⭐ Destacar en el banner</h2><p class="sub">${esc(p.t)}</p>
+    <p class="note">MER-K revisa tu solicitud y pone este producto en el banner de la página de inicio, con su foto, su precio y el botón para comprarlo. Te avisamos cuando salga.</p>
+    <form class="form" onsubmit="sendAd(event,${pid})"><label>¿Algo que quieras resaltar? (opcional)<textarea id="adNote" rows="3" maxlength="300" placeholder="Ej: es hecho a mano, ideal para regalo, tenemos envío gratis"></textarea></label>
     <div><button class="btn">Enviar solicitud</button></div></form></div>`, true);
 }
 function sendAd(e, pid){ e.preventDefault(); const p=P(pid), note=$('#adNote').value.trim(), r=check(note);
   if(!r.ok){ toast('No se envió: '+r.reason+'. No incluyas datos de contacto.'); return; }
   (S.adRequests||(S.adRequests=[])).unshift({id:Date.now(), pid, sk:p.s, note, status:'pendiente', starts:null, ends:null, budget:null, adminNote:'', ts:T(), created:now()});
-  notify('admin','📣 Solicitud de publicidad', `${SEL(p.s).name} pide publicidad en Facebook e Instagram para "${p.t}". Revísala en Administración → Publicidad.`);
-  save(); closeModal(); toast('¡Solicitud enviada! Te avisamos cuando arranque la campaña.'); render(); }
-/* Administración: solicitudes, campañas y prioridad */
+  notify('admin','⭐ Solicitud para el banner', `${SEL(p.s).name} pide que "${p.t}" salga en el banner. Revísala en Administración → Publicidad.`);
+  save(); closeModal(); toast('¡Solicitud enviada! Te avisamos cuando tu producto salga en el banner.'); render(); }
+/* Administración: solicitudes para el banner y prioridad */
 function adminAdRequests(){
   const list=(S.adRequests||[]).filter(a=>P(a.pid)), open=list.filter(a=>['pendiente','en_campana'].includes(a.status)), done=list.filter(a=>!['pendiente','en_campana'].includes(a.status)).slice(0,15);
   const row=a=>{ const p=P(a.pid); return `<div class="adreq"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
-      <div><b>${esc(p.t)}</b> ${adBadge(a)}<br><span class="note">${esc(SEL(a.sk).name)} · pedida el ${esc(a.created||'')}${a.starts?` · campaña ${dLabel(a.starts)}${a.ends?' a '+dLabel(a.ends):''}`:''}${a.budget?' · '+cop(a.budget):''}</span>${a.note?`<div class="note">“${esc(a.note)}”</div>`:''}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn ghost sm" onclick="copyText('${productLink(p)}','Link del producto copiado para el anuncio.')">Copiar link</button>${p.img?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(p.img)}" target="_blank" rel="noopener">Ver foto</a>`:''}<button class="btn sm" onclick="manageAd(${a.id})">Gestionar</button></div></div>`; };
-  return `<div class="panel"><h3>📣 Publicidad del plan Pro (Facebook e Instagram)</h3>
-    <p class="note" style="margin-top:-6px">Las tiendas Pro piden publicidad para sus productos. Ustedes crean la campaña en el Administrador de anuncios de Meta con el link y la foto del producto y la registran aquí: al marcarla <b>En campaña</b>, el producto queda con prioridad en MER-K y la tienda recibe el aviso.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><a class="btn lav sm" style="text-decoration:none" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns" target="_blank" rel="noopener">Abrir Administrador de anuncios de Meta ↗</a>
-      <form class="cpbox" style="margin:0" onsubmit="saveAdMonthly(event)"><span class="note" style="align-self:center">Solicitudes por tienda al mes:</span><input id="adMon" type="number" min="1" max="20" value="${adMonthly()}" style="width:70px"><button class="btn ghost sm">Guardar</button></form></div>
-    ${open.length?open.map(row).join(''):'<p class="empty">No hay solicitudes pendientes ni campañas activas.</p>'}
-    ${done.length?`<details style="margin-top:8px"><summary class="note">Ver campañas terminadas o no aprobadas (${done.length})</summary>${done.map(row).join('')}</details>`:''}</div>`;
+      <div><b>${esc(p.t)}</b> ${adBadge(a)}<br><span class="note">${esc(SEL(a.sk).name)} · pedida el ${esc(a.created||'')}${a.starts?` · en el banner ${dLabel(a.starts)}${a.ends?' a '+dLabel(a.ends):''}`:''}</span>${a.note?`<div class="note">“${esc(a.note)}”</div>`:''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn ghost sm" onclick="closeModal();showProduct(${p.id})">Ver producto</button><button class="btn sm" onclick="manageAd(${a.id})">Gestionar</button></div></div>`; };
+  return `<div class="panel"><h3>⭐ Productos para el banner (plan Pro)</h3>
+    <p class="note" style="margin-top:-6px">Las tiendas Pro piden que sus productos salgan en el banner del inicio. Al marcar una solicitud <b>En el banner</b>, el producto aparece en el banner con su foto, precio y botón para comprar, rotando junto con tus banners, durante las fechas que pongas. Además queda con prioridad en la página y la tienda recibe el aviso.</p>
+    <form class="cpbox" style="margin:0 0 10px" onsubmit="saveAdMonthly(event)"><span class="note" style="align-self:center">Solicitudes por tienda al mes:</span><input id="adMon" type="number" min="1" max="20" value="${adMonthly()}" style="width:70px"><button class="btn ghost sm">Guardar</button></form>
+    ${open.length?open.map(row).join(''):'<p class="empty">No hay solicitudes pendientes ni productos en el banner.</p>'}
+    ${done.length?`<details style="margin-top:8px"><summary class="note">Ver terminados o no aprobados (${done.length})</summary>${done.map(row).join('')}</details>`:''}</div>`;
 }
 function manageAd(id){
   const a=S.adRequests.find(x=>x.id===id), p=P(a.pid);
-  openModal(`<div class="mpad"><h2>Campaña · ${esc(p.t)}</h2><p class="sub">${esc(SEL(a.sk).name)}${a.note?` · “${esc(a.note)}”`:''}</p>
-    <div class="shipbox" style="margin-bottom:12px"><b>Link para el anuncio</b><span style="word-break:break-all">${productLink(p)}</span><a class="note" href="javascript:copyText('${productLink(p)}','Link copiado.')">Copiar link</a></div>
+  openModal(`<div class="mpad"><h2>Banner · ${esc(p.t)}</h2><p class="sub">${esc(SEL(a.sk).name)}${a.note?` · “${esc(a.note)}”`:''}</p>
     <form class="form" onsubmit="saveAd(event,${id})">
       <label>Estado<select id="adSt">${Object.entries(AD_ST).map(([k,[l]])=>`<option value="${k}" ${k===a.status?'selected':''}>${l}</option>`).join('')}</select></label>
-      <div class="row2"><label>Empieza<input id="adD1" type="date" value="${a.starts||''}"></label><label>Termina<input id="adD2" type="date" value="${a.ends||''}"></label></div>
-      <label>Presupuesto de la campaña (opcional, solo lo ve MER-K)<input id="adBud" type="number" min="0" step="1000" value="${a.budget||''}"></label>
+      <div class="row2"><label>Sale en el banner desde<input id="adD1" type="date" value="${a.starts||todayISO()}"></label><label>Hasta<input id="adD2" type="date" value="${a.ends||''}"></label></div>
       <label>Mensaje para la tienda (opcional)<textarea id="adMsg" rows="2" maxlength="300">${esc(a.adminNote||'')}</textarea></label>
       <div><button class="btn">Guardar y avisar a la tienda</button></div></form></div>`, true);
 }
 function saveAd(e, id){ e.preventDefault(); const a=S.adRequests.find(x=>x.id===id), p=P(a.pid), st=$('#adSt').value;
-  Object.assign(a, {status:st, starts:$('#adD1').value||null, ends:$('#adD2').value||null, budget:+$('#adBud').value||null, adminNote:$('#adMsg').value.trim()});
-  if(st==='en_campana'){ p.priority=true; notify(a.sk,'📣 Tu producto ya tiene publicidad', `"${p.t}" está en campaña en Facebook e Instagram${a.starts?' desde el '+dLabel(a.starts):''}${a.ends?' hasta el '+dLabel(a.ends):''}. Además sale de primeras en MER-K.${a.adminNote?'\n'+a.adminNote:''}`); }
+  Object.assign(a, {status:st, starts:$('#adD1').value||null, ends:$('#adD2').value||null, budget:null, adminNote:$('#adMsg').value.trim()});
+  if(st==='en_campana'){ p.priority=true; notify(a.sk,'⭐ Tu producto está en el banner', `"${p.t}" ya sale en el banner de la página de inicio de MER-K${a.starts?' desde el '+dLabel(a.starts):''}${a.ends?' hasta el '+dLabel(a.ends):''}. Además sale de primeras en la página.${a.adminNote?'\n'+a.adminNote:''}`); }
   if(st==='terminada'||st==='rechazada'){ if(!S.adRequests.some(x=>x.pid===a.pid && x.status==='en_campana')) p.priority=false;
-    notify(a.sk, st==='terminada'?'📣 Terminó la campaña de tu producto':'Solicitud de publicidad no aprobada', `"${p.t}"${st==='terminada'?': la campaña en Facebook e Instagram terminó.':': por ahora no pudimos hacer esta campaña.'}${a.adminNote?'\n'+a.adminNote:''}`); }
-  save(); closeModal(); toast('Campaña guardada. La tienda recibió el aviso.'); render(); }
+    notify(a.sk, st==='terminada'?'Terminó el tiempo de tu producto en el banner':'Solicitud para el banner no aprobada', `"${p.t}"${st==='terminada'?': ya no sale en el banner. Puedes pedirlo de nuevo cuando quieras.':': por ahora no pudimos ponerlo en el banner.'}${a.adminNote?'\n'+a.adminNote:''}`); }
+  save(); closeModal(); toast('Guardado. La tienda recibió el aviso.'); render(); }
 function saveAdMonthly(e){ e.preventDefault(); S.cfg.adMonthly=Math.max(1,+$('#adMon').value||2); save(); toast('Listo.'); render(); }
 function adminPriorityPanel(){
   const pri=S.products.filter(p=>p.priority), boosted=Object.keys(S.sellers).filter(isBoosted);
   return `<div class="panel"><h3>⭐ Prioridad en la página</h3><p class="note" style="margin-top:-6px">Lo que tenga prioridad sale <b>siempre de primeras</b>: en el inicio, en Destacados, en Ofertas, en las búsquedas y en cada categoría. Primero los productos con prioridad y después los de las tiendas con prioridad.</p>
     <b style="font-size:14px">Productos con prioridad (${pri.length})</b>
-    ${pri.length?pri.map(p=>`<div class="addr"><div><b>${esc(p.t)}</b><br><span class="note">${esc(SEL(p.s).name)}${adActive(p.id)?.status==='en_campana'?' · en campaña':''}</span></div><button class="btn ghost sm" onclick="adminSetPriority(${p.id},false)">Quitar prioridad</button></div>`).join(''):'<p class="empty" style="margin:6px 0">Ninguno todavía. Dale prioridad desde Administración → Productos o al marcar una campaña “En campaña”.</p>'}
+    ${pri.length?pri.map(p=>`<div class="addr"><div><b>${esc(p.t)}</b><br><span class="note">${esc(SEL(p.s).name)}${adActive(p.id)?.status==='en_campana'?' · en el banner':''}</span></div><button class="btn ghost sm" onclick="adminSetPriority(${p.id},false)">Quitar prioridad</button></div>`).join(''):'<p class="empty" style="margin:6px 0">Ninguno todavía. Dale prioridad desde Administración → Productos o al poner un producto “En el banner”.</p>'}
     <b style="font-size:14px;display:block;margin-top:10px">Tiendas con prioridad (${boosted.length})</b>
     ${boosted.length?boosted.map(k=>`<div class="addr"><div><b>${esc(SEL(k).name)}</b><br><span class="note">Todos sus productos salen arriba</span></div><button class="btn ghost sm" onclick="adminBoost('${k}',false)">Quitar prioridad</button></div>`).join(''):'<p class="empty" style="margin:6px 0">Ninguna. Se activa en Administración → Vendedores con “⭐ Dar prioridad” (tiendas Pro).</p>'}</div>`;
 }
@@ -2611,7 +2661,7 @@ function sellerCalcRows(sk){
     <tr><td><b>${sk===OFFICIAL?'Te queda':'Recibes'}</b></td><td style="text-align:right"><b class="price">${cop(r.net)}</b></td></tr></table>`;
 }
 function sellerCalcPanel(sk){
-  return `<div class="panel"><h3>🧮 ¿Cuánto recibo por una venta?</h3><p class="note" style="margin-top:-6px">${sk===OFFICIAL?'Es la tienda de MER-K, así que no paga comisión. Lo único que se descuenta es lo que cobra Wompi por procesar el pago.':`Escribe el valor de tu producto y te mostramos lo que MER-K te transfiere cuando termine la garantía (${S.cfg.holdDays} días hábiles después de entregado).`} En la tabla de arriba ya ves ese valor para cada producto.</p>
+  return `<div class="panel"><h3>🧮 ¿Cuánto recibo por una venta?</h3><p class="note" style="margin-top:-6px">${sk===OFFICIAL?'Es la tienda de MER-K, así que no paga comisión. Lo único que se descuenta es lo que cobra Wompi por procesar el pago.':`Escribe el valor de tu producto y te mostramos lo que MER-K te transfiere cuando termine la garantía (${S.cfg.holdDays} días hábiles después de entregado).`} En Mis productos también ves ese valor para cada producto.</p>
     <div class="split"><div class="form"><label>Valor del producto<input id="scPrice" type="number" min="1000" step="1000" value="100000" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
       <label>Envío que paga el comprador (opcional)<input id="scShip" type="number" min="0" step="1000" value="0" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
       <p class="note" style="margin:0">Si el comprador paga envío nacional, ese valor te llega a ti para pagar la guía. Si ofreces domicilio gratis en Medellín, la tarifa se descuenta de tu pago.</p></div>
@@ -2739,6 +2789,7 @@ async function loadAll(){
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
   let ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
+  ads = await T0('ad_requests', {order:'created_at'});   // públicos: los que están en el banner; el vendedor ve los suyos y admin todos
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
       T0('messages', {order:'created_at', asc:true}), T0('notifications', {order:'created_at', limit:150}), T0('tickets', {order:'created_at'}), T0('ticket_messages', {order:'created_at', asc:true})]);
@@ -2746,7 +2797,6 @@ async function loadAll(){
     if(role==='seller' || role==='admin') [slog, pays, subs] = await Promise.all([T0('stock_log', {order:'created_at', limit:300}), T0('payouts', {order:'created_at'}), T0('sub_payments', {order:'created_at'})]);
     if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
     revs = await T0('reviews');
-    if(role==='seller' || role==='admin') ads = await T0('ad_requests', {order:'created_at'});
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
@@ -2944,9 +2994,9 @@ async function saveBanners(list, msg){ const c=JSON.parse(JSON.stringify(S.cfg))
 /* Publicidad del plan Pro y prioridad (las reglas las aplica el servidor) */
 async function sendAd(e, pid){ e.preventDefault(); const note=$('#adNote').value.trim();
   if(!(await checkText(note, 'Solicitud de publicidad'))) return;
-  await act(()=>api.rpc('request_ad', {pid, msg:note}), '¡Solicitud enviada! Te avisamos cuando arranque la campaña.'); }
+  await act(()=>api.rpc('request_ad', {pid, msg:note}), '¡Solicitud enviada! Te avisamos cuando tu producto salga en el banner.'); }
 async function saveAd(e, id){ e.preventDefault();
-  await act(()=>api.rpc('admin_ad_update', {rid:id, st:$('#adSt').value, d1:$('#adD1').value||null, d2:$('#adD2').value||null, amount:+$('#adBud').value||null, msg:$('#adMsg').value.trim()}), 'Campaña guardada. La tienda recibió el aviso.'); }
+  await act(()=>api.rpc('admin_ad_update', {rid:id, st:$('#adSt').value, d1:$('#adD1').value||null, d2:$('#adD2').value||null, amount:null, msg:$('#adMsg').value.trim()}), 'Guardado. La tienda recibió el aviso.'); }
 async function adminSetPriority(pid, on){ await act(()=>api.rpc('admin_set_priority', {pid, turn_on:on}), on?'Prioridad activada: sale de primeras.':'Prioridad quitada.', {close:false}); }
 async function saveAdMonthly(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.adMonthly=Math.max(1,+$('#adMon').value||2); delete c.wompiLinks; delete c.fixedFee; delete c.fixedUnder; delete c.domicilio;
   await act(()=>api.upd('config', {data:c}, {id:1}), 'Listo.', {close:false}); }
