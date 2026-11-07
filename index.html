@@ -2598,7 +2598,7 @@ function copyText(t, msg){ (navigator.clipboard?navigator.clipboard.writeText(t)
    ===================================================================== */
 function sellerNet(sk, price, ship=0){
   price=Math.max(0,Math.round(+price||0)); ship=Math.max(0,Math.round(+ship||0));
-  const fee=Math.round(price*feeOf(sk)), pp = sk===OFFICIAL ? {pct:0,fx:0,iva:0,total:0} : procParts(price+ship);
+  const fee=Math.round(price*feeOf(sk)), pp = procParts(price+ship);   // Wompi cobra en todas las ventas, también en la tienda oficial
   return {price, ship, fee, pp, net: price + ship - fee - pp.total};
 }
 function sellerCalcRows(sk){
@@ -2607,11 +2607,11 @@ function sellerCalcRows(sk){
     <tr><td>Valor del producto</td><td style="text-align:right">${cop(r.price)}</td></tr>
     ${r.ship?`<tr><td>Envío que paga el comprador</td><td style="text-align:right">${cop(r.ship)}</td></tr>`:''}
     <tr><td>Comisión MER-K (${fmtPct(+(feeOf(sk)*100).toFixed(2))}, plan ${esc(pl)})</td><td style="text-align:right">−${cop(r.fee)}</td></tr>
-    <tr><td>Procesamiento del pago (${fmtPct(S.cfg.wompiPct)} + ${cop(S.cfg.wompiFixed)} + IVA)</td><td style="text-align:right">−${cop(r.pp.total)}</td></tr>
-    <tr><td><b>Recibes</b></td><td style="text-align:right"><b class="price">${cop(r.net)}</b></td></tr></table>`;
+    <tr><td>Procesamiento del pago${sk===OFFICIAL?' que cobra Wompi':''} (${fmtPct(S.cfg.wompiPct)} + ${cop(S.cfg.wompiFixed)} + IVA)</td><td style="text-align:right">−${cop(r.pp.total)}</td></tr>
+    <tr><td><b>${sk===OFFICIAL?'Te queda':'Recibes'}</b></td><td style="text-align:right"><b class="price">${cop(r.net)}</b></td></tr></table>`;
 }
 function sellerCalcPanel(sk){
-  return `<div class="panel"><h3>🧮 ¿Cuánto recibo por una venta?</h3><p class="note" style="margin-top:-6px">Escribe el valor de tu producto y te mostramos lo que MER-K te transfiere cuando termine la garantía (${S.cfg.holdDays} días hábiles después de entregado). En la tabla de arriba ya ves ese valor para cada producto.</p>
+  return `<div class="panel"><h3>🧮 ¿Cuánto recibo por una venta?</h3><p class="note" style="margin-top:-6px">${sk===OFFICIAL?'Es la tienda de MER-K, así que no paga comisión. Lo único que se descuenta es lo que cobra Wompi por procesar el pago.':`Escribe el valor de tu producto y te mostramos lo que MER-K te transfiere cuando termine la garantía (${S.cfg.holdDays} días hábiles después de entregado).`} En la tabla de arriba ya ves ese valor para cada producto.</p>
     <div class="split"><div class="form"><label>Valor del producto<input id="scPrice" type="number" min="1000" step="1000" value="100000" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
       <label>Envío que paga el comprador (opcional)<input id="scShip" type="number" min="0" step="1000" value="0" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
       <p class="note" style="margin:0">Si el comprador paga envío nacional, ese valor te llega a ti para pagar la guía. Si ofreces domicilio gratis en Medellín, la tarifa se descuenta de tu pago.</p></div>
