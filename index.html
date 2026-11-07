@@ -458,7 +458,7 @@ function seed(){
   return {
     v:11,
     cfg:{ fees:{gratis:8, emprendedor:5, pro:3.5, oficial:0}, fixedFee:0, fixedUnder:0, prices:{emprendedor:39900, pro:89900}, limits:{gratis:15, emprendedor:150},
-          wompiPct:2.64, wompiFixed:690, iva:19, graceDays:3, domicilio:8000,
+          wompiPct:2.65, wompiFixed:700, iva:19, graceDays:3, domicilio:8000,
           zones:{...DOM_TARIFFS},
           carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{emprendedor:'', pro:''} },
     loc:'Medellín', locAsked:false, session:null,
@@ -517,7 +517,7 @@ let S;
 let NEEDS_DEMO=false;
 S = blankState();
 if(S.cfg && !S.cfg.etaDom){ S.cfg.etaDom='4 a 7 días hábiles'; S.cfg.etaNat='4 a 7 días hábiles'; }
-if(S.cfg && S.cfg.wompiPct===2.65 && S.cfg.wompiFixed===700){ S.cfg.wompiPct=2.64; S.cfg.wompiFixed=690; }
+if(S.cfg && S.cfg.wompiPct===2.64 && S.cfg.wompiFixed===690){ S.cfg.wompiPct=2.65; S.cfg.wompiFixed=700; }
 function save(){ try{ localStorage.setItem('merk-v11', JSON.stringify(S)); }catch(e){} }
 
 /* =================== FILTRO ANTI-CONTACTO =================== */
@@ -1079,10 +1079,10 @@ function viewSeller(){
   if(t==='soporte') body = supportTab(sk);
   if(t==='perfil') body = profileTab();
   if(t==='productos') body = `<div class="panel"><h3>Mis productos (${mine.length}${lim===Infinity?', sin límite':' de '+lim})</h3>
-    ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
-      <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td>${p.stock}</td>
+    ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Recibes aprox.</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
+      <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td><b>${cop(sellerNet(sk, finalPrice(p)).net)}</b></td><td>${p.stock}</td>
       <td>${p.pausedByPlan?'<span class="badge bad">Pausado por plan vencido</span>':p.paused?'<span class="badge warn">Pausado</span>':p.stock<1?'<span class="badge bad">Agotado</span>':'<span class="badge">Publicado</span>'}</td>
-      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerAdsPanel(sk)}`;
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerCalcPanel(sk)}${sellerAdsPanel(sk)}`;
   if(t==='publicar') body = `<div class="panel"><h3>Publicar un producto</h3><p class="note" style="margin-top:-6px">El título y la descripción pasan por el filtro anti-contacto. Las opciones de envío se configuran en la pestaña Envíos.</p>${productForm(null)}</div>`;
   if(t==='envios') body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
       <ul class="note" style="display:grid;gap:6px;padding-left:18px;margin:0">
@@ -1107,7 +1107,7 @@ function viewSeller(){
           <label>Número de cuenta<input id="bNum" required inputmode="numeric" pattern="[0-9]{6,20}" title="Solo números"></label>
           <div class="row2"><label>Titular<input id="bHolder" required value="${esc(s.owner)}"></label><label>Cédula o NIT del titular<input id="bId" required inputmode="numeric" pattern="[0-9]{6,12}" value="${esc(s.doc)}"></label></div>
           <p class="note" style="margin:0">Debe estar a nombre del vendedor. Solo MER-K la ve.</p><div><button class="btn">Guardar cuenta</button></div></form>`}</div>
-      <div class="panel"><h3>Transferencias recibidas</h3>${pays.length?`<table><tr><th>Fecha</th><th>Valor</th><th>Comprobante</th></tr>${pays.map(x=>`<tr><td>${x.date}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div></div>`; }
+      <div class="panel"><h3>Transferencias recibidas</h3>${pays.length?`<table><tr><th>Fecha</th><th>Valor</th><th>Comprobante</th></tr>${pays.map(x=>`<tr><td>${x.date}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div></div>${sellerCalcPanel(sk)}`; }
   if(t==='plan') body = sk===OFFICIAL ? `<div class="panel"><h3>Tienda oficial</h3><ul>${PLAN_INFO.oficial.perks.map(x=>`<li>${x}</li>`).join('')}</ul></div>` : plansHtml(sk);
   return `<h2>${esc(s.name)}</h2><div class="who">${planBadge(sk)} ${statusBadge(s.status)} <span class="note">${esc(s.city)}</span>
     <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="S.ui.sellTab='tienda';render()">🎨 Personalizar tienda</button><a class="btn ghost sm" style="text-decoration:none" href="${storeUrl(sk)}">Ver mi tienda</a><button class="btn ghost sm" onclick="S.ui.sellTab='soporte';render()">🛟 Soporte</button></span></div>
@@ -1346,7 +1346,7 @@ function viewAdmin(){
         <label>Porcentaje (%)<input id="wp" type="number" min="0" step="0.01" value="${S.cfg.wompiPct}"></label>
         <label>Valor fijo<input id="wf" type="number" min="0" step="10" value="${S.cfg.wompiFixed}"></label>
         <label>IVA (%)<input id="wi" type="number" min="0" value="${S.cfg.iva}"></label></div>
-        <span class="note">Pongan aquí la tarifa exacta que les dé la pasarela de pagos (Efipay u otra). Se descuenta al vendedor y se muestra en la sección "¿Cuánto cuesta procesar un pago?".</span></fieldset>
+        <span class="note">Pongan aquí la tarifa exacta que les dé la pasarela de pagos (Wompi). Se descuenta al vendedor y se muestra en la sección "¿Cuánto cuesta procesar un pago?".</span></fieldset>
       <fieldset><legend>Tarifas de envío (de ejemplo)</legend><div class="row3">
         ${CARRIERS.map((c,i)=>`<label>${c}<input id="car${i}" type="number" min="0" step="500" value="${S.cfg.carriers[c]}"></label>`).join('')}</div>
         <span class="note">En la versión real, las tarifas nacionales dependen del peso y el destino.</span></fieldset>
@@ -1371,7 +1371,7 @@ function manageOrder(id){
       <div class="panel" style="margin:0"><h3>Vendedor</h3><p class="note" style="margin:0"><b>${esc(s.name)}</b> · ${esc(s.owner)}<br>${esc(s.email)} · ${esc(s.phone)}<br>Despacha desde: ${esc(s.addr)}<br>Comisión ${fmtPct(+(o.fee*100).toFixed(2))}: ${cop(commOf(o))} · Procesamiento: ${cop(o.proc||0)} · Para el vendedor: ${cop(o.sellerGross-feeAmt)}</p></div></div>
     <div class="panel" style="margin:14px 0"><h3>Estado</h3>${stepsHtml(o)}${deliveryHtml(o)}${o.status==='entregado'?`<p class="note">Garantía hasta el <b>${fdate(o.releaseAt)}</b></p>`:''}
       <details style="margin-top:8px"><summary class="note">Historial que ve el comprador</summary>${timelineHtml(o)}</details></div>
-    ${o.status==='pagado'?`<div class="panel" style="margin:0 0 14px"><h3>1. Confirmar el pago y enviar la comanda</h3><p class="note" style="margin-top:-6px">Verifica en Efipay que entró el pago de ${cop(o.price+o.ship.cost)}. Al enviar, el vendedor recibe esta comanda con una notificación.</p><div class="comanda">${esc(comandaText(o))}</div>
+    ${o.status==='pagado'?`<div class="panel" style="margin:0 0 14px"><h3>1. Confirmar el pago y enviar la comanda</h3><p class="note" style="margin-top:-6px">Verifica en Wompi que entró el pago de ${cop(o.price+o.ship.cost)}. Al enviar, el vendedor recibe esta comanda con una notificación.</p><div class="comanda">${esc(comandaText(o))}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" onclick="sendComanda(${o.id})">Pago confirmado: enviar comanda</button><button class="btn ghost" onclick="copyComanda(${o.id})">Copiar texto</button></div></div>`:''}
     ${o.pendingInfo&&o.status==='preparando'?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.pendingInfo.kind==='guia'?'2. El vendedor envió la guía':'2. El vendedor envió los datos de su domiciliario'}</h3>
       <form class="form" onsubmit="shareInfo(event,${o.id})"><label>Mensaje para el comprador (puedes editarlo)<textarea id="shareMsg" rows="4">${esc(shareText(o))}</textarea></label>
@@ -2581,6 +2581,32 @@ function adminPriorityPanel(){
 function adminSetPriority(pid, on){ const p=P(pid); p.priority=on; if(on) notify(p.s,'⭐ Tu producto tiene prioridad', `"${p.t}" ahora sale de primeras en MER-K: en el inicio, en las búsquedas y en su categoría.`); save(); toast(on?'Prioridad activada: sale de primeras.':'Prioridad quitada.'); render(); }
 function copyText(t, msg){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(msg||'Copiado.')).catch(()=>prompt('Copia este link:', t)); }
 
+
+/* =====================================================================
+   CALCULADORA DEL VENDEDOR: cuánto recibe de cada venta
+   ===================================================================== */
+function sellerNet(sk, price, ship=0){
+  price=Math.max(0,Math.round(+price||0)); ship=Math.max(0,Math.round(+ship||0));
+  const fee=Math.round(price*feeOf(sk)), pp = sk===OFFICIAL ? {pct:0,fx:0,iva:0,total:0} : procParts(price+ship);
+  return {price, ship, fee, pp, net: price + ship - fee - pp.total};
+}
+function sellerCalcRows(sk){
+  const v=$('#scPrice')?.value ?? 100000, sh=$('#scShip')?.value ?? 0, r=sellerNet(sk, v, sh), pl=PLAN_INFO[effPlan(sk)]?.name||'';
+  return `<table class="sum">
+    <tr><td>Valor del producto</td><td style="text-align:right">${cop(r.price)}</td></tr>
+    ${r.ship?`<tr><td>Envío que paga el comprador</td><td style="text-align:right">${cop(r.ship)}</td></tr>`:''}
+    <tr><td>Comisión MER-K (${fmtPct(+(feeOf(sk)*100).toFixed(2))}, plan ${esc(pl)})</td><td style="text-align:right">−${cop(r.fee)}</td></tr>
+    <tr><td>Procesamiento del pago (${fmtPct(S.cfg.wompiPct)} + ${cop(S.cfg.wompiFixed)} + IVA)</td><td style="text-align:right">−${cop(r.pp.total)}</td></tr>
+    <tr><td><b>Recibes</b></td><td style="text-align:right"><b class="price">${cop(r.net)}</b></td></tr></table>`;
+}
+function sellerCalcPanel(sk){
+  return `<div class="panel"><h3>🧮 ¿Cuánto recibo por una venta?</h3><p class="note" style="margin-top:-6px">Escribe el valor de tu producto y te mostramos lo que MER-K te transfiere cuando termine la garantía (${S.cfg.holdDays} días hábiles después de entregado). En la tabla de arriba ya ves ese valor para cada producto.</p>
+    <div class="split"><div class="form"><label>Valor del producto<input id="scPrice" type="number" min="1000" step="1000" value="100000" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
+      <label>Envío que paga el comprador (opcional)<input id="scShip" type="number" min="0" step="1000" value="0" oninput="$('#scOut').innerHTML=sellerCalcRows('${sk}')"></label>
+      <p class="note" style="margin:0">Si el comprador paga envío nacional, ese valor te llega a ti para pagar la guía. Si ofreces domicilio gratis en Medellín, la tarifa se descuenta de tu pago.</p></div>
+      <div id="scOut">${sellerCalcRows(sk)}</div></div></div>`;
+}
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
 function render(){
@@ -2637,7 +2663,7 @@ function blankState(){
   let p = {}; try{ p = JSON.parse(localStorage.getItem('merk-ui') || '{}'); }catch(e){}
   return { v:'live', loc:p.loc||'Medellín', locAsked:!!p.locAsked, session:null,
     cfg:{ fees:{gratis:8, emprendedor:5, pro:3.5, oficial:0}, fixedFee:0, fixedUnder:0, prices:{emprendedor:39900, pro:89900}, limits:{gratis:15, emprendedor:150},
-          wompiPct:2.64, wompiFixed:690, iva:19, graceDays:3, domicilio:15000, zones:{...DOM_TARIFFS}, carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{} },
+          wompiPct:2.65, wompiFixed:700, iva:19, graceDays:3, domicilio:15000, zones:{...DOM_TARIFFS}, carriers:{'Servientrega':14000,'Interrapidísimo':12500,'Coordinadora':13500,'Envía':13000}, autoDays:5, holdDays:10, wompiLinks:{} },
     ui:Object.assign({cat:'Todo', q:'', sellTab:'resumen', adminTab:'pedidos', buyTab:'compras', sellFilter:'todos', tkFilter:'abierto'}, p.ui||{}),
     users:[], follows:[], claims:[], reviews:[], buyers:{}, sellers:{}, products:[], orders:[], chats:{}, frag:{}, payouts:[], alerts:[], notifs:[], subPays:[], expenses:[],
     coupons:[], tickets:[], subClaims:[], stockLog:[], earnings:{commissions:0, official:0, domicilios:0, subs:0, proc:0}, nextId:1, nextOrder:1, nextCoupon:1, nextTicket:1, nextClaim:1 };
@@ -2848,9 +2874,9 @@ function claim(id){
 }
 async function sendClaim(id){ await act(()=>api.rpc('buyer_claim', {oid:id, reason:$('#clText').value.trim()}), 'Reclamo abierto. Te escribimos pronto.'); }
 
-/* ---------- Pagos con Efipay (redirección a su página segura) ---------- */
+/* ---------- Pagos con Wompi (redirección a su página segura) ---------- */
 async function openPayment(kind, body){
-  const r = await api.fn('efipay-checkout', Object.assign({kind}, body));
+  const r = await api.fn('wompi-checkout', Object.assign({kind}, body));
   try{ localStorage.setItem('merk-paying', JSON.stringify({kind, ref:r.ref, at:Date.now()})); }catch(e){}
   if(!r.url) throw new Error('No se pudo abrir el pago. Inténtalo de nuevo.');
   location.href = r.url;
@@ -2962,7 +2988,7 @@ async function changePlan(k){
 }
 function payPlan(plan){
   openModal(`<div class="mpad"><h2>Plan ${PLAN_INFO[plan].name}</h2><p class="sub">${cop(planPrice(plan))} por 30 días.</p><ul class="note">${perksOf(plan).map(x=>`<li>${x}</li>`).join('')}</ul>
-    <p class="note">Pagas en la página segura de Efipay con tarjeta, PSE u otros medios. Cuando el pago se aprueba, tu plan se activa solo.</p>
+    <p class="note">Pagas en la página segura de Wompi con tarjeta, PSE, Nequi o botón Bancolombia. Cuando el pago se aprueba, tu plan se activa solo.</p>
     <button class="btn" style="width:100%" id="ppBtn" onclick="goPayPlan('${plan}')">Pagar ${cop(planPrice(plan))} </button></div>`, true);
 }
 async function goPayPlan(plan){ const b=$('#ppBtn'); b.disabled=true; b.textContent='Abriendo el pago…';
