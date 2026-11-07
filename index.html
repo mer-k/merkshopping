@@ -412,7 +412,7 @@ const COL_CITIES = ['Bogotá','Cali','Barranquilla','Cartagena','Bucaramanga','C
 const CITIES = [...AREA_MED, ...COL_CITIES];
 const OTHER = 'Otro municipio de Colombia';
 function cityOptions(sel){
-  return `<optgroup label="Medellín y alrededores (domicilio en 1 a 2 días hábiles)">${AREA_MED.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}</optgroup>
+  return `<optgroup label="Medellín y alrededores (domicilio en ${etaDom()})">${AREA_MED.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}</optgroup>
     <optgroup label="Resto de Colombia (envío nacional)">${COL_CITIES.map(c=>`<option ${c===sel?'selected':''}>${c}</option>`).join('')}<option value="${OTHER}" ${sel&&!CITIES.includes(sel)?'selected':''}>${OTHER}…</option></optgroup>`;
 }
 function readCity(selId, otherId){ const v=$('#'+selId).value; return v===OTHER ? ($('#'+otherId)?.value.trim()||'') : v; }
@@ -516,6 +516,7 @@ function seed(){
 let S;
 let NEEDS_DEMO=false;
 S = blankState();
+if(S.cfg && !S.cfg.etaDom){ S.cfg.etaDom='4 a 7 días hábiles'; S.cfg.etaNat='4 a 7 días hábiles'; }
 if(S.cfg && S.cfg.wompiPct===2.65 && S.cfg.wompiFixed===700){ S.cfg.wompiPct=2.64; S.cfg.wompiFixed=690; }
 function save(){ try{ localStorage.setItem('merk-v11', JSON.stringify(S)); }catch(e){} }
 
@@ -572,6 +573,8 @@ const SEL = k => S.sellers[k] || {name:'Tienda', plan:'gratis', city:'', rating:
 function BUY(k){ return S.buyers[k] || {name:(S.orders.find(o=>o.bk===k)?.addr.name)||'Comprador', email:'', phone:'', doc:'', warnings:0, status:'activa', addresses:[]}; }
 const finalPrice = p => Math.round(p.p * (1 - discOf(p)/100));
 const inArea = city => AREA_MED.includes(city);
+const etaDom = () => S.cfg.etaDom || '4 a 7 días hábiles';
+const etaNat = () => S.cfg.etaNat || '4 a 7 días hábiles';
 const zonePrice = city => S.cfg.zones?.[city] ?? S.cfg.domicilio;
 let CLOCK=null; const T = () => CLOCK || Date.now();
 const now = () => new Date(T()).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
@@ -671,7 +674,7 @@ function askLocation(){
   openModal(`<div class="mpad" style="text-align:center">
     <div style="font-size:46px">📍</div>
     <h2>¿Dónde quieres recibir tus compras?</h2>
-    <p class="sub">Elige tu zona o ciudad. En Medellín y alrededores te llega por domicilio en 1 a 2 días hábiles; al resto del país, por transportadora (el tiempo depende de la transportadora).</p>
+    <p class="sub">Elige tu zona o ciudad. En Medellín y alrededores te llega por domicilio en ${etaDom()}; al resto del país, por transportadora (en ${etaNat()} aprox.; el tiempo depende de la transportadora).</p>
     <div class="form" style="text-align:left"><label>Tu ubicación<select id="cityPick" ${otherToggle('cityPick','cityOther')}>${cityOptions(S.loc)}</select></label>
       <input id="cityOther" placeholder="Escribe tu municipio" style="display:${S.loc&&!CITIES.includes(S.loc)?'block':'none'}" value="${CITIES.includes(S.loc)?'':esc(S.loc)}">
       <button class="btn" onclick="const c=readCity('cityPick','cityOther'); if(!c){toast('Escribe tu municipio.');return;} S.loc=c;save();closeModal();toast(inArea(c)?'Te llega por domicilio en '+c:'Te llega por envío nacional a '+c)">Guardar ubicación</button></div></div>`, true);
@@ -686,10 +689,10 @@ function shipping(p, city){
   const s = SEL(p.s), free = !!p.freeShip;
   if(inArea(city) && inArea(s.city)){
     const tarifa = zonePrice(city);
-    return {type:'dom', tarifa, free, cost:free?0:tarifa, eta:'Entrega en 1 a 2 días hábiles', label:'Domicilio en Medellín y alrededores'};
+    return {type:'dom', tarifa, free, cost:free?0:tarifa, eta:'Entrega en '+etaDom(), label:'Domicilio en Medellín y alrededores'};
   }
   const nc = p.natCost||0;
-  return {type:'nat', free, eta:'El tiempo de entrega depende de la transportadora', label:'Envío nacional',
+  return {type:'nat', free, eta:'Entrega en '+etaNat()+' según la transportadora', label:'Envío nacional',
           options: CARRIERS.map(c=>({carrier:c, cost: free?0:nc}))};
 }
 function shipLine(p){
@@ -822,7 +825,7 @@ function viewHome(){
     ${me()?'':`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn" onclick="registerModal()">Crear cuenta</button><button class="btn ghost" onclick="loginModal()">Iniciar sesión</button><button class="btn pear" onclick="document.getElementById('planes').scrollIntoView({behavior:'smooth'})">¿Vendes? Mira los planes</button></div>`}</div>
     <div class="shield">
       <div><b>Compra protegida.</b> Tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir.</div>
-      <div><b>Domicilios en Medellín y alrededores</b> en 1 a 2 días hábiles y envíos a toda Colombia.</div>
+      <div><b>Domicilios en Medellín y alrededores</b> en ${etaDom()} y envíos a toda Colombia.</div>
       <div><b>Chat seguro</b> y vendedores verificados.</div>
     </div></section>
   ${bannerHtml()}
@@ -1154,7 +1157,7 @@ function sellerTodo(o){
 function chooseDelivery(id, mode, quiet){
   const o=O(id); o.ship.mode=mode;
   o.sellerGross = mode==='merk' ? o.price - (o.ship.free ? o.ship.tarifa : 0) : o.price + o.ship.cost;
-  setState(o,'preparando', `${SEL(o.sk).name} aceptó tu pedido y ya inició la preparación.${mode==='merk'?' Cuando esté listo, MER-K programa el domicilio y te avisamos quién te lo lleva y cuándo (Medellín y alrededores: 1 a 2 días hábiles).':''}`);
+  setState(o,'preparando', `${SEL(o.sk).name} aceptó tu pedido y ya inició la preparación.${mode==='merk'?' Cuando esté listo, MER-K programa el domicilio y te avisamos quién te lo lleva y cuándo (Medellín y alrededores: '+etaDom()+').':''}`);
   const s=SEL(o.sk);
   if(mode==='merk'){ o.readyPickup=true; notify('admin',`🛵 Solicitud de domiciliario · Pedido #${o.id}`, `${s.name} pide domiciliario de MER-K.\nRecoger en: ${s.addr} (${s.city})\nEntregar en: ${o.addr.dir}, ${o.addr.city}\nTarifa: ${cop(o.ship.tarifa)}${o.ship.free?' (la paga el vendedor)':''}\nAgéndalo en Administración → Domicilios.`); }
   else notify('admin',`Pedido #${o.id} en preparación`, `${s.name} aceptó la comanda · entrega con domiciliario propio.`);
@@ -1352,6 +1355,9 @@ function viewAdmin(){
         <div class="row3">${AREA_MED.map((z,i)=>`<label>${z}<input id="z${i}" type="number" min="0" step="500" value="${zonePrice(z)}"></label>`).join('')}</div></fieldset>
       <div class="row2"><label>Días hábiles de garantía<input id="chold" type="number" min="1" max="30" value="${S.cfg.holdDays}"><span class="note" style="font-weight:500">Ustedes manejan entre 8 y 12. Este prototipo no descuenta festivos.</span></label>
         <label>Días para dar por entregado si el comprador no confirma<input id="cdays" type="number" min="1" max="30" value="${S.cfg.autoDays}"></label></div>
+      <div class="row2"><label>Tiempo de entrega en Medellín y alrededores<input id="cetaD" maxlength="40" value="${esc(etaDom())}" placeholder="4 a 7 días hábiles"></label>
+        <label>Tiempo de entrega nacional (aprox.)<input id="cetaN" maxlength="40" value="${esc(etaNat())}" placeholder="4 a 7 días hábiles"></label></div>
+      <p class="note" style="margin:-4px 0 0">Así lo ven los compradores en los productos, en el carrito y en el pago. Escríbelo como “4 a 7 días hábiles”.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar configuración</button>${LIVE?'':'<button type="button" class="btn bad" onclick="resetDemo()">Reiniciar la demo</button>'}</div></form></div>`;
   return `<h2>Panel de administración</h2><p class="sub">Aquí coordinan todo como dueños de MER-K: pedidos y comandas, estados para el comprador, garantías y transferencias a los vendedores.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.adminTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
@@ -1429,14 +1435,14 @@ function programForm(id){
         <label>Horario de entrega<select id="pDelT" onchange="progMsg(${o.id})">${SLOTS.map((x,i)=>`<option ${i===2?'selected':''}>${x}</option>`).join('')}</select></label></div>
       <label>Mensaje para el comprador<textarea id="pMsgB" rows="3"></textarea></label>
       <label>Mensaje para el vendedor<textarea id="pMsgS" rows="3"></textarea></label>
-      <p class="note" style="margin:0">En Medellín y alrededores las entregas son en 1 a 2 días hábiles: los domicilios se agendan un día antes para recoger en la mañana y entregar en ruta.</p>
+      <p class="note" style="margin:0">En Medellín y alrededores las entregas son en ${etaDom()}: los domicilios se agendan un día antes para recoger en la mañana y entregar en ruta.</p>
       <button class="btn">Guardar y notificar al vendedor y al comprador</button></form></div>`);
   $('#pWho').addEventListener('input',()=>progMsg(o.id)); progMsg(o.id);
 }
 function setProg(p,d){ $('#pPickD').value=p; $('#pDelD').value=d; const id=+$('#modal h2').textContent.split('#')[1]; progMsg(id); }
 function progMsg(id){
   const o=O(id), who=$('#pWho').value.trim()||'[domiciliario]', pd=$('#pPickD').value, pt=$('#pPickT').value, dd=$('#pDelD').value, dt=$('#pDelT').value;
-  $('#pMsgB').value = `¡Tu pedido #${o.id} quedó registrado para domicilio! 🛵 Te lo entrega ${who}, mensajero de MER-K, el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}. Recuerda que en Medellín y alrededores las entregas son de 1 a 2 días hábiles.`;
+  $('#pMsgB').value = `¡Tu pedido #${o.id} quedó registrado para domicilio! 🛵 Te lo entrega ${who}, mensajero de MER-K, el ${dLabel(dd)}, ${dt.toLowerCase()}, en ${o.addr.dir}, ${o.addr.city}. Recuerda que en Medellín y alrededores las entregas son de ${etaDom()}.`;
   $('#pMsgS').value = `Hola ${SEL(o.sk).name} 👋 Domicilio programado para el pedido #${o.id} (${o.title}): el mensajero ${who} de MER-K pasa a recogerlo el ${dLabel(pd)}, ${pt.toLowerCase()}, en ${SEL(o.sk).addr}. Por favor ten el pedido empacado y marcado con el #${o.id}.`;
 }
 function saveProgram(e,id){ e.preventDefault(); const o=O(id), name=$('#pWho').value.trim();
@@ -1467,7 +1473,7 @@ function savePayout(e,k){ e.preventDefault(); const s=SEL(k), amount=s.available
   S.orders.filter(o=>o.sk===k && o.status==='liberado' && !o.liquidated).forEach(o=>o.liquidated=true);
   notify(k, 'Te transferimos tu dinero', `${cop(amount)} a tu cuenta ${s.bank.banco} ${s.bank.num}. Comprobante: ${ref}`);
   save(); toast(`Transferencia de ${cop(amount)} registrada.`); closeModal(); }
-function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
+function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
 function adminDelivered(id){ markDelivered(O(id),'Pedido entregado.'); save(); render(); }
 function adminSuspend(k){ suspendPlan(k,'manual'); save(); toast('Plan desactivado.'); render(); }
 function adminBlock(k){ SEL(k).status='bloqueada'; save(); render(); }
@@ -1692,7 +1698,7 @@ function viewStore(slug){
     ${feat.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${feat.map(card).join('')}</div>`:''}
     <div class="sec"><h3>Todos los productos</h3></div><div class="grid">${list.map(card).join('')||'<p class="empty">Esta tienda aún no tiene productos publicados.</p>'}</div>
     <div class="split" style="margin-top:22px">${st.about?`<div class="panel"><h3>Sobre la tienda</h3><p style="white-space:pre-wrap;margin:0">${esc(st.about)}</p></div>`:''}
-      <div class="panel"><h3>Envíos</h3><p style="margin:0">Despacha desde <b>${esc(s.city||'Colombia')}</b>.</p><ul class="note" style="margin:8px 0 0;padding-left:18px"><li>Medellín y alrededores: domicilio en <b>1 a 2 días hábiles</b>.</li><li>Resto del país: por transportadora; el tiempo depende de la transportadora.</li><li>El costo se calcula al pagar según tu ubicación.</li></ul></div></div>
+      <div class="panel"><h3>Envíos</h3><p style="margin:0">Despacha desde <b>${esc(s.city||'Colombia')}</b>.</p><ul class="note" style="margin:8px 0 0;padding-left:18px"><li>Medellín y alrededores: domicilio en <b>${etaDom()}</b>.</li><li>Resto del país: por transportadora, en <b>${etaNat()}</b> aprox. según la transportadora.</li><li>El costo se calcula al pagar según tu ubicación.</li></ul></div></div>
     <div class="protect" style="margin-top:18px">Todas las compras de esta tienda se pagan dentro de MER-K: tu dinero queda protegido hasta que recibes. Si tienes preguntas, usa "Preguntar al vendedor" en cada producto.</div></div>`;
 }
 function storeTab(sk){
@@ -2465,8 +2471,8 @@ async function cartQuote(items, city, carriers, coupon){
         else if(c.min && list<c.min) cpErr=`Este cupón aplica en compras desde ${cop(c.min)} en ${SEL(sk).name}.`;
         else { disc=Math.max(0, Math.min(list-1000, c.type==='pct'?Math.round(list*c.value/100):c.value)); cpUsed=code; cpErr=null; } } }
     const allFree=lines.every(l=>l.p.freeShip); let ship;
-    if(inArea(city) && inArea(SEL(sk).city)){ const tarifa=zonePrice(city); ship={ship_type:'dom', tarifa, free:allFree, ship_cost:allFree?0:tarifa, carrier:null, eta:'Entrega en 1 a 2 días hábiles'}; }
-    else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'El tiempo de entrega depende de la transportadora'}; }
+    if(inArea(city) && inArea(SEL(sk).city)){ const tarifa=zonePrice(city); ship={ship_type:'dom', tarifa, free:allFree, ship_cost:allFree?0:tarifa, carrier:null, eta:'Entrega en '+etaDom()}; }
+    else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'Entrega en '+etaNat()+' según la transportadora'}; }
     return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t, qty:l.qty, unit:finalPrice(l.p)})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
   });
   return {groups:out, total:out.reduce((a,g)=>a+g.total,0), coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
@@ -3038,7 +3044,7 @@ async function resolveClaim(id, how){ if(how==='refund' && !confirm('¿Devolver 
   await act(()=>api.rpc('admin_resolve_claim', {oid:id, how}), how==='refund'?'Dinero devuelto al comprador.':'Pago liberado al vendedor.'); }
 async function savePayout(e,k){ e.preventDefault(); const ref=$('#pRef').value.trim()+($('#pBank').value.trim()?' · '+$('#pBank').value.trim():'');
   await act(()=>api.rpc('admin_payout', {sid:k, reference:ref}), 'Transferencia registrada.'); }
-async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg));
+async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles';
   c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value);
   c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value;
   AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); c.autoDays=Math.max(1,+$('#cdays').value||5);
