@@ -397,6 +397,20 @@ details summary{cursor:pointer}
 .adban:hover .adarr{opacity:1}.adarr.l{left:10px}.adarr.r{right:10px}
 .adslide img{user-select:none}
 @media (max-width:640px){ .adarr{display:none} }
+/* Páginas legales */
+.legal{max-width:860px;margin:0 auto;line-height:1.6}
+.legal h2{margin-bottom:2px}
+.legal h3{font-family:'Fredoka',sans-serif;font-weight:600;color:var(--blue);font-size:18px;margin:22px 0 6px}
+.legal ul,.legal ol{padding-left:22px;margin:6px 0}
+.legal li{margin:4px 0}
+.legal a{color:var(--blue);font-weight:600}
+.legalnav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.legalnav a{padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13.5px;font-weight:600;color:inherit;text-decoration:none}
+.legalnav a.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.footlinks{display:flex;gap:6px 18px;flex-wrap:wrap;justify-content:center;margin:12px 0 4px}
+.footlinks a{color:var(--blue);font-weight:600;font-size:14px;text-decoration:none}
+.footlinks a:hover{text-decoration:underline}
+.check a{color:var(--blue);font-weight:600}
 </style>
 </head>
 <body>
@@ -410,7 +424,7 @@ details summary{cursor:pointer}
   </div>
 </header>
 <main id="app"></main>
-<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
+<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><nav class="footlinks"><a href="#terminos">Términos y condiciones</a><a href="#privacidad">Política de privacidad y tratamiento de datos</a><a href="#retracto">Derecho de retracto y devoluciones</a><a href="#pqrs">PQRS</a></nav><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
 <div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 <script>window.MERK_LIVE=true;</script>
@@ -790,7 +804,7 @@ function registerForm(role){
   openModal(`<div class="mpad"><h2>${role==='buyer'?'Cuenta de comprador':'Cuenta de vendedor'}</h2>
     <p class="sub">${role==='buyer'?'Tus datos de contacto nunca se muestran a los vendedores.':'Empiezas con el plan Gratis. Al final registras la cuenta donde vas a recibir tus pagos.'}</p>
     <form class="form" onsubmit="doRegister(event,'${role}')">${body}
-    <label class="check"><input type="checkbox" id="rTerms" required> Acepto los términos y condiciones y la política de tratamiento de datos de MER-K</label>
+    <label class="check"><input type="checkbox" id="rTerms" required> <span>Acepto los <a href="#terminos" target="_blank">términos y condiciones</a>, la <a href="#privacidad" target="_blank">política de tratamiento de datos</a> y la <a href="#retracto" target="_blank">política de retracto y devoluciones</a> de MER-K</span></label>
     ${role==='seller'?'<label class="check"><input type="checkbox" required> Entiendo que todas las ventas se hacen por MER-K y que compartir datos de contacto causa sanciones</label>':''}
     <p class="alert" id="rErr" style="display:none"></p>
     <div style="display:flex;gap:8px"><button type="button" class="btn ghost" onclick="registerModal()">Atrás</button><button class="btn">Crear cuenta</button></div></form></div>`);
@@ -1274,7 +1288,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
+  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1312,6 +1326,7 @@ function viewAdmin(){
   if(t==='soporte') body = adminSupport();
   if(t==='mensajes') body = adminMessenger();
   if(t==='publicidad') body = adminAdsTab();
+  if(t==='pqrs') body = adminPqrsTab();
   if(t==='perfil') body = profileTab();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
@@ -2695,8 +2710,175 @@ function waPanel(o){
     <div><button type="button" class="btn wa" onclick="openWa('${esc(o.addr.phone||'')}', $('#waMsg').value)">Abrir WhatsApp y enviar</button></div></div></div>`;
 }
 
+/* =================== PÁGINAS LEGALES Y PQRS =================== */
+const LEGAL_DATE = '7 de noviembre de 2026';
+const PQRS_KINDS = ['Petición','Queja','Reclamo','Sugerencia','Felicitación'];
+function legal(){ return {name:'MER-K', email:'', wa:''}; }
+function legalWho(){ return '<b>MER-K</b>'; }
+function legalContact(){ return 'el <a href="#pqrs">formulario de PQRS</a> de esta página'; }
+function legalNav(cur){ return `<div class="legalnav">${[['terminos','Términos y condiciones'],['privacidad','Tratamiento de datos'],['retracto','Retracto y devoluciones'],['pqrs','PQRS']].map(([k,l])=>`<a href="#${k}" class="${k===cur?'on':''}">${l}</a>`).join('')}</div>`; }
+function legalPage(cur, title, body){ return `<div class="legal">${legalNav(cur)}<h2>${title}</h2><p class="note">Última actualización: ${LEGAL_DATE}</p>${body}</div>`; }
+
+function viewTerminos(){
+  const f=S.cfg.fees||{};
+  return legalPage('terminos','Términos y condiciones de uso', `
+  <p>Estos términos regulan el uso de <b>merkshopping.com</b> (en adelante, “MER-K” o “la plataforma”), operada por ${legalWho()}. Al crear una cuenta, comprar o vender en MER-K aceptas estos términos, la <a href="#privacidad">Política de tratamiento de datos</a> y la <a href="#retracto">Política de retracto y devoluciones</a>. Se rigen por las leyes de Colombia, en especial la Ley 1480 de 2011 (Estatuto del Consumidor) y la Ley 527 de 1999 (comercio electrónico).</p>
+  <h3>1. ¿Qué es MER-K?</h3>
+  <p>MER-K es un marketplace: una plataforma donde vendedores independientes (personas o empresas) publican y venden sus productos a compradores en Colombia. MER-K también tiene una tienda oficial propia. MER-K recibe el pago del comprador, lo retiene mientras dura la garantía de la compra y coordina la entrega. Cada vendedor es responsable de los productos que publica y vende.</p>
+  <h3>2. Cuentas</h3>
+  <ul><li>Para comprar o vender debes ser mayor de 18 años y dar datos reales y actualizados.</li>
+  <li>Tu cuenta es personal. Cuida tu contraseña: lo que se haga con tu cuenta es tu responsabilidad.</li>
+  <li>Puedes eliminar tu cuenta cuando quieras desde <b>Mi perfil</b>. Si tienes pedidos o pagos pendientes, primero se terminan.</li></ul>
+  <h3>3. Compras y pagos</h3>
+  <ul><li>Los precios se muestran en pesos colombianos e incluyen los impuestos que apliquen. El costo del envío o domicilio se muestra antes de pagar.</li>
+  <li>Los pagos se hacen por la pasarela de pagos <b>Wompi</b>. MER-K no ve ni guarda los datos de tu tarjeta.</li>
+  <li><b>Dinero protegido:</b> MER-K retiene el pago y solo lo entrega al vendedor cuando recibes tu pedido y terminan los ${esc(S.cfg.holdDays||10)} días hábiles de garantía sin reclamos.</li>
+  <li>Los cupones tienen las condiciones que indique cada uno (valor, compra mínima, fecha y número de usos). No son canjeables por dinero.</li></ul>
+  <h3>4. Envíos y domicilios</h3>
+  <ul><li><b>Domicilios en Medellín y alrededores:</b> los entrega el mensajero de ${esc(courier())}. Tiempo aproximado: ${esc(etaDom())}.</li>
+  <li><b>Envíos nacionales:</b> por transportadora, con número de guía. Tiempo aproximado: ${esc(etaNat())}.</li>
+  <li>Los tiempos se cuentan desde que el pago queda aprobado. Te avisamos por la plataforma, y si es necesario por WhatsApp, cuando tu pedido se despache.</li>
+  <li>Revisa que tus datos de entrega estén completos y correctos. Si el pedido no se puede entregar por datos errados, el nuevo envío puede tener costo.</li></ul>
+  <h3>5. Reglas para vendedores</h3>
+  <ul><li>Solo puedes vender productos legales, propios o que tengas derecho a vender, con fotos y descripciones reales.</li>
+  <li>Todas las ventas se hacen dentro de MER-K. No está permitido compartir teléfonos, correos, redes sociales ni enlaces para vender por fuera. El sistema bloquea estos datos; después de 3 advertencias la cuenta puede ser suspendida.</li>
+  <li>MER-K cobra una comisión por cada venta según tu plan (Gratis ${esc(f.gratis??8)}%, Emprendedor ${esc(f.emprendedor??5)}%, Pro ${esc(f.pro??3.5)}%) más el costo de procesar el pago de Wompi. Los planes pagos tienen una mensualidad que puedes ver en <b>Mi plan</b>.</li>
+  <li>El vendedor responde por la calidad, idoneidad y seguridad de sus productos y por la garantía legal (artículos 7 a 18 de la Ley 1480 de 2011). Si el vendedor no informa otro término, la garantía de los productos nuevos es de un año.</li>
+  <li>El vendedor debe tener el producto listo cuando acepta el pedido. Si cancela sin razón válida, MER-K devuelve el dinero al comprador y puede aplicar sanciones.</li></ul>
+  <h3>6. Productos prohibidos</h3>
+  <p>No se puede publicar ni vender: animales vivos; armas, municiones, pólvora o explosivos; productos sexuales o pornográficos; drogas o sustancias ilegales; medicamentos con fórmula médica; productos falsificados, robados o de contrabando; ni nada que vaya contra la ley colombiana. MER-K puede retirar cualquier publicación que incumpla estas reglas.</p>
+  <h3>7. Responsabilidad de MER-K</h3>
+  <p>MER-K actúa como portal de contacto entre vendedores y compradores (artículo 53 de la Ley 1480 de 2011): identifica a los vendedores, ofrece mecanismos de pago seguros y atiende las peticiones, quejas y reclamos. Cuando la compra es en la tienda oficial de MER-K, MER-K es el vendedor y responde como tal. MER-K hace su mejor esfuerzo para que la página funcione sin interrupciones, pero puede haber fallas técnicas o mantenimientos.</p>
+  <h3>8. Suspensión de cuentas</h3>
+  <p>MER-K puede suspender o cerrar cuentas que incumplan estos términos, intenten fraudes, den información falsa o afecten a otros usuarios.</p>
+  <h3>9. Propiedad intelectual</h3>
+  <p>La marca MER-K, el logo y el diseño de la página pertenecen a sus titulares. Cada vendedor declara que tiene derecho a usar las fotos y textos que publica.</p>
+  <h3>10. Cambios a estos términos</h3>
+  <p>Podemos actualizar estos términos. Publicaremos la nueva versión en esta página con su fecha. Si sigues usando MER-K después del cambio, aceptas la nueva versión.</p>
+  <h3>11. Contacto</h3>
+  <p>Para cualquier duda, petición, queja o reclamo escríbenos por ${legalContact()}.</p>`);
+}
+
+function viewPrivacidad(){
+  return legalPage('privacidad','Política de privacidad y tratamiento de datos personales', `
+  <p>En cumplimiento de la Ley 1581 de 2012 y el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015), ${legalWho()}, como <b>responsable del tratamiento</b>, informa cómo recolecta, usa y protege tus datos personales en <b>merkshopping.com</b>.</p>
+  <h3>1. Datos que recolectamos</h3>
+  <ul><li><b>Compradores:</b> nombre, cédula, correo, celular y direcciones de entrega.</li>
+  <li><b>Vendedores:</b> nombre del responsable y de la tienda, cédula o NIT, correo, celular, dirección de despacho y cuenta bancaria para recibir los pagos.</li>
+  <li><b>Uso de la plataforma:</b> pedidos, mensajes dentro de MER-K, calificaciones, solicitudes de soporte y PQRS.</li>
+  <li><b>Pagos:</b> el estado y la referencia de la transacción. Los datos de tarjetas y cuentas los maneja directamente Wompi; MER-K no los ve ni los guarda.</li></ul>
+  <p>No pedimos datos sensibles (salud, origen racial, creencias, etc.). MER-K no está dirigido a menores de 18 años.</p>
+  <h3>2. ¿Para qué usamos tus datos?</h3>
+  <ul><li>Crear y administrar tu cuenta.</li>
+  <li>Procesar compras, pagos, reembolsos y pagos a vendedores.</li>
+  <li>Coordinar la entrega con el vendedor, la empresa de mensajería o la transportadora (solo les damos los datos necesarios para entregar).</li>
+  <li>Enviarte avisos sobre tus pedidos por la plataforma, correo o WhatsApp.</li>
+  <li>Atender soporte, peticiones, quejas y reclamos.</li>
+  <li>Prevenir fraudes y hacer cumplir los términos (por ejemplo, el filtro que bloquea datos de contacto en los mensajes).</li>
+  <li>Cumplir obligaciones legales, contables y tributarias.</li>
+  <li>Enviarte información de MER-K y ofertas, solo si no te opones. Puedes pedir que no te las enviemos en cualquier momento.</li></ul>
+  <h3>3. ¿Con quién compartimos tus datos?</h3>
+  <p>Solo con quienes nos ayudan a prestar el servicio, y únicamente lo necesario: el vendedor de tu pedido (nombre y datos de entrega, nunca tu correo), la empresa de mensajería ${esc(courier())} y las transportadoras, la pasarela de pagos Wompi, y nuestros proveedores tecnológicos de alojamiento, base de datos y correo, algunos de los cuales tienen servidores fuera de Colombia con estándares adecuados de protección. No vendemos tus datos.</p>
+  <h3>4. Tus derechos</h3>
+  <p>Como titular puedes: conocer, actualizar y rectificar tus datos; pedir prueba de la autorización que nos diste; saber cómo los usamos; revocar la autorización o pedir que los borremos cuando no exista un deber legal o contractual de conservarlos; acceder gratis a ellos; y presentar quejas ante la Superintendencia de Industria y Comercio (SIC). Muchos datos los puedes cambiar tú mismo en <b>Mi perfil</b>, y desde ahí también puedes eliminar tu cuenta.</p>
+  <h3>5. ¿Cómo ejercer tus derechos?</h3>
+  <p>Escríbenos por ${legalContact()}, indicando tu nombre, tu cédula, lo que pides y cómo te respondemos.</p>
+  <ul><li><b>Consultas:</b> respondemos en máximo 10 días hábiles (prorrogables 5 días hábiles más, avisándote).</li>
+  <li><b>Reclamos</b> (corrección, actualización, supresión o revocatoria): respondemos en máximo 15 días hábiles (prorrogables 8 días hábiles más, avisándote).</li></ul>
+  <h3>6. Seguridad y conservación</h3>
+  <p>Usamos conexiones cifradas, contraseñas protegidas y permisos por tipo de usuario para que cada persona vea solo lo que le corresponde. Conservamos los datos mientras tengas una cuenta y luego el tiempo que exijan las normas contables, tributarias y de protección al consumidor.</p>
+  <h3>7. Almacenamiento en tu navegador</h3>
+  <p>Guardamos en tu navegador datos técnicos como tu sesión, tu ubicación aproximada y tu carrito de compras para que la página funcione. No usamos esa información para venderla a terceros.</p>
+  <h3>8. Autorización y vigencia</h3>
+  <p>Al marcar la casilla de aceptación al crear tu cuenta, o al enviar un formulario, nos autorizas a tratar tus datos según esta política. Esta política rige desde la fecha indicada arriba; si cambia de forma importante, lo avisaremos en la página.</p>`);
+}
+
+function viewRetracto(){
+  return legalPage('retracto','Derecho de retracto, devoluciones y garantías', `
+  <p>Estas reglas aplican a todas las compras en <b>merkshopping.com</b>, conforme a la Ley 1480 de 2011 (Estatuto del Consumidor) y el Decreto 587 de 2016.</p>
+  <h3>1. Derecho de retracto (5 días hábiles)</h3>
+  <p>Como compraste por internet, puedes arrepentirte de la compra dentro de los <b>5 días hábiles siguientes a la entrega</b> del producto (artículo 47 de la Ley 1480 de 2011).</p>
+  <ul><li>El producto debe devolverse en el mismo estado en que lo recibiste: sin uso, completo, con sus accesorios, empaques y etiquetas.</li>
+  <li>Los costos de transporte de la devolución los paga el comprador.</li>
+  <li>Te devolvemos el dinero pagado, sin descuentos, en máximo <b>30 días calendario</b> desde que ejerces el retracto.</li></ul>
+  <p><b>No aplica</b> el retracto para: productos hechos a la medida o personalizados; bienes perecederos (alimentos, flores); productos de uso personal que por higiene no se pueden devolver si se abrieron (ropa interior, maquillaje, cuidado personal abierto); productos que por su naturaleza no pueden devolverse; y contenidos digitales o servicios ya prestados.</p>
+  <h3>2. ¿Cómo pedir el retracto o una devolución?</h3>
+  <ol><li>Entra a <b>Mis compras</b>, abre el pedido y usa la opción de garantía o soporte. También puedes usar el <a href="#pqrs">formulario de PQRS</a>.</li>
+  <li>Cuéntanos el número de pedido y el motivo. Si el producto llegó dañado o diferente, adjunta fotos.</li>
+  <li>MER-K te indica cómo y a dónde devolver el producto.</li>
+  <li>Cuando el producto llega y se revisa, hacemos el reembolso al mismo medio de pago.</li></ol>
+  <h3>3. Garantía legal</h3>
+  <p>Todos los productos tienen garantía legal: deben servir para lo que se anuncian y ser seguros. Si tu producto llega dañado, incompleto, diferente a lo publicado o falla por calidad, puedes pedir la reparación, el cambio o la devolución del dinero (artículos 7 a 18 de la Ley 1480 de 2011). El término es el que indique el vendedor en la publicación; si no indica uno, es de un año para productos nuevos. La garantía no cubre daños por mal uso, golpes o desgaste normal.</p>
+  <p>Mientras dura la garantía de MER-K (${esc(S.cfg.holdDays||10)} días hábiles desde la entrega), el pago al vendedor queda retenido. Si abres un reclamo, el dinero sigue protegido hasta que se resuelva.</p>
+  <h3>4. Reversión del pago</h3>
+  <p>Si pagaste con tarjeta de crédito, débito u otro medio electrónico, puedes pedir la reversión del pago dentro de los <b>5 días hábiles</b> siguientes a cuando supiste del problema, si: fuiste víctima de fraude, la operación no fue solicitada, el producto no te llegó, o no corresponde a lo que pediste o está defectuoso (artículo 51 de la Ley 1480 de 2011). Debes avisarnos por ${legalContact()} y a la entidad emisora de tu medio de pago, y devolver el producto si lo recibiste.</p>
+  <h3>5. Pedidos que no llegan</h3>
+  <p>Si tu pedido no llega en el tiempo informado, escríbenos. Si no se puede entregar, te devolvemos el dinero completo, incluido el envío.</p>
+  <h3>6. ¿Y si no quedo satisfecho con la respuesta?</h3>
+  <p>Puedes acudir a la Superintendencia de Industria y Comercio (SIC) en <a href="https://www.sic.gov.co" target="_blank" rel="noopener">www.sic.gov.co</a>.</p>`);
+}
+
+function viewPqrs(){
+  const p = me() ? myProfile() : {};
+  const sent = S.ui.pqrsSent;
+  return legalPage('pqrs','PQRS: peticiones, quejas, reclamos y sugerencias', `
+  <p>Aquí puedes enviarnos una petición, queja, reclamo, sugerencia o felicitación. Te damos un número de radicado y te respondemos al correo que escribas en máximo <b>15 días hábiles</b>. Si tu solicitud es sobre un pedido, escribe el número del pedido para ayudarte más rápido.</p>
+  ${sent ? `<div class="panel" style="border-color:#2e9d5b"><h3>✅ Recibimos tu solicitud</h3><p>Tu número de radicado es <b>#${esc(sent)}</b>. Guárdalo. Te responderemos al correo que escribiste.</p><button class="btn ghost sm" onclick="S.ui.pqrsSent=null;render()">Enviar otra solicitud</button></div>` : `
+  <form class="form panel" onsubmit="submitPqrs(event)">
+    <label>Tipo de solicitud<select id="qKind">${PQRS_KINDS.map(k=>`<option>${k}</option>`).join('')}</select></label>
+    <div class="row2"><label>Nombre completo<input id="qName" required minlength="3" maxlength="80" value="${esc(p.name||'')}"></label><label>Correo<input id="qEmail" type="email" required maxlength="120" value="${esc(p.email||'')}"></label></div>
+    <div class="row2"><label>Celular (opcional)<input id="qPhone" inputmode="numeric" maxlength="20" value="${esc(p.phone||'')}"></label><label>Número de pedido (opcional)<input id="qOrder" maxlength="30" placeholder="Ej: 1024"></label></div>
+    <label>Mensaje<textarea id="qMsg" rows="5" required minlength="10" maxlength="2000" placeholder="Cuéntanos qué pasó o qué necesitas"></textarea></label>
+    <label class="check"><input type="checkbox" required> Autorizo a MER-K a usar estos datos para responder mi solicitud, según la <a href="#privacidad" target="_blank">política de tratamiento de datos</a></label>
+    <p class="alert" id="qErr" style="display:none"></p>
+    <div><button class="btn">Enviar solicitud</button></div>
+  </form>`}
+  ${legal().email||legal().wa ? `<p class="note">También puedes escribirnos ${legal().email?`al correo <a href="mailto:${esc(legal().email)}">${esc(legal().email)}</a>`:''}${legal().email&&legal().wa?' o ':''}${legal().wa?`al WhatsApp ${esc(legal().wa)}`:''}.</p>`:''}`);
+}
+function pqrsRead(){
+  const err=t=>{ const el=$('#qErr'); el.textContent=t; el.style.display='block'; return null; };
+  const d={kind:$('#qKind').value, name:$('#qName').value.trim(), email:$('#qEmail').value.trim().toLowerCase(), phone:$('#qPhone').value.trim(), order:$('#qOrder').value.trim(), msg:$('#qMsg').value.trim()};
+  if(d.name.length<3) return err('Escribe tu nombre completo.');
+  if(!validEmail(d.email)) return err('Escribe un correo válido.');
+  if(d.msg.length<10) return err('Cuéntanos un poco más en el mensaje.');
+  return d;
+}
+function submitPqrs(e){
+  e.preventDefault(); const d=pqrsRead(); if(!d) return;
+  S.pqrs=S.pqrs||[]; S.nextPqrs=S.nextPqrs||1000; const id=S.nextPqrs++;
+  S.pqrs.unshift({id, kind:d.kind, name:d.name, email:d.email, phone:d.phone, order:d.order, msg:d.msg, status:'abierta', answer:'', created:now(), ts:T()});
+  notify('admin', `📨 PQRS #${id} · ${d.kind}`, `${d.name}: ${d.msg.slice(0,120)}`);
+  S.ui.pqrsSent=id; save(); render(); window.scrollTo(0,0);
+}
+
+/* Administración → PQRS */
+function adminPqrsTab(){
+  const list=S.pqrs||[], open=list.filter(q=>q.status==='abierta');
+  const row=q=>`<div class="panel" style="margin-bottom:10px${q.status==='abierta'?';border-color:var(--blue)':''}">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>#${q.id} · ${esc(q.kind)}</b><span class="badge ${q.status==='abierta'?'warn':''}">${q.status==='abierta'?'Por responder':'Respondida'}</span></div>
+    <p class="note" style="margin:4px 0">${esc(q.created)} · ${esc(q.name)} · ${esc(q.email)}${q.phone?' · '+esc(q.phone):''}${q.order?' · Pedido '+esc(q.order):''}</p>
+    <p style="white-space:pre-wrap;margin:6px 0">${esc(q.msg)}</p>
+    ${q.answer?`<p class="note" style="white-space:pre-wrap"><b>Respuesta:</b> ${esc(q.answer)}</p>`:''}
+    <button class="btn sm" onclick="answerPqrs(${q.id})">${q.status==='abierta'?'Responder':'Ver o responder de nuevo'}</button></div>`;
+  return `<div class="panel"><h3>PQRS</h3><p class="note" style="margin-top:-6px">Peticiones, quejas, reclamos, sugerencias y felicitaciones que llegan desde la página “PQRS” del pie de página. Por ley deben responderse en máximo 15 días hábiles.</p>
+    <p><b>${open.length}</b> por responder · ${list.length} en total</p></div>
+    ${list.length?list.map(row).join(''):'<p class="note">Todavía no han llegado solicitudes.</p>'}`;
+}
+function answerPqrs(id){
+  const q=(S.pqrs||[]).find(x=>x.id===id); if(!q) return;
+  openModal(`<div class="mpad"><h2>Responder ${esc(q.kind.toLowerCase())} #${q.id}</h2>
+    <p class="note">${esc(q.name)} · ${esc(q.email)}</p><p style="white-space:pre-wrap;background:#f6f6fb;padding:10px;border-radius:10px">${esc(q.msg)}</p>
+    <form class="form" onsubmit="savePqrsAnswer(event,${q.id})"><label>Tu respuesta<textarea id="qAns" rows="6" required>${esc(q.answer||`Hola ${q.name.split(' ')[0]}, gracias por escribirnos. `)}</textarea></label>
+    <p class="note" style="margin:0">Al guardar se marca como respondida y se abre tu correo con la respuesta lista para enviar${q.phone?' (también puedes enviarla por WhatsApp)':''}.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar y abrir correo</button>${q.phone?`<button type="button" class="btn wa" onclick="pqrsWa(${q.id})">Guardar y enviar por WhatsApp</button>`:''}</div></form></div>`);
+}
+function pqrsMail(q, ans){ const sub=`Respuesta a tu ${q.kind.toLowerCase()} #${q.id} · MER-K`; location.href=`mailto:${encodeURIComponent(q.email)}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(ans+'\n\nEquipo MER-K\nmerkshopping.com')}`; }
+function pqrsMark(id, ans){ const q=(S.pqrs||[]).find(x=>x.id===id); q.status='respondida'; q.answer=ans; save(); return q; }
+function savePqrsAnswer(e, id){ e.preventDefault(); const ans=$('#qAns').value.trim(); if(ans.length<3) return; const q=pqrsMark(id, ans); closeModal(); pqrsMail(q, ans); toast('PQRS marcada como respondida.'); render(); }
+function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) return toast('Escribe la respuesta.'); const q=pqrsMark(id, ans); closeModal(); openWa(q.phone, `Hola ${q.name}, te respondemos tu ${q.kind.toLowerCase()} #${q.id} de MER-K:\n\n${ans}`); render(); }
+
 /* =================== RUTAS =================== */
-const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin};
+const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
   autoRelease(); subCheck();
   let v=(location.hash||'#inicio').slice(1); const openPid = v.startsWith('producto/') ? +v.slice(9) : 0;
@@ -2788,7 +2970,7 @@ async function loadAll(){
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
-  let ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
+  let pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   ads = await T0('ad_requests', {order:'created_at'});   // públicos: los que están en el banner; el vendedor ve los suyos y admin todos
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
@@ -2797,10 +2979,12 @@ async function loadAll(){
     if(role==='seller' || role==='admin') [slog, pays, subs] = await Promise.all([T0('stock_log', {order:'created_at', limit:300}), T0('payouts', {order:'created_at'}), T0('sub_payments', {order:'created_at'})]);
     if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
     revs = await T0('reviews');
+    if(role==='admin') pqrsRows = await T0('pqrs', {order:'created_at'});
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
   if(cfg[0]) Object.assign(S.cfg, cfg[0].data);
+  S.pqrs = pqrsRows.map(q=>({id:q.id, kind:q.kind, name:q.name, email:q.email, phone:q.phone||'', order:q.order_ref||'', msg:q.message, status:q.status, answer:q.answer||'', created:fmtTs(q.created_at), ts:Date.parse(q.created_at)}));
   const P_ = Object.fromEntries(profs.map(p=>[p.id, p])), V_ = Object.fromEntries(privs.map(p=>[p.seller_id, p]));
   S.sellers = Object.fromEntries(sellers.map(r=>[r.id, mapSeller(r, P_[r.id], V_[r.id])]));
   OFFICIAL = sellers.find(r=>r.plan==='oficial')?.id || 'sin-tienda-oficial';
@@ -2916,7 +3100,7 @@ async function doRegister(e, role){
   if(pass.length<8) return err('La contraseña debe tener mínimo 8 caracteres.');
   if(pass!==$('#rPass2').value) return err('Las contraseñas no coinciden.');
   const name=$('#rName').value.trim(), doc=$('#rDoc').value.trim(), dir=$('#rDir').value.trim(), city=readCity('rCity','rCityO'); if(!city) return err('Escribe tu municipio.');
-  const meta = {role, name, phone, doc};
+  const meta = {role, name, phone, doc, terms_accepted_at:new Date().toISOString(), terms_version:LEGAL_DATE};
   if(role==='buyer') meta.first_address = {name, dir, city, notes:$('#rNotes').value.trim()};
   else {
     const shop=$('#rShop').value.trim(), r=check(shop); if(!r.ok) return err('El nombre de la tienda no puede tener datos de contacto ('+r.reason+').');
@@ -3240,6 +3424,19 @@ async function boot(){
     if(S.notifs.filter(n=>!n.read).length>before) toast('🔔 Tienes una notificación nueva.'); }, 400); });
   setInterval(()=>{ if(!$('#scrim').classList.contains('open') && document.visibilityState==='visible') reload(); }, 90000);
 }
+
+/* PQRS en la página real */
+async function submitPqrs(e){
+  e.preventDefault(); const d=pqrsRead(); if(!d) return;
+  const btn=e.target.querySelector('button.btn'); if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  try{ const id = await api.rpc('submit_pqrs', {p_kind:d.kind, p_name:d.name, p_email:d.email, p_phone:d.phone, p_order:d.order, p_message:d.msg}); S.ui.pqrsSent=id; render(); window.scrollTo(0,0); }
+  catch(x){ const el=$('#qErr'); el.textContent=friendly(x); el.style.display='block'; if(btn){ btn.disabled=false; btn.textContent='Enviar solicitud'; } }
+}
+async function pqrsSave(id, ans){ await api.rpc('admin_pqrs_answer', {rid:id, msg:ans}); const q=(S.pqrs||[]).find(x=>x.id===id); q.status='respondida'; q.answer=ans; return q; }
+async function savePqrsAnswer(e, id){ e.preventDefault(); const ans=$('#qAns').value.trim(); if(ans.length<3) return;
+  try{ const q=await pqrsSave(id, ans); closeModal(); pqrsMail(q, ans); toast('PQRS marcada como respondida.'); render(); }catch(x){ toast(friendly(x)); } }
+async function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) return toast('Escribe la respuesta.'); const q0=(S.pqrs||[]).find(x=>x.id===id); const w=window.open(waLink(q0.phone, `Hola ${q0.name}, te respondemos tu ${q0.kind.toLowerCase()} #${q0.id} de MER-K:\n\n${ans}`), '_blank');
+  try{ await pqrsSave(id, ans); closeModal(); toast('PQRS marcada como respondida.'); render(); }catch(x){ toast(friendly(x)); } }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
