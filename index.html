@@ -411,6 +411,35 @@ details summary{cursor:pointer}
 .footlinks a{color:var(--blue);font-weight:600;font-size:14px;text-decoration:none}
 .footlinks a:hover{text-decoration:underline}
 .check a{color:var(--blue);font-weight:600}
+/* Especificaciones */
+.specw{display:flex;gap:8px;min-width:0}.specw input{flex:1;min-width:0;width:0}.specw select{width:auto;flex:none}
+.specextra{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.specrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:8px;align-items:center}
+.specs{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.specs>b{display:block;margin-bottom:6px;color:var(--blue);font-family:'Fredoka',sans-serif;font-weight:600}
+.specs table{width:100%;border-collapse:collapse;font-size:14px}
+.specs th,.specs td{text-align:left;padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.specs tr:first-child th,.specs tr:first-child td{border-top:0}
+.specs th{width:42%;color:var(--ink2);font-weight:700}
+@media(max-width:560px){.specrow{grid-template-columns:1fr 1fr auto}}
+.form fieldset{min-width:0}
+.specw select{max-width:45%}
+/* El comprador elige */
+.pickchk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink2);margin-top:4px}
+.pickchk input{width:auto;margin:0}
+.specrow .pickchk{grid-column:1/-1;margin-top:-2px}
+.picker{display:flex;flex-direction:column;gap:10px}
+.pickgrp>b{font-size:14px}.pickval{color:var(--blue)}
+.pickopts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.pickopt{min-height:40px;min-width:44px;padding:6px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;font-weight:700}
+.pickopt:hover{border-color:var(--blue)}
+.pickopt.on{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.pickgrp.miss .pickopts .pickopt{border-color:var(--bad)}
+.pickgrp.miss>b::after{content:' · falta elegir';color:var(--bad)}
+.optline{font-size:13px;font-weight:700;color:var(--blue)}
+.pickgrp.miss .pickval{display:none}
+.form label.pickchk,.form .pickchk{display:flex;flex-direction:row;align-items:center;gap:6px;justify-content:flex-start}
+.form .pickchk input{width:18px;height:18px;flex:none}
 </style>
 </head>
 <body>
@@ -918,7 +947,9 @@ function showProduct(id){
   openModal(`<div class="detail">${galleryHtml(p)}
     <div class="dinfo"><span class="note">${esc(p.c)} · ${p.stock} disponibles</span><h3>${esc(p.t)}</h3>
       <div>${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}<span class="price" style="font-size:30px">${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
-      <p class="note" style="margin:0">${esc(p.d)}</p>
+      <p class="note" style="margin:0;white-space:pre-line">${esc(p.d)}</p>
+      ${specsTable(p)}
+      ${pickerHtml(p)}
       <div class="shipbox"><b>Envío a ${esc(S.loc)}</b>${p.freeShip?'<span class="badge" style="justify-self:start">Envío gratis</span>':''}${shipBox(p, S.loc)}<a class="note" href="javascript:askLocation()">Cambiar ubicación</a></div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}${cps.length?`<div class="cpline">🎟️ Cupón de la tienda: ${cps.map(c=>`<b>${esc(c.code)}</b> (${couponLabel(c)})`).join(' · ')}</div>`:''}
       <div class="seller"><div><b>${esc(s.name)}</b><br><span class="note">${ratingLine(p.s)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
@@ -1237,6 +1268,7 @@ function productForm(p){
       <label>Unidades disponibles<input id="fs" type="number" min="0" required value="${v.stock}"></label></div>
     <div class="row2"><label>Categoría<select id="fc">${CATS.slice(1).map(c=>`<option ${c===v.c?'selected':''}>${c}</option>`).join('')}</select></label>
       ${p?`<label>Estado<select id="fpause"><option value="0" ${!v.paused?'selected':''}>Publicado</option><option value="1" ${v.paused?'selected':''}>Pausado</option></select></label>`:''}</div>
+    ${specsFields(p)}
     ${photoPicker(p)}
     <fieldset><legend>Envío</legend>
       <label class="check"><input type="checkbox" id="ffree" ${v.freeShip?'checked':''} onchange="$('#fncWrap').style.opacity=this.checked?.4:1"> Envío gratis para el comprador (el costo del envío lo asumo yo)</label>
@@ -1250,10 +1282,10 @@ function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), r=check(t+' \n '+d), ban=bannedReason(t+' '+d);
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), specs=readSpecs(), sx=specsText(specs), r=check(t+' \n '+d+' \n '+sx), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
   if(!r.ok){ const m=strike(s, s.name, t+' — '+d, r.reason, id?'Edición de producto':'Publicación'); save(); toast('No se guardó: '+r.reason+'. '+m); return; }
-  const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0)};
+  const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0), specs};
   const images=PF_PHOTOS.map(f=>f.url||f.prev); data.images=images; data.img=images[0]||null;
   if(id){ Object.assign(P(id), data, {paused:$('#fpause').value==='1'}); try{ save(); }catch(_){ toast('Las fotos ocupan mucho espacio en esta demo.'); return; } toast('Cambios guardados.'); closeModal(); return; }
   S.products.unshift(Object.assign({id:S.nextId++, e:'📦', s:sk, paused:false}, data)); save(); S.ui.sellTab='productos'; toast('¡Producto publicado!'); render();
@@ -1390,6 +1422,7 @@ function viewAdmin(){
         <label>Días para dar por entregado si el comprador no confirma<input id="cdays" type="number" min="1" max="30" value="${S.cfg.autoDays}"></label></div>
       <div class="row2"><label>Tiempo de entrega en Medellín y alrededores<input id="cetaD" maxlength="40" value="${esc(etaDom())}" placeholder="4 a 7 días hábiles"></label>
         <label>Tiempo de entrega nacional (aprox.)<input id="cetaN" maxlength="40" value="${esc(etaNat())}" placeholder="4 a 7 días hábiles"></label></div>
+      <label class="check"><input type="checkbox" id="cwa" ${S.cfg.waAlerts===false?'':'checked'}> Cuando le escribamos a un cliente o vendedor (mensajes, soporte o chat de un pedido), abrir WhatsApp con un aviso para que entre a la página a leerlo</label>
       <label>Empresa de mensajería de los domicilios<input id="ccour" maxlength="40" value="${esc(courier())}" placeholder="Logística P y G"><span class="note" style="font-weight:500">Así sale en los mensajes al comprador y al vendedor: “mensajero de …”.</span></label>
       <p class="note" style="margin:-4px 0 0">Así lo ven los compradores en los productos, en el carrito y en el pago. Escríbelo como “4 a 7 días hábiles”.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar configuración</button>${LIVE?'':'<button type="button" class="btn bad" onclick="resetDemo()">Reiniciar la demo</button>'}</div></form></div>`;
@@ -1513,7 +1546,7 @@ function savePayout(e,k){ e.preventDefault(); const s=SEL(k), amount=s.available
   S.orders.filter(o=>o.sk===k && o.status==='liberado' && !o.liquidated).forEach(o=>o.liquidated=true);
   notify(k, 'Te transferimos tu dinero', `${cop(amount)} a tu cuenta ${s.bank.banco} ${s.bank.num}. Comprobante: ${ref}`);
   save(); toast(`Transferencia de ${cop(amount)} registrada.`); closeModal(); }
-function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
+function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.waAlerts=$('#cwa').checked; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
 function adminDelivered(id){ markDelivered(O(id),'Pedido entregado.'); save(); render(); }
 function adminSuspend(k){ suspendPlan(k,'manual'); save(); toast('Plan desactivado.'); render(); }
 function adminBlock(k){ SEL(k).status='bloqueada'; save(); render(); }
@@ -1572,6 +1605,7 @@ function sendMsg(text){
   } else {
     list.push({from, text});
     const to = from==='a' ? (info.party==='b' ? info.o.bk : info.o.sk) : 'admin';
+    if(from==='a') waAlertForChat(chatKey);
     notify(to, from==='a' ? 'Mensaje de MER-K' : 'Nuevo mensaje', `${info.title}: ${text.slice(0,80)}`);
   }
   save(); drawChat();
@@ -1967,7 +2001,7 @@ function openTicket(id){
 function replyTicket(e, id){
   e.preventDefault(); const t=S.tickets.find(x=>x.id===id), text=$('#tkReply').value.trim(), adm=isRole('admin'); if(!text) return;
   t.msgs.push({from:adm?'a':'u', text, t:now()});
-  if(adm){ t.status='respondido'; t.unreadUser=true; t.answeredAt=T(); notify(t.from, `💬 MER-K respondió tu solicitud #${t.id}`, text, {tk:t.id}); toast('Respuesta enviada. Le llega a la campanita.'); }
+  if(adm){ waAlert(t.from); t.status='respondido'; t.unreadUser=true; t.answeredAt=T(); notify(t.from, `💬 MER-K respondió tu solicitud #${t.id}`, text, {tk:t.id}); toast('Respuesta enviada. Le llega a la campanita.'); }
   else { t.status='abierto'; t.unreadAdmin=true; notify('admin', `🛟 Nueva respuesta en la solicitud #${t.id}`, `${nameOf(t.from)}: ${text}`, {tk:t.id}); toast('Mensaje enviado a MER-K.'); }
   save(); openTicket(id);
 }
@@ -2203,6 +2237,7 @@ function sellerMessenger(sk){
 function sendThread(th, text){
   text=String(text||'').trim(); if(!text) return; const adm=isRole('admin'), sk=th.slice(1);
   if(!adm && !msgEnabled(sk)){ toast('MER-K te escribirá primero por aquí.'); return; }
+  if(adm) waAlert(sk);
   (S.chats[th]=S.chats[th]||[]).push({from:adm?'a':'s', text, t:now()});
   if(adm) notify(sk,'💬 Mensaje de MER-K', text, {link:'mensajes'}); else notify('admin',`💬 ${SEL(sk).name} te respondió`, text, {link:'msj:'+sk});
   S.ui.msgDraft=''; save(); render(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50);
@@ -2414,7 +2449,8 @@ function moveBanner(i,d){ const l=[...(S.cfg.banners||[])], j=i+d; if(j<0||j>=l.
    ===================================================================== */
 const CART_KEY='merk-cart';
 function cartRaw(){ try{ const c=JSON.parse(localStorage.getItem(CART_KEY)||'[]'); return Array.isArray(c)?c.filter(i=>i&&i.pid):[]; }catch(e){ return []; } }
-function cartGet(){ return cartRaw().filter(i=>{ const p=P(i.pid); return p && !p.paused && p.stock>0; }).map(i=>({pid:i.pid, qty:Math.max(1, Math.min(+i.qty||1, P(i.pid).stock))})); }
+const cartKey = i => i.pid+'|'+JSON.stringify(i.opts||{});
+function cartGet(){ return cartRaw().filter(i=>{ const p=P(i.pid); return p && !p.paused && p.stock>0; }).map(i=>({pid:i.pid, qty:Math.max(1, Math.min(+i.qty||1, P(i.pid).stock)), opts:i.opts||null})); }
 function cartSet(list){ try{ localStorage.setItem(CART_KEY, JSON.stringify(list)); }catch(e){} const a=$('#acct'); if(a) a.innerHTML=headerRight(); }
 function cartCount(){ return cartGet().reduce((n,i)=>n+i.qty,0); }
 function cartBtn(){ const n=cartCount(); return `<button class="bell cartbtn" onclick="showCart()" aria-label="Carrito de compras">🛒${n?`<span>${n}</span>`:''}</button>`; }
@@ -2422,8 +2458,10 @@ function canShop(){ const s=me(); if(s && s.role!=='buyer'){ toast('Para comprar
 function addToCart(pid){
   if(!canShop()) return;
   const p=P(pid); if(!p || p.stock<1){ toast('Este producto se agotó.'); return; }
-  const c=cartRaw(), it=c.find(i=>i.pid===pid);
-  if(it){ if(it.qty>=p.stock){ toast(`Solo hay ${p.stock} disponibles y ya están en tu carrito.`); return; } it.qty++; } else c.push({pid, qty:1});
+  const opts=pickedOpts(p); if(opts===false) return;
+  const c=cartRaw(), k=cartKey({pid, opts}), it=c.find(i=>cartKey(i)===k), inCart=c.filter(i=>i.pid===pid).reduce((n,i)=>n+(+i.qty||1),0);
+  if(inCart>=p.stock){ toast(`Solo hay ${p.stock} disponibles y ya están en tu carrito.`); return; }
+  if(it) it.qty++; else c.push(opts?{pid, qty:1, opts}:{pid, qty:1});
   cartSet(c); closeModal(); toast('🛒 Agregado al carrito. ¡Sigue comprando!');
 }
 function showCart(){
@@ -2431,23 +2469,23 @@ function showCart(){
   if(!items.length){ openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🛒</div><h2>Tu carrito está vacío</h2><p class="sub">Toca “Agregar y seguir comprando” en los productos que te gusten y aquí se van sumando.</p><button class="btn" onclick="closeModal();location.hash='#inicio'">Ver productos</button></div>`, true); return; }
   const sub=items.reduce((a,i)=>a+finalPrice(P(i.pid))*i.qty,0), n=items.reduce((a,i)=>a+i.qty,0);
   openModal(`<div class="mpad"><h2>🛒 Tu carrito</h2><p class="sub">${n} producto${n>1?'s':''}</p>
-    <div class="cart">${items.map(i=>{ const p=P(i.pid); return `<div class="citem"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
-      <div class="cinfo"><b>${esc(p.t)}</b><span class="note">${esc(SEL(p.s).name)} · ${cop(finalPrice(p))} c/u</span>
-        <div class="qty"><button onclick="cartQty(${p.id},-1)" aria-label="Quitar uno">−</button><span>${i.qty}</span><button onclick="cartQty(${p.id},1)" aria-label="Agregar uno">+</button><a class="note" href="javascript:cartRemove(${p.id})">Quitar</a></div></div>
+    <div class="cart">${items.map((i,ix)=>{ const p=P(i.pid); return `<div class="citem"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
+      <div class="cinfo"><b>${esc(p.t)}</b>${i.opts?`<span class="optline">${esc(optsLabel(i.opts))}</span>`:''}<span class="note">${esc(SEL(p.s).name)} · ${cop(finalPrice(p))} c/u</span>
+        <div class="qty"><button onclick="cartQty(${ix},-1)" aria-label="Quitar uno">−</button><span>${i.qty}</span><button onclick="cartQty(${ix},1)" aria-label="Agregar uno">+</button><a class="note" href="javascript:cartRemove(${ix})">Quitar</a></div></div>
       <b class="cline">${cop(finalPrice(p)*i.qty)}</b></div>`; }).join('')}</div>
     <table class="sum" style="margin-top:12px"><tr><td><b>Subtotal</b></td><td style="text-align:right"><b class="price">${cop(sub)}</b></td></tr></table>
     <p class="note" style="margin:4px 0 14px">El domicilio o envío y los cupones se calculan en el siguiente paso.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1" onclick="startCheckout(cartGet(),'cart')">Pagar</button><button class="btn ghost" onclick="closeModal()">Seguir comprando</button></div></div>`, true);
 }
-function cartQty(pid, d){ const c=cartRaw(), it=c.find(i=>i.pid===pid), p=P(pid); if(!it) return; it.qty=(+it.qty||1)+d; if(p && it.qty>p.stock){ it.qty=p.stock; toast(`Solo hay ${p.stock} disponibles.`); } cartSet(c.filter(i=>i.qty>0)); showCart(); }
-function cartRemove(pid){ cartSet(cartRaw().filter(i=>i.pid!==pid)); showCart(); }
+function cartQty(ix, d){ const c=cartGet(), it=c[ix]; if(!it) return; const p=P(it.pid), others=c.filter((x,j)=>j!==ix && x.pid===it.pid).reduce((n,x)=>n+x.qty,0); it.qty=(+it.qty||1)+d; if(p && it.qty+others>p.stock){ it.qty=Math.max(0,p.stock-others); toast(`Solo hay ${p.stock} disponibles.`); } cartSet(c.filter(i=>i.qty>0)); showCart(); }
+function cartRemove(ix){ cartSet(cartGet().filter((x,j)=>j!==ix)); showCart(); }
 
 /* =====================================================================
    PAGO EN 2 PASOS: 1) datos de entrega  2) resumen, cupón y pago
    ===================================================================== */
 let CO = {items:[]};
 const errText = e => typeof friendly==='function' ? friendly(e) : String(e?.message||e);
-function buyNow(pid){ if(!canShop()) return; startCheckout([{pid, qty:1}], 'now'); }
+function buyNow(pid){ if(!canShop()) return; const p=P(pid), opts=pickedOpts(p); if(opts===false) return; startCheckout([opts?{pid, qty:1, opts}:{pid, qty:1}], 'now'); }
 function startCheckout(items, mode){
   if(!isRole('buyer')){ loginModal(me()?'Para comprar necesitas una cuenta de comprador.':'Inicia sesión o crea tu cuenta de comprador para pagar. Tu carrito queda guardado.'); return; }
   items=(items||[]).filter(i=>P(i.pid)); if(!items.length){ toast('Tu carrito está vacío.'); return; }
@@ -2537,7 +2575,7 @@ function coDraw(){
 async function cartQuote(items, city, carriers, coupon){
   const code=String(coupon||'').trim().toUpperCase(); let cpErr=code?'Ese cupón no aplica a los productos de tu compra.':null, cpUsed=null;
   const groups={}; items.forEach(i=>{ const p=P(i.pid); if(!p || p.paused || p.stock<1) throw new Error('Uno de los productos ya no está disponible. Revisa tu carrito.');
-    if(p.stock<i.qty) throw new Error(`De "${p.t}" solo quedan ${p.stock} unidades.`); (groups[p.s]||(groups[p.s]=[])).push({p, qty:i.qty}); });
+    if(p.stock<i.qty) throw new Error(`De "${p.t}" solo quedan ${p.stock} unidades.`); const op=checkOpts(p, i.opts); (groups[p.s]||(groups[p.s]=[])).push({p, qty:i.qty, opts:op}); });
   const out=Object.entries(groups).map(([sk, lines])=>{
     const list=lines.reduce((a,l)=>a+finalPrice(l.p)*l.qty,0); let disc=0;
     if(code && !cpUsed){ const c=S.coupons.find(x=>x.sk===sk && x.code===code);
@@ -2547,7 +2585,7 @@ async function cartQuote(items, city, carriers, coupon){
     const allFree=lines.every(l=>l.p.freeShip); let ship;
     if(inArea(city) && inArea(SEL(sk).city)){ const tarifa=zonePrice(city); ship={ship_type:'dom', tarifa, free:allFree, ship_cost:allFree?0:tarifa, carrier:null, eta:'Entrega en '+etaDom()}; }
     else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'Entrega en '+etaNat()+' según la transportadora'}; }
-    return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t, qty:l.qty, unit:finalPrice(l.p)})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
+    return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t+(l.opts?' ('+optsLabel(l.opts)+')':''), qty:l.qty, unit:finalPrice(l.p), opts:l.opts})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
   });
   return {groups:out, total:out.reduce((a,g)=>a+g.total,0), coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
 }
@@ -2557,13 +2595,13 @@ const addrLine = a => `${a.dir}${a.barrio?', barrio '+a.barrio:''}, ${a.city}`;
 function coPay(){
   const q=CO.q, a=CO.addr, bk=me().key; if(!q) return;
   const procAll=procParts(q.total).total, ids=q.groups.map(g=>createGroupOrder(g, bk, a, procAll, q.total).id);
-  if(CO.mode==='cart'){ const bought=new Set(CO.items.map(i=>i.pid)); cartSet(cartRaw().filter(i=>!bought.has(i.pid))); }
+  if(CO.mode==='cart'){ const bought=new Set(CO.items.map(cartKey)); cartSet(cartRaw().filter(i=>!bought.has(cartKey(i)))); }
   CO={items:[]}; save(); closeModal(); S.ui.buyTab='compras'; location.hash='#compras'; render();
   toast(ids.length>1?`¡Pago recibido! Tu compra quedó en ${ids.length} pedidos, uno por tienda.`:'¡Pago recibido! Te avisamos cada cambio de tu pedido.');
 }
 function createGroupOrder(g, bk, a, procAll, total){
   const sk=g.sk, price=g.price;
-  const o={id:S.nextOrder++, pid:g.lines[0].pid, items:g.lines.map(l=>({pid:l.pid, title:l.title, qty:l.qty, unit:l.unit})), sk, bk, title:linesTitle(g.lines), price, listPrice:g.list, origin:SEL(sk).city,
+  const o={id:S.nextOrder++, pid:g.lines[0].pid, items:g.lines.map(l=>({pid:l.pid, title:l.title, qty:l.qty, unit:l.unit, opts:l.opts||null})), sk, bk, title:linesTitle(g.lines), price, listPrice:g.list, origin:SEL(sk).city,
     ship:{type:g.ship_type, mode:null, carrier:g.carrier, cost:g.ship_cost, free:!!g.free, tarifa:g.tarifa},
     addr:{name:a.name, dir:a.dir, city:a.city, barrio:a.barrio||'', notes:a.notes||'', phone:a.phone||BUY(bk).phone}, pay:'Pasarela de pagos',
     status:'pagado', fee:feeOf(sk), fixed:fixedOf(sk, price), proc: sk===OFFICIAL?0:Math.round(procAll*g.total/Math.max(1,total)), created:now(), ts:T(),
@@ -2877,6 +2915,80 @@ function pqrsMark(id, ans){ const q=(S.pqrs||[]).find(x=>x.id===id); q.status='r
 function savePqrsAnswer(e, id){ e.preventDefault(); const ans=$('#qAns').value.trim(); if(ans.length<3) return; const q=pqrsMark(id, ans); closeModal(); pqrsMail(q, ans); toast('PQRS marcada como respondida.'); render(); }
 function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) return toast('Escribe la respuesta.'); const q=pqrsMark(id, ans); closeModal(); openWa(q.phone, `Hola ${q.name}, te respondemos tu ${q.kind.toLowerCase()} #${q.id} de MER-K:\n\n${ans}`); render(); }
 
+/* =================== AVISO POR WHATSAPP CUANDO MER-K ESCRIBE =================== */
+function waAlertWho(key){ const s=S.sellers&&S.sellers[key]; if(s) return {phone:s.phone, name:s.owner||s.name, seller:true}; const b=S.buyers&&S.buyers[key]; return b?{phone:b.phone, name:b.name, seller:false}:{}; }
+function waAlertText(name, seller){ const first=String(name||'').trim().split(/\s+/)[0]; return `Hola${first?' '+first:''} 👋 Tienes un mensaje nuevo de MER-K en la página.\n\nEntra a merkshopping.com, inicia sesión y revisa ${seller?'tu panel de vendedor (Mensajes o Soporte)':'tus mensajes o la campanita 🔔'} para leerlo y responder.\n\n¡Gracias!`; }
+// Se llama justo al tocar "Enviar" (antes de esperar al servidor) para que el navegador no bloquee la ventana.
+function waAlert(key, phone){
+  if(S.cfg.waAlerts===false || !isRole('admin')) return;
+  const w=waAlertWho(key), ph=phone||w.phone;
+  if(!waNumber(ph)){ toast('Esta persona no tiene celular registrado, así que no se abrió WhatsApp.'); return; }
+  window.open(waLink(ph, waAlertText(w.name, w.seller)), '_blank', 'noopener');
+}
+function waAlertForChat(k){ if(!k || k[0]==='p') return; const o=O(tPid(k)); if(!o) return; if(k.endsWith(':b')) waAlert(o.bk, o.addr&&o.addr.phone); else waAlert(o.sk); }
+
+/* =================== ESPECIFICACIONES DEL PRODUCTO =================== */
+const SPEC_UNITS = ['g','kg','mg','lb','oz','ml','L','oz líq.','cc','unidades'];
+const SPEC_FIXED = [['spTalla','Talla','Ej: S, M, L, XL o 36, 38, 40'],['spMedidas','Tamaño o medidas','Ej: Pequeño, Mediano, Grande o 30 x 20 cm'],['spMaterial','Material','Ej: Cuero, algodón, acero inoxidable'],['spColor','Color','Ej: Negro, café, beige'],['spMarca','Marca','Ej: Hecho a mano o la marca'],['spModelo','Modelo o referencia','Ej: 2025, ref. A12']];
+const SPEC_PICKABLE = ['spTalla','spMedidas','spMaterial','spColor'];
+const SPEC_OLD = {'Tallas':'Talla','Medidas o tamaño':'Tamaño o medidas','Color(es)':'Color'};
+const SPEC_PESO = 'Peso o contenido';
+const MAX_SPECS = 20;
+function specsOf(p){ return Array.isArray(p&&p.specs) ? p.specs.filter(x=>x&&x.k&&x.v).map(x=>SPEC_OLD[x.k]?Object.assign({},x,{k:SPEC_OLD[x.k]}):x) : []; }
+function specRowHtml(k, v, pick){ return `<div class="specrow"><input class="spK" maxlength="30" placeholder="Ej: Sabor, Aroma, Voltaje" value="${esc(k||'')}"><input class="spV" maxlength="80" placeholder="Ej: Vainilla, Fresa, Chocolate" value="${esc(v||'')}"><button type="button" class="btn ghost sm" aria-label="Quitar" onclick="this.parentElement.remove()">✕</button><label class="pickchk"><input type="checkbox" class="spP" ${pick?'checked':''}> El cliente elige una opción</label></div>`; }
+function addSpecRow(){ const box=$('#spExtra'); if(box.children.length>=10){ toast('Puedes agregar máximo 10 especificaciones extra.'); return; } box.insertAdjacentHTML('beforeend', specRowHtml()); box.lastElementChild.querySelector('input').focus(); }
+function specsFields(p){
+  const list=specsOf(p), get=k=>{ const x=list.find(s=>s.k===k); return x?x.v:''; };
+  const peso=get(SPEC_PESO), m=peso.match(/^([\d.,]+)\s*(.+)$/), pNum=m?m[1]:'', pUnit=m&&SPEC_UNITS.includes(m[2])?m[2]:'g';
+  const fixedKeys=[SPEC_PESO, ...SPEC_FIXED.map(f=>f[1])], extra=list.filter(s=>!fixedKeys.includes(s.k));
+  const isNew=!p, pk=(id,l)=>{ const x=list.find(s=>s.k===l); return x ? !!x.pick : (isNew && (id==='spTalla'||id==='spColor')); };
+  const fld=([id,l,ph])=>`<label>${l}<input id="${id}" maxlength="80" placeholder="${ph}" value="${esc(get(l))}">${SPEC_PICKABLE.includes(id)?`<span class="pickchk"><input type="checkbox" id="${id}P" ${pk(id,l)?'checked':''}> El cliente elige una opción</span>`:''}</label>`;
+  return `<fieldset><legend>Especificaciones del producto (opcional)</legend>
+    <p class="note" style="margin:0">Llena solo las que apliquen a tu producto. Si marcas <b>“El cliente elige una opción”</b>, separa las opciones con comas (Ej: S, M, L) y el comprador escoge una antes de pagar.</p>
+    <div class="row2"><label>${SPEC_PESO}<span class="specw"><input id="spPeso" type="text" inputmode="decimal" maxlength="10" placeholder="Ej: 500" value="${esc(pNum)}"><select id="spUnit" aria-label="Unidad">${SPEC_UNITS.map(u=>`<option ${u===pUnit?'selected':''}>${u}</option>`).join('')}</select></span></label>
+      ${fld(SPEC_FIXED[0])}</div>
+    <div class="row2">${fld(SPEC_FIXED[3])}${fld(SPEC_FIXED[1])}</div>
+    <div class="row3">${[SPEC_FIXED[2],SPEC_FIXED[4],SPEC_FIXED[5]].map(fld).join('')}</div>
+    <div><b style="font-size:14px">Otras especificaciones</b><div id="spExtra" class="specextra">${extra.map(s=>specRowHtml(s.k,s.v,s.pick)).join('')}</div>
+    <button type="button" class="btn ghost sm" onclick="addSpecRow()">+ Agregar otra especificación</button></div></fieldset>`;
+}
+function readSpecs(){
+  const out=[], push=(k,v,pick)=>{ k=String(k||'').trim().slice(0,30); v=String(v||'').trim().slice(0,80); if(k&&v&&out.length<MAX_SPECS&&!out.some(x=>x.k.toLowerCase()===k.toLowerCase())) out.push(pick&&specChoices(v).length>=2?{k,v,pick:true}:{k,v}); };
+  const n=($('#spPeso')?.value||'').trim(); if(n) push(SPEC_PESO, n+' '+$('#spUnit').value);
+  SPEC_FIXED.forEach(([id,l])=>push(l, $('#'+id)?.value, $('#'+id+'P')?.checked));
+  document.querySelectorAll('#spExtra .specrow').forEach(r=>push(r.querySelector('.spK').value, r.querySelector('.spV').value, r.querySelector('.spP').checked));
+  return out;
+}
+const specsText = list => list.map(s=>s.k+' '+s.v).join(' \n ');
+function specsTable(p){ const l=specsOf(p).filter(s=>!pickSpecs(p).some(x=>x.k===s.k)); if(!l.length) return ''; return `<div class="specs"><b>Especificaciones</b><table>${l.map(s=>`<tr><th>${esc(s.k)}</th><td>${esc(s.v)}</td></tr>`).join('')}</table></div>`; }
+
+/* ---------- El comprador elige (talla, color, tamaño…) ---------- */
+const joinY = a => a.length>1 ? a.slice(0,-1).join(', ')+' y '+a[a.length-1] : (a[0]||'');
+const specChoices = v => String(v||'').split(/[,;/]/).map(x=>x.trim()).filter(Boolean);
+const pickSpecs = p => specsOf(p).filter(s=>s.pick && specChoices(s.v).length>=2);
+let PICK = {pid:null, opts:{}};
+function pickerHtml(p){
+  const l=pickSpecs(p); PICK={pid:p.id, opts:{}}; if(!l.length) return '';
+  return `<div class="picker">${l.map((s,si)=>`<div class="pickgrp" data-k="${esc(s.k)}"><b>${esc(s.k)}: <span class="pickval" id="pv${si}">elige una</span></b>
+    <div class="pickopts">${specChoices(s.v).map((c,ci)=>`<button type="button" class="pickopt" aria-pressed="false" onclick="pickOpt(${si},${ci},this)">${esc(c)}</button>`).join('')}</div></div>`).join('')}</div>`;
+}
+function pickOpt(si, ci, btn){
+  const p=P(PICK.pid), s=pickSpecs(p)[si], c=specChoices(s.v)[ci]; PICK.opts[s.k]=c;
+  btn.parentElement.querySelectorAll('.pickopt').forEach(b=>{ b.classList.toggle('on', b===btn); b.setAttribute('aria-pressed', b===btn); });
+  const v=$('#pv'+si); if(v) v.textContent=c; btn.closest('.pickgrp').classList.remove('miss');
+}
+/* Devuelve las opciones elegidas (en el orden del vendedor), null si el producto no tiene, o false si falta alguna */
+function pickedOpts(p){
+  const l=pickSpecs(p); if(!l.length) return null;
+  if(PICK.pid!==p.id || !$('.picker')){ showProduct(p.id); toast('Elige '+joinY(l.map(s=>s.k.toLowerCase()))+' antes de comprar.'); return false; }
+  const miss=l.filter(s=>!PICK.opts[s.k]);
+  if(miss.length){ document.querySelectorAll('.pickgrp').forEach(g=>g.classList.toggle('miss', miss.some(s=>s.k===g.dataset.k))); toast('Elige '+joinY(miss.map(s=>s.k.toLowerCase()))+' antes de comprar.'); return false; }
+  const o={}; l.forEach(s=>o[s.k]=PICK.opts[s.k]); return o;
+}
+function checkOpts(p, opts){ const l=pickSpecs(p); if(!l.length) return null; const o={};
+  l.forEach(s=>{ const c=specChoices(s.v).find(x=>x.toLowerCase()===String((opts||{})[s.k]||'').trim().toLowerCase()); if(!c) throw new Error(`Elige ${s.k.toLowerCase()} de "${p.t}" antes de comprar.`); o[s.k]=c; }); return o; }
+const optsLabel = o => Object.entries(o||{}).map(([k,v])=>k+': '+v).join(', ');
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -2945,7 +3057,7 @@ const fmtTs = ts => new Date(ts).toLocaleString('es-CO', {dateStyle:'short', tim
 /* ---------- Convertir filas de la base de datos al formato de la página ---------- */
 function mapProduct(r){ return {id:r.id, t:r.title, d:r.description, p:r.price, disc:r.disc, c:r.category, e:r.emoji, s:r.seller_id, stock:r.stock, paused:r.paused, pausedByPlan:r.paused_by_plan,
   freeShip:r.free_ship, natCost:r.nat_cost, priority:!!r.priority, img:(r.images||[])[0]||null, images:r.images||[], sku:r.sku||'', featured:r.featured, views:r.views,
-  flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null}; }
+  flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null, specs:Array.isArray(r.specs)?r.specs:[]}; }
 function mapSeller(r, prof, priv){
   const b = priv?.bank || null;
   return {name:r.store_name, plan:r.plan, city:r.city||'', rating:+r.rating, sales:r.sales, warnings:prof?.warnings||0, status:prof?.status||'activa',
@@ -3129,6 +3241,7 @@ async function sendMsg(text){
   text = String(text||'').trim(); if(!text) return;
   const acc = isRole('buyer') ? BUY(me().key) : isRole('seller') ? SEL(me().key) : null;
   if(acc && acc.status!=='activa'){ toast('Tu cuenta está '+acc.status+'. No puedes enviar mensajes.'); return; }
+  if(isRole('admin')) waAlertForChat(chatKey);
   try{ await api.ins('messages', [{thread:chatKey, body:text}]); await loadAll(); if($('#scrim').classList.contains('open')) drawChat(); }
   catch(e){ toast(friendly(e)); }
 }
@@ -3155,7 +3268,7 @@ async function openPayment(kind, body){
 }
 /* Carrito en la página real: el servidor calcula precios, cupón y envío */
 async function cartQuote(items, city, carriers, coupon){
-  const q = await api.rpc('quote_cart', {cart:items.map(i=>({pid:i.pid, qty:i.qty})), city, carriers:carriers||{}, coupon:coupon||null});
+  const q = await api.rpc('quote_cart', {cart:items.map(i=>i.opts?{pid:i.pid, qty:i.qty, opts:i.opts}:{pid:i.pid, qty:i.qty}), city, carriers:carriers||{}, coupon:coupon||null});
   q.groups.forEach(g=>{ g.sk=g.seller_id; }); return q;
 }
 async function coSaveAddress(d){
@@ -3167,8 +3280,8 @@ async function coSaveAddress(d){
 async function coPay(){
   const btn=$('#coBtn'); btn.disabled=true; btn.textContent='Abriendo el pago…';
   try{
-    try{ localStorage.setItem('merk-cart-paying', JSON.stringify(CO.mode==='cart' ? CO.items.map(i=>i.pid) : [])); }catch(e){}
-    await openPayment('cart', {items:CO.items.map(i=>({pid:i.pid, qty:i.qty})), address_id:CO.addr.id, carriers:CO.carriers, coupon:CO.coupon||null, pay_method:null});
+    try{ localStorage.setItem('merk-cart-paying', JSON.stringify(CO.mode==='cart' ? CO.items.map(cartKey) : [])); }catch(e){}
+    await openPayment('cart', {items:CO.items.map(i=>i.opts?{pid:i.pid, qty:i.qty, opts:i.opts}:{pid:i.pid, qty:i.qty}), address_id:CO.addr.id, carriers:CO.carriers, coupon:CO.coupon||null, pay_method:null});
   }catch(e){ toast(friendly(e)); btn.disabled=false; btn.textContent=`Continuar al pago · ${cop(CO.q.total)}`; }
 }
 /* Banners: la imagen se sube al almacenamiento y la lista queda en la configuración */
@@ -3213,7 +3326,7 @@ async function wompiReturn(){
   for(let i=0;i<12;i++){
     await new Promise(r=>setTimeout(r, 2500));
     const rows = await api.sel('payments', {eq:{ref:pend.ref}}).catch(()=>[]), st = rows[0]?.status;
-    if(st==='APPROVED'){ try{ const bought=JSON.parse(localStorage.getItem('merk-cart-paying')||'[]'); if(bought.length) cartSet(cartRaw().filter(i=>!bought.includes(i.pid))); localStorage.removeItem('merk-cart-paying'); }catch(e){}
+    if(st==='APPROVED'){ try{ const bought=JSON.parse(localStorage.getItem('merk-cart-paying')||'[]'); if(bought.length) cartSet(cartRaw().filter(i=>!bought.includes(cartKey(i)) && !bought.includes(i.pid))); localStorage.removeItem('merk-cart-paying'); }catch(e){}
       await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🎉</div><h2>¡Pago aprobado!</h2><p class="sub">${pend.kind==='plan'?'Tu plan ya está activo.':'Tu pedido quedó registrado. Te avisamos con la campanita cada vez que cambie.'}</p><button class="btn" onclick="closeModal()">Listo</button></div>`, true); return; }
     if(st && st!=='PENDING'){ await reload(); openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">😕</div><h2>El pago no fue aprobado</h2><p class="sub">Respuesta: ${esc(st==='DECLINED'?'rechazado':st==='VOIDED'?'cancelado':st==='ERROR'?'falló':st)}. No se te cobró nada. Puedes intentarlo de nuevo.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true); return; }
   }
@@ -3228,10 +3341,10 @@ async function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), ban=bannedReason(t+' '+d);
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), specs=readSpecs(), sx=specsText(specs), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
-  if(!(await checkText(t+' \n '+d, id?'Edición de producto':'Publicación'))) return;
-  const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0)};
+  if(!(await checkText(t+' \n '+d+(sx?' \n '+sx:''), id?'Edición de producto':'Publicación'))) return;
+  const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0), specs};
   const photos=[...PF_PHOTOS];
   const upPhotos = async()=>{ const out=[]; let n=0; for(const f of photos){ if(f.url){ out.push(f.url); continue; }
       const u = await api.upload('productos', `${ME.id}/p${Date.now()}-${n++}.jpg`, await toBlob(f.prev)); if(u) out.push(u); } return out; };
@@ -3319,6 +3432,7 @@ const _openTicketView = id => { const t=S.tickets.find(x=>x.id===id); if(!t){ to
       ${adm&&t.status!=='cerrado'?`<button type="button" class="btn ghost" onclick="closeTicket(${t.id})">Marcar como resuelta</button>`:''}</div></form></div>`, true); };
 function openTicket(id){ _openTicketView(id); const t=S.tickets.find(x=>x.id===id); if(t && (isRole('admin') ? t.unreadAdmin : t.unreadUser)) api.rpc('ticket_seen', {tid:id}).then(()=>loadAll()).catch(()=>{}); }
 async function replyTicket(e, id){ e.preventDefault(); const text=$('#tkReply').value.trim(); if(!text) return;
+  if(isRole('admin')){ const tk=S.tickets.find(x=>x.id===id); if(tk) waAlert(tk.from); }
   const ok = await act(()=>api.ins('ticket_messages', [{ticket_id:id, body:text}]), isRole('admin')?'Respuesta enviada. Le llega a la campanita.':'Mensaje enviado a MER-K.', {close:false});
   if(ok) _openTicketView(id); }
 async function closeTicket(id){ await act(()=>api.rpc('admin_close_ticket', {tid:id}), 'Solicitud resuelta.'); }
@@ -3342,7 +3456,7 @@ async function resolveClaim(id, how){ if(how==='refund' && !confirm('¿Devolver 
   await act(()=>api.rpc('admin_resolve_claim', {oid:id, how}), how==='refund'?'Dinero devuelto al comprador.':'Pago liberado al vendedor.'); }
 async function savePayout(e,k){ e.preventDefault(); const ref=$('#pRef').value.trim()+($('#pBank').value.trim()?' · '+$('#pBank').value.trim():'');
   await act(()=>api.rpc('admin_payout', {sid:k, reference:ref}), 'Transferencia registrada.'); }
-async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles';
+async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.waAlerts=$('#cwa').checked;
   c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value);
   c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value;
   AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); c.autoDays=Math.max(1,+$('#cdays').value||5);
@@ -3372,6 +3486,7 @@ async function verifyBank(k){ await act(()=>api.rpc('admin_verify_bank', {sid:k}
 async function adminTogglePause(id){ await act(()=>api.upd('products', {paused:!P(id).paused}, {id})); }
 async function sendThread(th, text){
   text=String(text||'').trim(); if(!text) return;
+  if(isRole('admin')) waAlert(th.slice(1));
   try{ await api.ins('messages', [{thread:th, body:text}]); S.ui.msgDraft=''; await reload(); setTimeout(()=>{ const b=$('#mbody'); if(b) b.scrollTop=b.scrollHeight; }, 50); }
   catch(e){ toast(friendly(e)); }
 }
