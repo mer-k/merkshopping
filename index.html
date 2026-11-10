@@ -440,6 +440,24 @@ details summary{cursor:pointer}
 .pickgrp.miss .pickval{display:none}
 .form label.pickchk,.form .pickchk{display:flex;flex-direction:row;align-items:center;gap:6px;justify-content:flex-start}
 .form .pickchk input{width:18px;height:18px;flex:none}
+/* Aviso de WhatsApp cuando el navegador bloquea la ventana */
+.wabar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;background:#fff;border:2px solid #25D366;border-radius:16px;padding:12px 44px 12px 16px;box-shadow:0 12px 30px rgba(30,30,60,.2);max-width:calc(100vw - 24px);font-size:14px}
+.wabar .btn{white-space:nowrap}
+.wabar .x{position:absolute;top:6px;right:8px;border:0;background:none;font-size:22px;line-height:1;color:var(--ink2);width:30px;height:30px}
+.wabar a.btn{text-decoration:none;color:#fff}
+/* Pesos con precio */
+.pesobox{display:flex;flex-direction:column;gap:6px}
+.pesorows{display:flex;flex-direction:column;gap:8px}
+.pesorow{display:grid;grid-template-columns:1fr auto 1.3fr auto;gap:8px;align-items:center}
+.pesorow select{width:auto}
+.pesorow:only-child .pzP{display:none}
+.pesorow:only-child{grid-template-columns:1fr auto auto}
+.pickopt small{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-top:1px}
+.pickopt.on small{color:var(--blue)}
+.desde{font-size:.6em;font-weight:700;color:var(--ink2)}
+input[readonly]{background:#f4f3f8;color:var(--ink2)}
+@media(max-width:560px){.pesorow{grid-template-columns:1fr auto;}.pesorow .pzP{grid-column:1}.pesorow:only-child{grid-template-columns:1fr auto auto}}
+.pesobox>.btn{align-self:flex-start}
 </style>
 </head>
 <body>
@@ -932,7 +950,7 @@ function card(p){
   return `<button class="card" onclick="showProduct(${p.id})">${discOf(p)>0?`<span class="disc-tag">-${discOf(p)}%</span>`:''}
     <div class="thumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
     <div class="cbody">${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}
-      <div><span class="price">${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
+      <div><span class="price">${fromTxt(p)}${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
       <div class="ptitle">${esc(p.t)}</div>${shipLine(p)}
       ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
 }
@@ -946,7 +964,7 @@ function showProduct(id){
   const p = P(id), s = SEL(p.s), cps = publicCoupons(p.s); p.views=(p.views||0)+1; save(); track('view', id);
   openModal(`<div class="detail">${galleryHtml(p)}
     <div class="dinfo"><span class="note">${esc(p.c)} · ${p.stock} disponibles</span><h3>${esc(p.t)}</h3>
-      <div>${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}<span class="price" style="font-size:30px">${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
+      <div>${discOf(p)>0?`<div class="old" id="mOld">${cop(p.p)}</div>`:''}<span class="price" id="mPrice" style="font-size:30px">${fromTxt(p)}${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
       <p class="note" style="margin:0;white-space:pre-line">${esc(p.d)}</p>
       ${specsTable(p)}
       ${pickerHtml(p)}
@@ -1282,7 +1300,9 @@ function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), specs=readSpecs(), sx=specsText(specs), r=check(t+' \n '+d+' \n '+sx), ban=bannedReason(t+' '+d+' '+sx);
+  let specs; try{ specs=readSpecs(); }catch(x){ toast(x.message); return; }
+  { const ps=specs.find(x=>Array.isArray(x.prices)); if(ps) $('#fp').value=Math.min(...ps.prices); }
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), sx=specsText(specs), r=check(t+' \n '+d+' \n '+sx), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
   if(!r.ok){ const m=strike(s, s.name, t+' — '+d, r.reason, id?'Edición de producto':'Publicación'); save(); toast('No se guardó: '+r.reason+'. '+m); return; }
   const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0), specs};
@@ -2364,7 +2384,7 @@ const BN_ST = {activo:['Se está mostrando',''], programado:['Programado','lav']
 function activeBanners(){ return (S.cfg.banners||[]).filter(b=>b && b.img && bannerState(b)==='activo'); }
 function prodSlide(p){ return `<button class="adslide adprod" onclick="showProduct(${p.id})" aria-label="Ver ${esc(p.t)}">
     <div class="adpimg" style="${thumbStyle(p)}">${thumbInner(p)}</div>
-    <div class="adptxt"><span class="adpk">⭐ Destacado · ${esc(SEL(p.s).name)}</span><b>${esc(p.t)}</b><span class="adpprice">${discOf(p)>0?`<s>${cop(p.p)}</s> `:''}${cop(finalPrice(p))}</span><span class="btn sm">Ver producto</span></div></button>`; }
+    <div class="adptxt"><span class="adpk">⭐ Destacado · ${esc(SEL(p.s).name)}</span><b>${esc(p.t)}</b><span class="adpprice">${fromTxt(p)}${discOf(p)>0?`<s>${cop(p.p)}</s> `:''}${cop(finalPrice(p))}</span><span class="btn sm">Ver producto</span></div></button>`; }
 function imgSlide(b){
   const img=`<img src="${esc(b.img)}" alt="${esc(b.name||'Publicidad')}" loading="lazy" draggable="false">`;
   if(b.sk && S.sellers[b.sk]) return `<a class="adslide" href="${storeUrl(b.sk)}" aria-label="Ver la tienda ${esc(SEL(b.sk).name)}">${img}</a>`;
@@ -2470,9 +2490,9 @@ function showCart(){
   const sub=items.reduce((a,i)=>a+finalPrice(P(i.pid))*i.qty,0), n=items.reduce((a,i)=>a+i.qty,0);
   openModal(`<div class="mpad"><h2>🛒 Tu carrito</h2><p class="sub">${n} producto${n>1?'s':''}</p>
     <div class="cart">${items.map((i,ix)=>{ const p=P(i.pid); return `<div class="citem"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
-      <div class="cinfo"><b>${esc(p.t)}</b>${i.opts?`<span class="optline">${esc(optsLabel(i.opts))}</span>`:''}<span class="note">${esc(SEL(p.s).name)} · ${cop(finalPrice(p))} c/u</span>
+      <div class="cinfo"><b>${esc(p.t)}</b>${i.opts?`<span class="optline">${esc(optsLabel(i.opts))}</span>`:''}<span class="note">${esc(SEL(p.s).name)} · ${cop(itemPrice(p,i.opts))} c/u</span>
         <div class="qty"><button onclick="cartQty(${ix},-1)" aria-label="Quitar uno">−</button><span>${i.qty}</span><button onclick="cartQty(${ix},1)" aria-label="Agregar uno">+</button><a class="note" href="javascript:cartRemove(${ix})">Quitar</a></div></div>
-      <b class="cline">${cop(finalPrice(p)*i.qty)}</b></div>`; }).join('')}</div>
+      <b class="cline">${cop(itemPrice(p,i.opts)*i.qty)}</b></div>`; }).join('')}</div>
     <table class="sum" style="margin-top:12px"><tr><td><b>Subtotal</b></td><td style="text-align:right"><b class="price">${cop(sub)}</b></td></tr></table>
     <p class="note" style="margin:4px 0 14px">El domicilio o envío y los cupones se calculan en el siguiente paso.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1" onclick="startCheckout(cartGet(),'cart')">Pagar</button><button class="btn ghost" onclick="closeModal()">Seguir comprando</button></div></div>`, true);
@@ -2577,7 +2597,7 @@ async function cartQuote(items, city, carriers, coupon){
   const groups={}; items.forEach(i=>{ const p=P(i.pid); if(!p || p.paused || p.stock<1) throw new Error('Uno de los productos ya no está disponible. Revisa tu carrito.');
     if(p.stock<i.qty) throw new Error(`De "${p.t}" solo quedan ${p.stock} unidades.`); const op=checkOpts(p, i.opts); (groups[p.s]||(groups[p.s]=[])).push({p, qty:i.qty, opts:op}); });
   const out=Object.entries(groups).map(([sk, lines])=>{
-    const list=lines.reduce((a,l)=>a+finalPrice(l.p)*l.qty,0); let disc=0;
+    const list=lines.reduce((a,l)=>a+itemPrice(l.p,l.opts)*l.qty,0); let disc=0;
     if(code && !cpUsed){ const c=S.coupons.find(x=>x.sk===sk && x.code===code);
       if(c){ if(!can(sk,'cupones')) cpErr='Ese cupón no existe en esta tienda.'; else if(!couponLive(c)) cpErr='Ese cupón ya no está vigente.';
         else if(c.min && list<c.min) cpErr=`Este cupón aplica en compras desde ${cop(c.min)} en ${SEL(sk).name}.`;
@@ -2585,7 +2605,7 @@ async function cartQuote(items, city, carriers, coupon){
     const allFree=lines.every(l=>l.p.freeShip); let ship;
     if(inArea(city) && inArea(SEL(sk).city)){ const tarifa=zonePrice(city); ship={ship_type:'dom', tarifa, free:allFree, ship_cost:allFree?0:tarifa, carrier:null, eta:'Entrega en '+etaDom()}; }
     else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'Entrega en '+etaNat()+' según la transportadora'}; }
-    return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t+(l.opts?' ('+optsLabel(l.opts)+')':''), qty:l.qty, unit:finalPrice(l.p), opts:l.opts})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
+    return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t+(l.opts?' ('+optsLabel(l.opts)+')':''), qty:l.qty, unit:itemPrice(l.p,l.opts), opts:l.opts})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
   });
   return {groups:out, total:out.reduce((a,g)=>a+g.total,0), coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
 }
@@ -2923,7 +2943,16 @@ function waAlert(key, phone){
   if(S.cfg.waAlerts===false || !isRole('admin')) return;
   const w=waAlertWho(key), ph=phone||w.phone;
   if(!waNumber(ph)){ toast('Esta persona no tiene celular registrado, así que no se abrió WhatsApp.'); return; }
-  window.open(waLink(ph, waAlertText(w.name, w.seller)), '_blank', 'noopener');
+  const url=waLink(ph, waAlertText(w.name, w.seller)); let win=null;
+  try{ win=window.open(url, '_blank'); }catch(e){}
+  if(win){ try{ win.opener=null; }catch(e){} return; }
+  waAlertBar(url, w.name);   // el navegador bloqueó la ventana: un toque en el botón siempre funciona
+}
+function waAlertBar(url, name){
+  let bar=document.getElementById('waBar'); if(bar) bar.remove();
+  bar=document.createElement('div'); bar.id='waBar'; bar.className='wabar';
+  bar.innerHTML=`<span>✅ Mensaje enviado. Avísale a <b>${esc(String(name||'esta persona').split(' ')[0])}</b> por WhatsApp:</span><a class="btn wa" href="${esc(url)}" target="_blank" rel="noopener" onclick="setTimeout(()=>document.getElementById('waBar')?.remove(),300)">📲 Avisar por WhatsApp</a><button type="button" class="x" aria-label="Cerrar" onclick="this.parentElement.remove()">×</button>`;
+  document.body.appendChild(bar); clearTimeout(waAlertBar._t); waAlertBar._t=setTimeout(()=>bar.remove(), 60000);
 }
 function waAlertForChat(k){ if(!k || k[0]==='p') return; const o=O(tPid(k)); if(!o) return; if(k.endsWith(':b')) waAlert(o.bk, o.addr&&o.addr.phone); else waAlert(o.sk); }
 
@@ -2937,24 +2966,37 @@ const MAX_SPECS = 20;
 function specsOf(p){ return Array.isArray(p&&p.specs) ? p.specs.filter(x=>x&&x.k&&x.v).map(x=>SPEC_OLD[x.k]?Object.assign({},x,{k:SPEC_OLD[x.k]}):x) : []; }
 function specRowHtml(k, v, pick){ return `<div class="specrow"><input class="spK" maxlength="30" placeholder="Ej: Sabor, Aroma, Voltaje" value="${esc(k||'')}"><input class="spV" maxlength="80" placeholder="Ej: Vainilla, Fresa, Chocolate" value="${esc(v||'')}"><button type="button" class="btn ghost sm" aria-label="Quitar" onclick="this.parentElement.remove()">✕</button><label class="pickchk"><input type="checkbox" class="spP" ${pick?'checked':''}> El cliente elige una opción</label></div>`; }
 function addSpecRow(){ const box=$('#spExtra'); if(box.children.length>=10){ toast('Puedes agregar máximo 10 especificaciones extra.'); return; } box.insertAdjacentHTML('beforeend', specRowHtml()); box.lastElementChild.querySelector('input').focus(); }
+function pesoRowHtml(c, price){ const m=String(c||'').match(/^([\d.,]+)\s*(.+)$/), num=m?m[1]:'', unit=m&&SPEC_UNITS.includes(m[2])?m[2]:'kg';
+  return `<div class="pesorow"><input class="pzN" type="text" inputmode="decimal" maxlength="10" placeholder="Ej: 3" aria-label="Peso o contenido" value="${esc(num)}"><select class="pzU" aria-label="Unidad">${SPEC_UNITS.map(u=>`<option ${u===unit?'selected':''}>${u}</option>`).join('')}</select><input class="pzP" type="number" min="1000" step="100" placeholder="Precio (Ej: 50000)" aria-label="Precio de este peso" value="${esc(price)}"><button type="button" class="btn ghost sm" aria-label="Quitar" onclick="pesoRemove(this)">✕</button></div>`; }
+function addPesoRow(){ const box=$('#pesoRows'); if(box.children.length>=10){ toast('Máximo 10 pesos o tamaños.'); return; } box.insertAdjacentHTML('beforeend', pesoRowHtml('', '')); box.lastElementChild.querySelector('input').focus(); pesoSync(); }
+function pesoRemove(btn){ const box=$('#pesoRows'); if(box.children.length>1) btn.parentElement.remove(); else btn.parentElement.querySelectorAll('input').forEach(i=>i.value=''); pesoSync(); }
+function pesoRead(){ return [...document.querySelectorAll('#pesoRows .pesorow')].map(r=>({c:(r.querySelector('.pzN').value.trim().replace(/[,;/]/g,'.')?r.querySelector('.pzN').value.trim().replace(/[,;/]/g,'.')+' '+r.querySelector('.pzU').value:''), price:Math.round(+r.querySelector('.pzP').value||0)})).filter(r=>r.c); }
+/* Con varios pesos, el precio principal es el del más barato y no se escribe a mano */
+function pesoSync(){ const rows=pesoRead(), fp=$('#fp'); if(!fp) return; const ps=rows.length>=2 ? rows.map(r=>r.price).filter(x=>x>0) : [];
+  if(rows.length>=2){ if(ps.length) fp.value=Math.min(...ps); fp.readOnly=true; fp.title='Con varios pesos, este es el precio del más barato'; } else { fp.readOnly=false; fp.title=''; } }
 function specsFields(p){
   const list=specsOf(p), get=k=>{ const x=list.find(s=>s.k===k); return x?x.v:''; };
-  const peso=get(SPEC_PESO), m=peso.match(/^([\d.,]+)\s*(.+)$/), pNum=m?m[1]:'', pUnit=m&&SPEC_UNITS.includes(m[2])?m[2]:'g';
+  const pesoSpec=list.find(s=>s.k===SPEC_PESO), pesoRows=pesoSpec ? specChoices(pesoSpec.v).map((c,ix)=>({c, price:(pesoSpec.prices||[])[ix]||''})) : [{c:'',price:''}];
   const fixedKeys=[SPEC_PESO, ...SPEC_FIXED.map(f=>f[1])], extra=list.filter(s=>!fixedKeys.includes(s.k));
   const isNew=!p, pk=(id,l)=>{ const x=list.find(s=>s.k===l); return x ? !!x.pick : (isNew && (id==='spTalla'||id==='spColor')); };
   const fld=([id,l,ph])=>`<label>${l}<input id="${id}" maxlength="80" placeholder="${ph}" value="${esc(get(l))}">${SPEC_PICKABLE.includes(id)?`<span class="pickchk"><input type="checkbox" id="${id}P" ${pk(id,l)?'checked':''}> El cliente elige una opción</span>`:''}</label>`;
   return `<fieldset><legend>Especificaciones del producto (opcional)</legend>
     <p class="note" style="margin:0">Llena solo las que apliquen a tu producto. Si marcas <b>“El cliente elige una opción”</b>, separa las opciones con comas (Ej: S, M, L) y el comprador escoge una antes de pagar.</p>
-    <div class="row2"><label>${SPEC_PESO}<span class="specw"><input id="spPeso" type="text" inputmode="decimal" maxlength="10" placeholder="Ej: 500" value="${esc(pNum)}"><select id="spUnit" aria-label="Unidad">${SPEC_UNITS.map(u=>`<option ${u===pUnit?'selected':''}>${u}</option>`).join('')}</select></span></label>
-      ${fld(SPEC_FIXED[0])}</div>
-    <div class="row2">${fld(SPEC_FIXED[3])}${fld(SPEC_FIXED[1])}</div>
-    <div class="row3">${[SPEC_FIXED[2],SPEC_FIXED[4],SPEC_FIXED[5]].map(fld).join('')}</div>
+    <div class="pesobox"><b style="font-size:14px">${SPEC_PESO}</b>
+      <p class="note" style="margin:2px 0 6px">Si vendes el mismo producto en varios pesos o tamaños (Ej: 1 kg, 3 kg y 8 kg), agrega uno por fila con <b>su precio</b>. El cliente escoge y ve el precio de cada uno.</p>
+      <div id="pesoRows" class="pesorows" oninput="pesoSync()" onchange="pesoSync()">${pesoRows.map(r=>pesoRowHtml(r.c, r.price)).join('')}</div>
+      <button type="button" class="btn ghost sm" onclick="addPesoRow()">+ Agregar otro peso con su precio</button></div>
+    <div class="row2">${fld(SPEC_FIXED[0])}${fld(SPEC_FIXED[3])}</div>
+    <div class="row2">${fld(SPEC_FIXED[1])}${fld(SPEC_FIXED[2])}</div>
+    <div class="row2">${[SPEC_FIXED[4],SPEC_FIXED[5]].map(fld).join('')}</div>
     <div><b style="font-size:14px">Otras especificaciones</b><div id="spExtra" class="specextra">${extra.map(s=>specRowHtml(s.k,s.v,s.pick)).join('')}</div>
     <button type="button" class="btn ghost sm" onclick="addSpecRow()">+ Agregar otra especificación</button></div></fieldset>`;
 }
 function readSpecs(){
   const out=[], push=(k,v,pick)=>{ k=String(k||'').trim().slice(0,30); v=String(v||'').trim().slice(0,80); if(k&&v&&out.length<MAX_SPECS&&!out.some(x=>x.k.toLowerCase()===k.toLowerCase())) out.push(pick&&specChoices(v).length>=2?{k,v,pick:true}:{k,v}); };
-  const n=($('#spPeso')?.value||'').trim(); if(n) push(SPEC_PESO, n+' '+$('#spUnit').value);
+  const pz=pesoRead();
+  if(pz.length===1) push(SPEC_PESO, pz[0].c);
+  else if(pz.length>1){ if(pz.some(r=>!(r.price>=1000))) throw new Error('Pon el precio de cada peso o tamaño (mínimo $1.000).'); if(new Set(pz.map(r=>r.c.toLowerCase())).size<pz.length) throw new Error('Hay pesos repetidos. Revisa la lista.'); out.push({k:SPEC_PESO, v:pz.map(r=>r.c).join(', '), pick:true, prices:pz.map(r=>r.price)}); }
   SPEC_FIXED.forEach(([id,l])=>push(l, $('#'+id)?.value, $('#'+id+'P')?.checked));
   document.querySelectorAll('#spExtra .specrow').forEach(r=>push(r.querySelector('.spK').value, r.querySelector('.spV').value, r.querySelector('.spP').checked));
   return out;
@@ -2970,12 +3012,12 @@ let PICK = {pid:null, opts:{}};
 function pickerHtml(p){
   const l=pickSpecs(p); PICK={pid:p.id, opts:{}}; if(!l.length) return '';
   return `<div class="picker">${l.map((s,si)=>`<div class="pickgrp" data-k="${esc(s.k)}"><b>${esc(s.k)}: <span class="pickval" id="pv${si}">elige una</span></b>
-    <div class="pickopts">${specChoices(s.v).map((c,ci)=>`<button type="button" class="pickopt" aria-pressed="false" onclick="pickOpt(${si},${ci},this)">${esc(c)}</button>`).join('')}</div></div>`).join('')}</div>`;
+    <div class="pickopts">${specChoices(s.v).map((c,ci)=>`<button type="button" class="pickopt" aria-pressed="false" onclick="pickOpt(${si},${ci},this)">${esc(c)}${Array.isArray(s.prices)&&s.prices[ci]?`<small>${cop(Math.round(s.prices[ci]*(1-discOf(p)/100)))}</small>`:''}</button>`).join('')}</div></div>`).join('')}</div>`;
 }
 function pickOpt(si, ci, btn){
   const p=P(PICK.pid), s=pickSpecs(p)[si], c=specChoices(s.v)[ci]; PICK.opts[s.k]=c;
   btn.parentElement.querySelectorAll('.pickopt').forEach(b=>{ b.classList.toggle('on', b===btn); b.setAttribute('aria-pressed', b===btn); });
-  const v=$('#pv'+si); if(v) v.textContent=c; btn.closest('.pickgrp').classList.remove('miss');
+  const v=$('#pv'+si); if(v) v.textContent=c; btn.closest('.pickgrp').classList.remove('miss'); pickPriceUpdate();
 }
 /* Devuelve las opciones elegidas (en el orden del vendedor), null si el producto no tiene, o false si falta alguna */
 function pickedOpts(p){
@@ -2988,6 +3030,15 @@ function pickedOpts(p){
 function checkOpts(p, opts){ const l=pickSpecs(p); if(!l.length) return null; const o={};
   l.forEach(s=>{ const c=specChoices(s.v).find(x=>x.toLowerCase()===String((opts||{})[s.k]||'').trim().toLowerCase()); if(!c) throw new Error(`Elige ${s.k.toLowerCase()} de "${p.t}" antes de comprar.`); o[s.k]=c; }); return o; }
 const optsLabel = o => Object.entries(o||{}).map(([k,v])=>k+': '+v).join(', ');
+
+/* ---------- Precio según el peso o tamaño elegido ---------- */
+const priceSpec = p => specsOf(p).find(s=>s.pick && Array.isArray(s.prices) && s.prices.length===specChoices(s.v).length && specChoices(s.v).length>=2);
+const hasVarPrices = p => !!priceSpec(p);
+function basePrice(p, opts){ const s=priceSpec(p); if(!s||!opts||!opts[s.k]) return p.p; const ix=specChoices(s.v).findIndex(c=>c.toLowerCase()===String(opts[s.k]).toLowerCase()); return ix>=0 && s.prices[ix]>0 ? s.prices[ix] : p.p; }
+const itemPrice = (p, opts) => Math.round(basePrice(p, opts) * (1 - discOf(p)/100));
+const fromTxt = p => hasVarPrices(p) ? '<span class="desde">Desde </span>' : '';
+function pickPriceUpdate(){ const p=P(PICK.pid); if(!p || !hasVarPrices(p)) return; const el=$('#mPrice'), old=$('#mOld'); const b=basePrice(p, PICK.opts), chosen=PICK.opts[priceSpec(p).k];
+  if(el) el.innerHTML=(chosen?'':fromTxt(p))+cop(Math.round(b*(1-discOf(p)/100))); if(old) old.textContent=cop(b); }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -3341,7 +3392,9 @@ async function saveProduct(e, id){
   const sk=me().key, s=SEL(sk), lim=planLimit(effPlan(sk));
   if(s.status!=='activa'){ toast('Tu cuenta está '+s.status+'. No puedes publicar.'); return; }
   if(!id && S.products.filter(p=>p.s===sk && !p.pausedByPlan).length>=lim){ toast(`Llegaste al límite de ${lim} productos de tu plan. Mejora tu plan para publicar más.`); return; }
-  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), specs=readSpecs(), sx=specsText(specs), ban=bannedReason(t+' '+d+' '+sx);
+  let specs; try{ specs=readSpecs(); }catch(x){ toast(x.message); return; }
+  { const ps=specs.find(x=>Array.isArray(x.prices)); if(ps) $('#fp').value=Math.min(...ps.prices); }
+  const t=$('#ft').value.trim(), d=$('#fd').value.trim(), sx=specsText(specs), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
   if(!(await checkText(t+' \n '+d+(sx?' \n '+sx:''), id?'Edición de producto':'Publicación'))) return;
   const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0), specs};
