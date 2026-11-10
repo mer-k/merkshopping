@@ -458,6 +458,15 @@ details summary{cursor:pointer}
 input[readonly]{background:#f4f3f8;color:var(--ink2)}
 @media(max-width:560px){.pesorow{grid-template-columns:1fr auto;}.pesorow .pzP{grid-column:1}.pesorow:only-child{grid-template-columns:1fr auto auto}}
 .pesobox>.btn{align-self:flex-start}
+/* Sanciones */
+.modgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.modbox{border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.modbox .note{margin:0}
+.acctban{border-radius:14px;padding:12px 16px;margin:0 0 16px;font-weight:600}
+.acctban.warn{background:#fff4dd;border:1px solid #f0c674}
+.acctban.bad{background:#fde8e8;border:1px solid #f1a5a5}
+.mpad .dangerbox{padding:12px 14px;border-radius:14px;background:#fff7f7}
+.mpad .dangerbox input,.modbox select,#mdWhy{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit}
 </style>
 </head>
 <body>
@@ -694,7 +703,7 @@ function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('sho
 function openModal(html, narrow){ const m=$('#modal'); m.className='modal'+(narrow?' narrow':''); m.innerHTML='<button class="x" onclick="closeModal()" aria-label="Cerrar">×</button>'+html; $('#scrim').classList.add('open'); }
 function closeModal(){ $('#scrim').classList.remove('open'); render(); }
 $('#scrim').addEventListener('click', e => { if(e.target.id==='scrim') closeModal(); });
-function statusBadge(st){ return st==='activa' ? '<span class="badge">Activa</span>' : st==='suspendida' ? '<span class="badge warn">Suspendida 7 días</span>' : '<span class="badge bad">Bloqueada</span>'; }
+function statusBadge(st, until){ return st==='activa' ? '<span class="badge">Activa</span>' : st==='suspendida' ? '<span class="badge warn">Castigada'+(until?' hasta '+fmtUntil(until).split(',')[0]:'')+'</span>' : '<span class="badge bad">Bloqueada</span>'; }
 function planBadge(k){ const pl=SEL(k).plan; return pl==='oficial' ? '<span class="badge dark">Tienda oficial</span>' : `<span class="badge lav">Plan ${PLAN_INFO[pl].name}${subState(k)==='suspendido'?' (desactivado)':''}</span>`; }
 const DAY = 864e5;
 const PAID = ['emprendedor','pro'];
@@ -1398,11 +1407,11 @@ function viewAdmin(){
       <div class="panel"><h3>Historial de transferencias</h3>${S.payouts.length?`<table><tr><th>Fecha</th><th>Vendedor</th><th>Valor</th><th>Comprobante</th></tr>${S.payouts.map(x=>`<tr><td>${x.date}</td><td>${esc(SEL(x.sk).name)}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div>`; }
   if(t==='vendedores') body = `<div class="panel"><h3>Vendedores</h3><p class="note" style="margin-top:-6px">Con <b>⭐ Prioridad en búsquedas</b> los productos de una tienda Pro salen de primeras cuando la gente busca o mira una categoría. Si su plan Pro se vence, la prioridad se pausa sola.</p><div class="tw"><table><tr><th>Vendedor</th><th>Contacto (solo MER-K)</th><th>Plan</th><th>Prioridad en búsquedas</th><th>Advertencias</th><th>Estado</th><th></th></tr>
     ${sellers.map(([k,s])=>`<tr><td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)} · ${esc(s.city)}</span></td><td class="note">${esc(s.email)}<br>${esc(s.phone)}<br>CC/NIT ${esc(s.doc)}</td><td>${planBadge(k)}<br><a class="note" href="${storeUrl(k)}">Ver tienda</a></td>
-      <td>${boostCell(k)}</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status)}</td>
-      <td style="text-align:right;white-space:nowrap">${k===OFFICIAL?'':s.status==='activa'?`<button class="btn bad sm" onclick="adminBlock('${k}')">Bloquear</button>`:`<button class="btn ghost sm" onclick="pardon('${k}')">Reactivar</button>`}</td></tr>`).join('')}</table></div></div>`;
+      <td>${boostCell(k)}</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status, s.until)}</td>
+      <td style="text-align:right;white-space:nowrap">${k===OFFICIAL||s.deleted?'':`<button class="btn ghost sm" onclick="modUser('${k}')">⚙️ Sanciones</button>`}</td></tr>`).join('')}</table></div></div>`;
   if(t==='compradores') body = `<div class="panel"><h3>Compradores</h3><div class="tw"><table><tr><th>Comprador</th><th>Contacto (solo MER-K)</th><th>Pedidos</th><th>Advertencias</th><th>Estado</th><th></th></tr>
-    ${Object.entries(S.buyers).map(([k,b])=>`<tr><td><b>${esc(b.name)}</b><br><span class="note">CC ${esc(b.doc)}</span></td><td class="note">${esc(b.email)}<br>${esc(b.phone)}</td><td>${S.orders.filter(o=>o.bk===k).length}</td><td>${b.warnings} / 3</td><td>${statusBadge(b.status)}</td>
-      <td style="text-align:right">${b.status!=='activa'||b.warnings?`<button class="btn ghost sm" onclick="pardon('${k}')">Quitar sanción</button>`:''}</td></tr>`).join('')}</table></div></div>`;
+    ${Object.entries(S.buyers).map(([k,b])=>`<tr><td><b>${esc(b.name)}</b><br><span class="note">CC ${esc(b.doc)}</span></td><td class="note">${esc(b.email)}<br>${esc(b.phone)}</td><td>${S.orders.filter(o=>o.bk===k).length}</td><td>${b.warnings} / 3</td><td>${statusBadge(b.status, b.until)}</td>
+      <td style="text-align:right;white-space:nowrap">${b.role==='admin'?'':`<button class="btn ghost sm" onclick="modUser('${k}')">⚙️ Sanciones</button>`}</td></tr>`).join('')}</table></div></div>`;
   if(t==='productos') body = `<div class="panel"><h3>Todos los productos</h3><div class="tw"><table><tr><th>Producto</th><th>Vendedor</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th></tr>${S.products.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${esc(SEL(p.s).name)}</td><td>${cop(finalPrice(p))}${discOf(p)?` <span class="badge">-${discOf(p)}%</span>`:''}</td><td>${p.stock}</td>
       <td>${p.paused?'<span class="badge warn">Pausado</span>':'<span class="badge">Publicado</span>'}</td>
@@ -3040,6 +3049,50 @@ const fromTxt = p => hasVarPrices(p) ? '<span class="desde">Desde </span>' : '';
 function pickPriceUpdate(){ const p=P(PICK.pid); if(!p || !hasVarPrices(p)) return; const el=$('#mPrice'), old=$('#mOld'); const b=basePrice(p, PICK.opts), chosen=PICK.opts[priceSpec(p).k];
   if(el) el.innerHTML=(chosen?'':fromTxt(p))+cop(Math.round(b*(1-discOf(p)/100))); if(old) old.textContent=cop(b); }
 
+/* =================== SANCIONES (Administración) =================== */
+const fmtUntil = t => { try{ return new Date(t).toLocaleString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } };
+function acctOf(k){ return S.sellers[k] || S.buyers[k]; }
+function modUser(k){
+  const u=acctOf(k); if(!u) return; const isS=!!S.sellers[k], name=isS?(u.name+(u.owner?' · '+u.owner:'')):u.name;
+  const st=u.status==='suspendida'&&u.until?`Castigada hasta el <b>${esc(fmtUntil(u.until))}</b>`:u.status==='bloqueada'?'<b>Bloqueada para siempre</b>':'<b>Activa</b>';
+  openModal(`<div class="mpad"><h2>Sanciones · ${esc(name)}</h2>
+    <p class="note" style="margin:-4px 0 12px">${isS?'Vendedor':'Comprador'} · Estado: ${st} · Advertencias: ${u.warnings||0} / 3</p>
+    <label class="form" style="margin-bottom:12px"><span style="font-weight:700;font-size:13.5px">Motivo (se le envía a la persona)</span><input id="mdWhy" maxlength="200" placeholder="Ej: Intentó vender por fuera de MER-K"></label>
+    <div class="modgrid">
+      <div class="modbox"><b>⏸️ Castigar por un tiempo</b><p class="note">No puede comprar, vender ni escribir. ${isS?'Sus productos se ocultan. ':''}Se reactiva sola al terminar.</p>
+        <div class="specw"><select id="mdDays" aria-label="Tiempo">${[[1,'1 día'],[3,'3 días'],[7,'7 días'],[15,'15 días'],[30,'30 días'],[90,'3 meses']].map(([d,l])=>`<option value="${d}" ${d===7?'selected':''}>${l}</option>`).join('')}</select><button class="btn sm" style="background:#e9a23b" onclick="doModerate('${k}','castigar')">Castigar</button></div></div>
+      <div class="modbox"><b>⛔ Bloquear para siempre</b><p class="note">No puede volver a usar la cuenta hasta que tú la desbloquees.</p><button class="btn bad sm" onclick="doModerate('${k}','bloquear')">Bloquear</button></div>
+      ${u.status!=='activa'||u.warnings?`<div class="modbox"><b>✅ Desbloquear / quitar castigo</b><p class="note">La cuenta vuelve a estar activa y se borran sus advertencias.</p><button class="btn sm" onclick="doModerate('${k}','desbloquear')">Desbloquear</button></div>`:''}
+    </div>
+    <div class="dangerbox" style="margin-top:14px"><b>🗑️ Eliminar la cuenta para siempre</b><p class="note" style="margin:4px 0 8px">Se borran sus datos${isS?', su tienda y sus productos':''}. Esto no se puede deshacer. Si tiene pedidos en curso${isS?' o dinero por transferirle':''}, primero hay que terminarlos; mientras tanto, bloquéala.</p>
+      <div class="specw"><input id="mdDel" placeholder="Escribe ELIMINAR para confirmar" autocomplete="off"><button class="btn bad sm" onclick="doDeleteUser('${k}')">Eliminar</button></div></div></div>`);
+}
+function modMsg(action, days){ return action==='castigar'?`Cuenta castigada por ${days} día(s).`:action==='bloquear'?'Cuenta bloqueada.':'Cuenta desbloqueada. Ya puede usar MER-K.'; }
+function doModerate(k, action){
+  const u=acctOf(k), days=+$('#mdDays').value, why=$('#mdWhy').value.trim();
+  if(action!=='desbloquear' && !confirm(action==='castigar'?`¿Castigar a ${u.name} por ${days} día(s)?`:`¿Bloquear a ${u.name} para siempre?`)) return;
+  if(action==='castigar'){ u.status='suspendida'; u.until=Date.now()+days*864e5; }
+  else if(action==='bloquear'){ u.status='bloqueada'; u.until=null; }
+  else { u.status='activa'; u.until=null; u.warnings=0; }
+  notify(k, action==='castigar'?'⏸️ Tu cuenta fue suspendida':action==='bloquear'?'⛔ Tu cuenta fue bloqueada':'✅ Tu cuenta está activa de nuevo', (why?'Motivo: '+why+'. ':'')+modMsg(action,days));
+  save(); closeModal(); toast(modMsg(action, days)); render();
+}
+function doDeleteUser(k){
+  if($('#mdDel').value.trim().toUpperCase()!=='ELIMINAR'){ toast('Escribe ELIMINAR para confirmar.'); return; }
+  const busy=S.orders.some(o=>(o.bk===k||o.sk===k) && !['finalizado','devuelto','cancelado'].includes(o.st));
+  if(busy){ toast('Esta cuenta tiene pedidos en curso. Bloquéala mientras terminan.'); return; }
+  if(S.sellers[k]){ S.products=S.products.filter(p=>p.s!==k); delete S.sellers[k]; } else delete S.buyers[k];
+  save(); closeModal(); toast('Cuenta eliminada para siempre.'); render();
+}
+function suspExpired(u){ return u && u.status==='suspendida' && u.until && u.until<Date.now(); }
+function accountBanner(){
+  if(!me() || isRole('admin')) return ''; const u=acctOf(me().key); if(!u) return '';
+  if(suspExpired(u)){ u.status='activa'; u.until=null; return ''; }
+  if(u.status==='suspendida') return `<div class="acctban warn">⏸️ Tu cuenta está suspendida${u.until?' hasta el <b>'+esc(fmtUntil(u.until))+'</b>':'.'} Mientras tanto no puedes comprar, vender ni enviar mensajes. Si crees que es un error, escríbenos por <a href="#pqrs">PQRS</a>.</div>`;
+  if(u.status==='bloqueada') return `<div class="acctban bad">⛔ Tu cuenta está bloqueada. Si crees que es un error, escríbenos por <a href="#pqrs">PQRS</a>.</div>`;
+  return '';
+}
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -3048,7 +3101,7 @@ function render(){
   if(openPid){ history.replaceState(null, '', location.pathname + location.search + '#inicio'); v='inicio'; setTimeout(()=>{ if(P(openPid)) showProduct(openPid); }, 60); }
   const isStore=v.startsWith('tienda/'), key=isStore?'tienda':VIEWS[v]?v:'inicio';
   if(!isStore) lastStoreVisit=null;
-  $('#app').innerHTML = isStore ? viewStore(v.slice(7)) : VIEWS[key]();
+  $('#app').innerHTML = accountBanner() + (isStore ? viewStore(v.slice(7)) : VIEWS[key]());
   $('#locBtn').textContent = '📍 '+S.loc;
   $('#nav').innerHTML = navLinks().map(([k,l])=>`<a href="#${k}" class="${k===key?'on':''}">${l}</a>`).join('');
   $('#acct').innerHTML = headerRight();
@@ -3111,7 +3164,7 @@ function mapProduct(r){ return {id:r.id, t:r.title, d:r.description, p:r.price, 
   flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null, specs:Array.isArray(r.specs)?r.specs:[]}; }
 function mapSeller(r, prof, priv){
   const b = priv?.bank || null;
-  return {name:r.store_name, plan:r.plan, city:r.city||'', rating:+r.rating, sales:r.sales, warnings:prof?.warnings||0, status:prof?.status||'activa',
+  return {name:r.store_name, plan:r.plan, city:r.city||'', rating:+r.rating, sales:r.sales, warnings:prof?.warnings||0, status:prof?.status||'activa', until:prof?.suspended_until?Date.parse(prof.suspended_until):null,
     available:+(priv?.available||0), paid:+(priv?.paid||0), owner:r.owner_name||'', email:prof?.email||'', phone:prof?.phone||'', doc:prof?.doc||'', addr:r.address||'',
     bank: b ? {banco:b.banco, tipo:b.tipo, numero:b.numero, num: isRole('admin') ? (b.numero||'') : '•••• '+String(b.numero||'').slice(-4), titular:b.titular, doc:b.doc} : null,
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
@@ -3155,7 +3208,7 @@ async function loadAll(){
   S.coupons = coupons.map(c=>({id:c.id, sk:c.seller_id, code:c.code, type:c.type, value:c.value, min:c.min_purchase, max:c.max_uses, used:c.used, until:c.until||'', active:c.active, pub:c.pub}));
   S.adRequests = ads.map(a=>({id:a.id, pid:a.product_id, sk:a.seller_id, note:a.note||'', status:a.status, starts:a.starts, ends:a.ends, budget:a.budget, adminNote:a.admin_note||'', ts:Date.parse(a.created_at), created:fmtTs(a.created_at)}));
   S.buyers = {};
-  profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', warnings:p.warnings, status:p.status, role:p.role, addresses:[]}; });
+  profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', warnings:p.warnings, status:p.status, until:p.suspended_until?Date.parse(p.suspended_until):null, role:p.role, addresses:[]}; });
   addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push(mapAddr(a)); });
   const EV = {}; evs.forEach(e=>(EV[e.order_id] = EV[e.order_id] || []).push(e));
   S.orders = orders.filter(o=>!['pendiente_pago','rechazado'].includes(o.status)).map(o=>mapOrder(o, EV[o.id]));
@@ -3208,6 +3261,7 @@ async function setUser(user){
   if(user){
     const rows = await api.sel('profiles', {eq:{id:user.id}}).catch(()=>[]);
     PROFILE = rows[0] || null;
+    if(PROFILE && PROFILE.status==='suspendida'){ const st=await api.rpc('lift_my_suspension').catch(()=>null); if(st) PROFILE.status=st; }
     if(PROFILE){
       S.session = {role:PROFILE.role, key:PROFILE.role==='admin' ? 'admin' : user.id, uid:user.id};
       if(PROFILE.role==='buyer'){       // primera vez: guardar la dirección que puso al registrarse
@@ -3605,6 +3659,18 @@ async function savePqrsAnswer(e, id){ e.preventDefault(); const ans=$('#qAns').v
   try{ const q=await pqrsSave(id, ans); closeModal(); pqrsMail(q, ans); toast('PQRS marcada como respondida.'); render(); }catch(x){ toast(friendly(x)); } }
 async function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) return toast('Escribe la respuesta.'); const q0=(S.pqrs||[]).find(x=>x.id===id); const w=window.open(waLink(q0.phone, `Hola ${q0.name}, te respondemos tu ${q0.kind.toLowerCase()} #${q0.id} de MER-K:\n\n${ans}`), '_blank');
   try{ await pqrsSave(id, ans); closeModal(); toast('PQRS marcada como respondida.'); render(); }catch(x){ toast(friendly(x)); } }
+
+/* Sanciones en la página real */
+async function doModerate(k, action){
+  const u=acctOf(k), days=+$('#mdDays').value, why=$('#mdWhy').value.trim();
+  if(action!=='desbloquear' && !confirm(action==='castigar'?`¿Castigar a ${u.name} por ${days} día(s)?`:`¿Bloquear a ${u.name} para siempre?`)) return;
+  await act(()=>api.rpc('admin_moderate', {target:k, action, days:action==='castigar'?days:null, reason:why}), modMsg(action, days));
+}
+async function doDeleteUser(k){
+  if($('#mdDel').value.trim().toUpperCase()!=='ELIMINAR'){ toast('Escribe ELIMINAR para confirmar.'); return; }
+  try{ const r=await api.rpc('admin_delete_user', {target:k, reason:$('#mdWhy').value.trim()}); if(!r||!r.ok){ toast((r&&r.message)||'No se pudo eliminar.'); return; } closeModal(); toast('Cuenta eliminada para siempre.'); await reload(); }
+  catch(x){ toast(friendly(x)); }
+}
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
