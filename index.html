@@ -467,6 +467,9 @@ input[readonly]{background:#f4f3f8;color:var(--ink2)}
 .acctban.bad{background:#fde8e8;border:1px solid #f1a5a5}
 .mpad .dangerbox{padding:12px 14px;border-radius:14px;background:#fff7f7}
 .mpad .dangerbox input,.modbox select,#mdWhy{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit}
+/* Envío único */
+.hubship{background:var(--blue-soft);border-color:#cfd6f1}
+.hubcard table td{vertical-align:top}
 </style>
 </head>
 <body>
@@ -1151,7 +1154,8 @@ function viewSeller(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
         ${o.status==='comanda'?`<button class="btn sm" onclick="sellerAccept(${o.id})">Aceptar y preparar</button>`:''}
         ${o.status==='preparando' && o.pendingInfo?'<span class="badge blue">Datos enviados a MER-K</span>':''}
-        ${o.status==='preparando' && !o.pendingInfo && o.ship.type==='nat'?`<button class="btn sm" onclick="guiaForm(${o.id})">Enviar guía a MER-K</button>`:''}
+        ${o.status==='preparando' && !o.pendingInfo && isHub(o) && !o.ship.at_hub?`<button class="btn sm" onclick="hubLegForm(${o.id})">¿Cómo nos llega?</button>`:''}
+        ${o.status==='preparando' && !o.pendingInfo && !isHub(o) && o.ship.type==='nat'?`<button class="btn sm" onclick="guiaForm(${o.id})">Enviar guía a MER-K</button>`:''}
         ${o.status==='preparando' && !o.pendingInfo && o.ship.mode==='propio'?`<button class="btn sm" onclick="domiForm(${o.id})">Enviar datos del domiciliario</button>`:''}
         ${msgEnabled(sk)?`<button class="btn ghost sm" onclick="S.ui.sellTab='mensajes';render()">Escribir a MER-K</button>`:''}</div></div>
       ${sellerTodo(o)}
@@ -1173,7 +1177,15 @@ function viewSeller(){
       <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerAdsPanel(sk)}`;
   if(t==='calculadora') body = sellerCalcPanel(sk);
   if(t==='publicar') body = `<div class="panel"><h3>Publicar un producto</h3><p class="note" style="margin-top:-6px">El título y la descripción pasan por el filtro anti-contacto. Las opciones de envío se configuran en la pestaña Envíos.</p>${productForm(null)}</div>`;
-  if(t==='envios') body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
+  if(t==='envios' && hubOn()) body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
+      <ul class="note" style="display:grid;gap:6px;padding-left:18px;margin:0">
+        <li><b>Todos los pedidos pasan por MER-K.</b> Cuando aceptas una comanda, llevas o envías el pedido a nuestro punto de despacho${hubAddr()?': <b>'+esc(hubAddr())+'</b>':''}. Puedes llevarlo tú, mandar a alguien o usar una transportadora. <b>Ese envío corre por tu cuenta.</b></li>
+        <li>Marca el paquete con el número del pedido y avísanos cómo llega desde el botón <b>“¿Cómo nos llega?”</b> del pedido. Tienes 2 días hábiles.</li>
+        <li>En MER-K revisamos que el producto esté en buen estado y sea el correcto, lo empacamos con los demás productos del comprador y se lo enviamos todo junto: por domicilio en Medellín y alrededores o por la transportadora que él eligió.</li>
+        <li>El comprador paga un solo envío por toda su compra. Ese dinero es para pagar el despacho; <b>no se descuenta de tu venta</b>.</li>
+        <li>Si en un producto marcas <b>envío gratis</b> y todas las tiendas de esa compra también lo ofrecen, el comprador no paga envío y el costo se reparte entre las tiendas.</li>
+        <li>Tu pago se libera cuando el comprador recibe y termina la garantía.</li></ul></div>`;
+  else if(t==='envios') body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
       <ul class="note" style="display:grid;gap:6px;padding-left:18px;margin:0">
         <li>En cada producto eliges si tiene <b>envío gratis</b> o no (en Publicar o Editar).</li>
         <li>Si <b>no</b> es gratis, el comprador paga el envío junto con el producto: en Medellín y alrededores, la tarifa de domicilio de su zona; en el resto del país, el costo de envío nacional que pusiste en el producto.</li>
@@ -1205,7 +1217,9 @@ function viewSeller(){
 }
 function comandaText(o){
   const s=SEL(o.sk), days=S.cfg.holdDays;
-  const entrega = o.ship.type==='nat'
+  const entrega = isHub(o)
+    ? `LLÉVALO O ENVÍALO A MER-K${hubAddr()?': '+hubAddr():''} (ese envío corre por tu cuenta). MER-K lo revisa, lo empaca y lo despacha al comprador`
+    : o.ship.type==='nat'
     ? `ENVÍO NACIONAL por ${o.ship.carrier.toUpperCase()} (la eligió el comprador) · desde ${o.origin} hasta ${o.addr.city}${o.ship.free?' · envío gratis: lo asumes tú':''}`
     : `DOMICILIO en el Valle de Aburrá (${o.addr.city}) · tarifa ${cop(o.ship.tarifa)}${o.ship.free?' · ofreciste domicilio gratis':''}${' · lo recoge el mensajero de '+courier()+' (te avisamos día y hora)'}`;
   return `🧾 COMANDA MER-K · Pedido #${o.id}
@@ -1213,16 +1227,18 @@ Productos:
 ${(o.items&&o.items.length?o.items:[{title:o.title, qty:1}]).map(l=>'• '+l.title+' × '+l.qty).join('\n')}
 Vendedor: ${s.name}
 Entrega: ${entrega}
-Destinatario: ${o.addr.name}
+${isHub(o) ? `Destino final: ${o.addr.city} (MER-K se encarga del envío al comprador)` : `Destinatario: ${o.addr.name}
 Celular: ${o.addr.phone}
-Dirección: ${addrLine(o.addr)}${o.addr.notes?'\nPunto de referencia: '+o.addr.notes:''}
+Dirección: ${addrLine(o.addr)}${o.addr.notes?'\nPunto de referencia: '+o.addr.notes:''}`}
 Valor de la venta: ${cop(o.price)} · Comisión MER-K ${fmtPct(+(o.fee*100).toFixed(2))}: ${cop(commOf(o))} · Procesamiento de pago: ${cop(o.proc||0)}
 Recibes: ${cop(o.sellerGross - feeAmtOf(o))} cuando termine la garantía (${days} días hábiles después de entregado)
-Plazo para despachar: 2 días hábiles.
-⚠️ El teléfono es solo para la guía. Usarlo para vender por fuera de MER-K causa bloqueo.`;
+${isHub(o)?'Plazo para entregarlo en MER-K: 2 días hábiles.\nMarca el paquete con el número #'+o.id+'.':'Plazo para despachar: 2 días hábiles.\n⚠️ El teléfono es solo para la guía. Usarlo para vender por fuera de MER-K causa bloqueo.'}`;
 }
 function sellerAccept(id){
   const o=O(id);
+  if(isHub(o)){ o.sellerGross=o.price-(o.ship.free?o.ship.tarifa:0); o.readyPickup=false; setState(o,'preparando',`${SEL(o.sk).name} aceptó tu pedido y lo está preparando. Reunimos todos los productos de tu compra en MER-K, los revisamos y te los enviamos juntos.`);
+    notify('admin', `📦 Pedido #${o.id} viene para el punto de despacho`, `${SEL(o.sk).name} (${SEL(o.sk).city}) aceptó la comanda y va a llevar o enviar el pedido. Te avisa cómo lo envía.`);
+    save(); toast('Comanda aceptada.'); render(); return; }
   if(o.ship.type==='nat'){ setState(o,'preparando'); notify('admin',`Pedido #${o.id} en preparación`, SEL(o.sk).name+' aceptó la comanda.'); save(); render(); return; }
   chooseDelivery(o.id, 'merk'); render(); return;
   const merkCost = o.ship.tarifa, s=SEL(o.sk);
@@ -1236,6 +1252,10 @@ function sellerAccept(id){
 function sellerTodo(o){
   let t='';
   if(o.status==='comanda') t='Revisa la comanda y acéptala para empezar a preparar el pedido.';
+  else if(o.status==='preparando' && isHub(o)){
+    if(o.ship.at_hub) t='✅ Tu pedido ya llegó a MER-K y lo revisamos. Nosotros se lo enviamos al comprador junto con el resto de su compra.';
+    else t = o.pendingInfo ? `Le avisaste a MER-K: ${esc(hubLegTxt(o.pendingInfo))}. Te confirmamos cuando llegue.` : `📦 Lleva o envía este pedido a MER-K: <b>${esc(hubAddr()||'el punto de despacho de MER-K (te escribimos la dirección por Mensajes)')}</b>. Puedes llevarlo tú, mandar a alguien o usar una transportadora; ese envío corre por tu cuenta. Márcalo con el número #${o.id} y avísanos desde <b>“¿Cómo nos llega?”</b>.`;
+  }
   else if(o.status==='preparando'){
     if(o.ship.type==='nat') t = o.pendingInfo ? 'Recibimos tu guía. MER-K se la comparte al comprador.' : `Lleva el pedido a <b>${esc(o.ship.carrier)}</b> (la transportadora que eligió el comprador), genera la guía hacia ${esc(o.addr.city)} y envíanos el número desde "Enviar guía a MER-K".`;
     else if(o.ship.mode==='propio') t = o.pendingInfo ? 'Recibimos los datos de tu domiciliario. MER-K se los comparte al comprador.' : 'Entrega el pedido con tu domiciliario y envíanos su nombre y la hora de entrega desde "Enviar datos del domiciliario".';
@@ -1256,9 +1276,9 @@ function chooseDelivery(id, mode, quiet){
 function readyPickup(id){ const o=O(id); o.readyPickup=true; notify('admin',`Pedido #${o.id} listo para recoger`, `${SEL(o.sk).name} · ${SEL(o.sk).addr}. Asigna el domiciliario.`); save(); toast('Le avisamos a MER-K para que envíe el domiciliario.'); render(); }
 function guiaForm(id){
   const o=O(id);
-  openModal(`<div class="mpad"><h2>Enviar la guía a MER-K</h2><p class="sub">Pedido #${o.id} · ${esc(o.title)} · de ${esc(o.origin)} a ${esc(o.addr.city)}</p>
-    <form class="form" onsubmit="saveGuia(event,${id})"><label>Transportadora<input value="${esc(o.ship.carrier)}" disabled></label>
-    <label>Número de guía<input id="gNum" required pattern="[A-Za-z0-9\\-]{6,20}" title="Entre 6 y 20 letras o números" placeholder="El que te dio ${esc(o.ship.carrier)}"></label>
+  openModal(`<div class="mpad"><h2>Enviar la guía a MER-K</h2><p class="sub">Pedido #${o.id} · ${esc(o.title)} · de ${esc(o.origin)} a ${isHub(o)?esc(hubAddr()||'MER-K'):esc(o.addr.city)}</p>
+    <form class="form" onsubmit="saveGuia(event,${id})"><label>Transportadora${isHub(o)?`<select id="gCar">${CARRIERS.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`:`<input value="${esc(o.ship.carrier)}" disabled>`}</label>
+    <label>Número de guía<input id="gNum" required pattern="[A-Za-z0-9\\-]{6,20}" title="Entre 6 y 20 letras o números" placeholder="El que te dio la transportadora"></label>
     <div class="row2"><label>Fecha estimada de entrega<input id="gDate" type="date" required></label>
       <label>Horario de entrega<select id="gTime"><option>8:00 a. m. a 12:00 m.</option><option>12:00 m. a 6:00 p. m.</option><option>Todo el día (8:00 a. m. a 6:00 p. m.)</option></select></label></div>
     <label>Observaciones (opcional)<input id="gObs" placeholder="Ej: entrega en portería"></label>
@@ -1267,7 +1287,7 @@ function guiaForm(id){
 }
 function saveGuia(e,id){ e.preventDefault(); const o=O(id);
   const obs=$('#gObs').value.trim(); if(obs){ const r=check(obs); if(!r.ok){ toast('Las observaciones no pueden tener datos de contacto.'); return; } }
-  o.pendingInfo={kind:'guia', carrier:o.ship.carrier, guia:$('#gNum').value.trim().toUpperCase(), date:$('#gDate').value, time:$('#gTime').value, obs};
+  o.pendingInfo={kind:'guia', carrier:$('#gCar')?$('#gCar').value:o.ship.carrier, guia:$('#gNum').value.trim().toUpperCase(), date:$('#gDate').value, time:$('#gTime').value, obs};
   notify('admin',`Guía recibida · Pedido #${o.id}`, `${o.ship.carrier} ${o.pendingInfo.guia}. Revísala y compártela con el comprador.`);
   save(); toast('Guía enviada a MER-K.'); closeModal(); }
 function domiForm(id){
@@ -1349,7 +1369,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['pedidos','Pedidos',newOrders+pickups],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
+  const tabs=[['pedidos','Pedidos',newOrders+pickups],['envios','📦 Envíos juntos',hubPendingCount()],['domicilios','Domicilios',domPend],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['pagos','Pagos a vendedores',sellers.filter(([k,s])=>k!==OFFICIAL&&s.available>0).length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['reclamos','Reclamos',claims.length],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1388,6 +1408,7 @@ function viewAdmin(){
   if(t==='mensajes') body = adminMessenger();
   if(t==='publicidad') body = adminAdsTab();
   if(t==='pqrs') body = adminPqrsTab();
+  if(t==='envios') body = adminHubTab();
   if(t==='perfil') body = profileTab();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
@@ -1452,6 +1473,10 @@ function viewAdmin(){
       <div class="row2"><label>Tiempo de entrega en Medellín y alrededores<input id="cetaD" maxlength="40" value="${esc(etaDom())}" placeholder="4 a 7 días hábiles"></label>
         <label>Tiempo de entrega nacional (aprox.)<input id="cetaN" maxlength="40" value="${esc(etaNat())}" placeholder="4 a 7 días hábiles"></label></div>
       <label class="check"><input type="checkbox" id="cwa" ${S.cfg.waAlerts===false?'':'checked'}> Cuando le escribamos a un cliente o vendedor (mensajes, soporte o chat de un pedido), abrir WhatsApp con un aviso para que entre a la página a leerlo</label>
+      <fieldset><legend>Punto de despacho (envío único)</legend>
+        <label class="check"><input type="checkbox" id="chub" ${hubOn()?'checked':''}> Todos los pedidos llegan primero a nuestro punto de despacho y salen juntos (el comprador paga un solo envío)</label>
+        <label>Dirección del punto de despacho (solo la ven los vendedores con pedidos)<input id="chubA" maxlength="150" value="${esc(S.cfg.hubAddr||'')}" placeholder="Ej: Calle 10 # 20-30, apto 201, barrio Laureles, Medellín"></label>
+        <span class="note">El envío nacional se cobra con la tarifa de la transportadora que elija el comprador (las de arriba) y el domicilio con la tarifa de su zona.</span></fieldset>
       <label>Empresa de mensajería de los domicilios<input id="ccour" maxlength="40" value="${esc(courier())}" placeholder="Logística P y G"><span class="note" style="font-weight:500">Así sale en los mensajes al comprador y al vendedor: “mensajero de …”.</span></label>
       <p class="note" style="margin:-4px 0 0">Así lo ven los compradores en los productos, en el carrito y en el pago. Escríbelo como “4 a 7 días hábiles”.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar configuración</button>${LIVE?'':'<button type="button" class="btn bad" onclick="resetDemo()">Reiniciar la demo</button>'}</div></form></div>`;
@@ -1469,13 +1494,14 @@ function manageOrder(id){
       <details style="margin-top:8px"><summary class="note">Historial que ve el comprador</summary>${timelineHtml(o)}</details></div>
     ${o.status==='pagado'?`<div class="panel" style="margin:0 0 14px"><h3>1. Confirmar el pago y enviar la comanda</h3><p class="note" style="margin-top:-6px">Verifica en Wompi que entró el pago de ${cop(o.price+o.ship.cost)}. Al enviar, el vendedor recibe esta comanda con una notificación.</p><div class="comanda">${esc(comandaText(o))}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" onclick="sendComanda(${o.id})">Pago confirmado: enviar comanda</button><button class="btn ghost" onclick="copyComanda(${o.id})">Copiar texto</button></div></div>`:''}
-    ${o.pendingInfo&&o.status==='preparando'?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.pendingInfo.kind==='guia'?'2. El vendedor envió la guía':'2. El vendedor envió los datos de su domiciliario'}</h3>
+    ${isHub(o)&&['comanda','preparando'].includes(o.status)?`<div class="todo" style="margin:0 0 14px">📦 Este pedido va por el <b>envío único</b>. ${o.ship.at_hub?'Ya llegó a MER-K.':o.pendingInfo?'La tienda avisó: '+esc(hubLegTxt(o.pendingInfo))+'.':'Esperando que la tienda lo lleve o lo envíe.'} Manéjalo desde <a href="javascript:closeModal();S.ui.adminTab='envios';render()">Administración → Envíos juntos</a>.</div>`:''}
+    ${!isHub(o)&&o.pendingInfo&&o.status==='preparando'?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.pendingInfo.kind==='guia'?'2. El vendedor envió la guía':'2. El vendedor envió los datos de su domiciliario'}</h3>
       <form class="form" onsubmit="shareInfo(event,${o.id})"><label>Mensaje para el comprador (puedes editarlo)<textarea id="shareMsg" rows="4">${esc(shareText(o))}</textarea></label>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="WA_AFTER=false">Compartir con el comprador</button><button class="btn wa" onclick="WA_AFTER=true">Compartir y enviar WhatsApp</button></div></form></div>`:''}
     ${o.ship.mode==='merk'&&['preparando','agendado'].includes(o.status)?`<div class="panel" style="margin:0 0 14px;border-color:var(--lav)"><h3>${o.status==='agendado'?'Domicilio agendado':'2. Programar el domicilio'}</h3>${domiRoute(o)}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${o.status==='preparando'?`<button class="btn" onclick="programForm(${o.id})">Registrar domicilio</button>`:`<button class="btn" onclick="markOnTheWay(${o.id})">Marcar en camino</button><button class="btn ghost" onclick="programForm(${o.id})">Reprogramar</button>`}</div></div>`:''}
     ${o.status==='comanda'?'<div class="todo" style="margin:0 0 14px">Esperando que el vendedor acepte la comanda.</div>':''}
-    ${o.status==='preparando'&&!o.pendingInfo&&o.ship.mode!=='merk'?`<div class="todo" style="margin:0 0 14px">Esperando que el vendedor envíe ${o.ship.type==='nat'?'la guía de '+esc(o.ship.carrier):'los datos de su domiciliario'}.</div>`:''}
+    ${o.status==='preparando'&&!o.pendingInfo&&!isHub(o)&&o.ship.mode!=='merk'?`<div class="todo" style="margin:0 0 14px">Esperando que el vendedor envíe ${o.ship.type==='nat'?'la guía de '+esc(o.ship.carrier):'los datos de su domiciliario'}.</div>`:''}
     ${waPanel(o)}
     <div class="panel" style="margin:0"><h3>Actualizar estado para el comprador</h3><form class="form" onsubmit="adminState(event,${o.id})">
       <div class="row2"><label>Nuevo estado<select id="aSt">${Object.entries(STATES).filter(([k])=>!['liberado'].includes(k)).map(([k,v])=>`<option value="${k}" ${k===next?'selected':''}>${v.label}</option>`).join('')}</select></label>
@@ -1575,7 +1601,7 @@ function savePayout(e,k){ e.preventDefault(); const s=SEL(k), amount=s.available
   S.orders.filter(o=>o.sk===k && o.status==='liberado' && !o.liquidated).forEach(o=>o.liquidated=true);
   notify(k, 'Te transferimos tu dinero', `${cop(amount)} a tu cuenta ${s.bank.banco} ${s.bank.num}. Comprobante: ${ref}`);
   save(); toast(`Transferencia de ${cop(amount)} registrada.`); closeModal(); }
-function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.waAlerts=$('#cwa').checked; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
+function saveCfg(e){ e.preventDefault(); const c=S.cfg; c.hub=$('#chub').checked; c.hubAddr=$('#chubA').value.trim(); c.waAlerts=$('#cwa').checked; c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value); c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value; AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); if($('#wlE')) c.wompiLinks={emprendedor:$('#wlE').value.trim(), pro:$('#wlP').value.trim()}; c.autoDays=Math.max(1,+$('#cdays').value||5); save(); toast('Configuración guardada.'); render(); }
 function adminDelivered(id){ markDelivered(O(id),'Pedido entregado.'); save(); render(); }
 function adminSuspend(k){ suspendPlan(k,'manual'); save(); toast('Plan desactivado.'); render(); }
 function adminBlock(k){ SEL(k).status='bloqueada'; save(); render(); }
@@ -2582,13 +2608,15 @@ function coDraw(){
   const q=CO.q, a=CO.addr, prod=q.groups.reduce((s,g)=>s+g.list,0), disc=q.groups.reduce((s,g)=>s+g.coupon_amount,0), ship=q.groups.reduce((s,g)=>s+g.ship_cost,0);
   $('#coBody').innerHTML = `
     <div class="shipbox"><b>📍 Entregar a ${esc(a.name)} · ${esc(a.phone)}</b><span>${esc(a.dir)}, barrio ${esc(a.barrio)}, ${esc(a.city)}${a.notes?' · '+esc(a.notes):''}</span><a class="note" href="javascript:coStep1()">Cambiar datos de entrega</a></div>
-    ${q.groups.map(g=>`<div class="cogroup"><div class="cohead">${esc(g.store)}${q.groups.length>1?' <span class="note">· llega en un pedido aparte</span>':''}</div>
+    ${q.groups.map(g=>`<div class="cogroup"><div class="cohead">${esc(g.store)}${q.groups.length>1?(q.hub?' <span class="note">· va en el mismo envío</span>':' <span class="note">· llega en un pedido aparte</span>'):''}</div>
       ${g.lines.map(l=>`<div class="coline"><span>${esc(l.title)}${l.qty>1?` <span class="note">× ${l.qty}</span>`:''}</span><span>${cop(l.unit*l.qty)}</span></div>`).join('')}
       ${g.coupon_amount?`<div class="coline good"><span>Cupón ${esc(g.coupon)}</span><span>−${cop(g.coupon_amount)}</span></div>`:''}
-      ${g.ship_type==='dom'
+      ${q.hub ? '' : g.ship_type==='dom'
         ? `<div class="coline"><span>🛵 Domicilio MER-K <span class="note">· ${esc(g.eta)}</span></span><span>${g.ship_cost?cop(g.ship_cost):'Gratis'}</span></div>`
         : `<div class="coline"><span>📦 Envío nacional con <select class="cocar" onchange="coSetCarrier('${g.sk}',this.value)">${(q.carriers||CARRIERS).map(c=>`<option ${c===g.carrier?'selected':''}>${esc(c)}</option>`).join('')}</select></span><span>${g.ship_cost?cop(g.ship_cost):'Gratis'}</span></div><div class="note" style="margin-top:2px">${esc(g.eta)}</div>`}
     </div>`).join('')}
+    ${q.hub ? `<div class="cogroup hubship"><div class="coline"><span>${q.groups[0].ship_type==='dom'?'<b>🛵 Un solo domicilio MER-K</b>':`<b>📦 Un solo envío nacional</b> con <select class="cocar" aria-label="Transportadora" onchange="coSetCarrier('all',this.value)">${(q.carriers||CARRIERS).map(c=>`<option ${c===q.groups[0].carrier?'selected':''}>${esc(c)}</option>`).join('')}</select>`}${q.groups.length>1?` <span class="note">para tus ${q.groups.length} tiendas</span>`:''}</span><span>${q.ship_fee?cop(q.ship_fee):'Gratis'}</span></div>
+      <div class="note">Reunimos todos tus productos en MER-K, los revisamos y te llegan juntos en un solo paquete. ${esc(q.groups[0].eta)}.</div></div>` : ''}
     <div style="margin-top:14px"><b style="font-size:14px">🎟️ ¿Tienes un cupón de descuento?</b>
       <div class="cpbox" style="margin-top:6px"><input id="coCode" placeholder="Escribe el código" maxlength="15" style="text-transform:uppercase" value="${esc(CO.coupon||'')}"><button type="button" class="btn ghost sm" onclick="coApplyCoupon()">Redimir</button></div>
       <div class="note" style="margin-top:6px">${CO.coupon?`<span class="badge">Cupón ${esc(CO.coupon)} aplicado</span> <a href="javascript:coClearCoupon()">Quitar</a>`:CO.cpMsg?`<span class="alert">${esc(CO.cpMsg)}</span>`:coCouponHints()}</div></div>
@@ -2616,26 +2644,36 @@ async function cartQuote(items, city, carriers, coupon){
     else { const nc=Math.max(0,...lines.filter(l=>!l.p.freeShip).map(l=>l.p.natCost||0)); ship={ship_type:'nat', tarifa:nc, free:allFree, ship_cost:allFree?0:nc, carrier:CARRIERS.includes(carriers?.[sk])?carriers[sk]:CARRIERS[0], eta:'Entrega en '+etaNat()+' según la transportadora'}; }
     return Object.assign({sk, store:SEL(sk).name, lines:lines.map(l=>({pid:l.p.id, title:l.p.t+(l.opts?' ('+optsLabel(l.opts)+')':''), qty:l.qty, unit:itemPrice(l.p,l.opts), opts:l.opts})), list, coupon:disc?code:null, coupon_amount:disc, price:list-disc}, ship, {total:list-disc+ship.ship_cost});
   });
+  if(hubOn() && out.length){
+    const dom=inArea(city), car=dom?null:(CARRIERS.includes(carriers?.all)?carriers.all:CARRIERS[0]), fee=dom?zonePrice(city):(+S.cfg.carriers[car]||14000), allFreeAll=out.every(g=>g.free), n=out.length;
+    out.forEach((g,i)=>{ Object.assign(g, {hub:true, ship_type:dom?'dom':'nat', carrier:car, anchor:i===0, eta:'Entrega en '+(dom?etaDom():etaNat())});
+      if(allFreeAll) Object.assign(g, {free:true, tarifa:Math.ceil(fee/n), ship_cost:0});
+      else Object.assign(g, {free:false, tarifa:i===0?fee:0, ship_cost:i===0?fee:0});
+      g.total=g.price+g.ship_cost; });
+    return {groups:out, total:out.reduce((a,g)=>a+g.total,0), hub:true, ship_fee:allFreeAll?0:fee, coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
+  }
   return {groups:out, total:out.reduce((a,g)=>a+g.total,0), coupon:cpUsed, coupon_error:cpUsed?null:cpErr, carriers:CARRIERS};
 }
+const hubOn = () => S.cfg.hub !== false;
+const hubAddr = () => S.cfg.hubAddr || '';
 const linesTitle = lines => lines.map(l=>l.title+(l.qty>1?` ×${l.qty}`:'')).join(' + ');
 const addrLine = a => `${a.dir}${a.barrio?', barrio '+a.barrio:''}, ${a.city}`;
 /* Demo: el pago se aprueba al instante y se crea un pedido por tienda */
 function coPay(){
   const q=CO.q, a=CO.addr, bk=me().key; if(!q) return;
-  const procAll=procParts(q.total).total, ids=q.groups.map(g=>createGroupOrder(g, bk, a, procAll, q.total).id);
+  const procAll=procParts(q.total).total, bundle='MK-'+Date.now().toString(36).toUpperCase(), ids=q.groups.map(g=>createGroupOrder(g, bk, a, procAll, q.total, bundle).id);
   if(CO.mode==='cart'){ const bought=new Set(CO.items.map(cartKey)); cartSet(cartRaw().filter(i=>!bought.has(cartKey(i)))); }
   CO={items:[]}; save(); closeModal(); S.ui.buyTab='compras'; location.hash='#compras'; render();
-  toast(ids.length>1?`¡Pago recibido! Tu compra quedó en ${ids.length} pedidos, uno por tienda.`:'¡Pago recibido! Te avisamos cada cambio de tu pedido.');
+  toast(ids.length>1?(q.hub?`¡Pago recibido! Reunimos los productos de tus ${ids.length} tiendas y te llegan juntos.`:`¡Pago recibido! Tu compra quedó en ${ids.length} pedidos, uno por tienda.`):'¡Pago recibido! Te avisamos cada cambio de tu pedido.');
 }
-function createGroupOrder(g, bk, a, procAll, total){
+function createGroupOrder(g, bk, a, procAll, total, bundle){
   const sk=g.sk, price=g.price;
   const o={id:S.nextOrder++, pid:g.lines[0].pid, items:g.lines.map(l=>({pid:l.pid, title:l.title, qty:l.qty, unit:l.unit, opts:l.opts||null})), sk, bk, title:linesTitle(g.lines), price, listPrice:g.list, origin:SEL(sk).city,
-    ship:{type:g.ship_type, mode:null, carrier:g.carrier, cost:g.ship_cost, free:!!g.free, tarifa:g.tarifa},
+    ship:Object.assign({type:g.ship_type, mode:g.hub?'hub':null, carrier:g.carrier, cost:g.ship_cost, free:!!g.free, tarifa:g.tarifa}, g.hub?{hub:true, from:g.from, anchor:!!g.anchor, bundle}:{}),
     addr:{name:a.name, dir:a.dir, city:a.city, barrio:a.barrio||'', notes:a.notes||'', phone:a.phone||BUY(bk).phone}, pay:'Pasarela de pagos',
     status:'pagado', fee:feeOf(sk), fixed:fixedOf(sk, price), proc: sk===OFFICIAL?0:Math.round(procAll*g.total/Math.max(1,total)), created:now(), ts:T(),
     coupon:g.coupon?{code:g.coupon, amount:g.coupon_amount}:null, timeline:[{t:now(), s:'pagado', note:STATES.pagado.buyer}]};
-  o.sellerGross = price + g.ship_cost;
+  o.sellerGross = g.hub ? price - (g.free ? g.tarifa : 0) : price + g.ship_cost;
   if(g.coupon){ const c=S.coupons.find(x=>x.sk===sk && x.code===g.coupon); if(c) c.used++; }
   g.lines.forEach(l=>{ const p=P(l.pid); p.stock=Math.max(0,p.stock-l.qty); logStock(p, -l.qty, 'Venta · pedido #'+o.id); lowStockCheck(p); });
   S.orders.unshift(o);
@@ -2802,6 +2840,9 @@ function viewTerminos(){
   <li><b>Dinero protegido:</b> MER-K retiene el pago y solo lo entrega al vendedor cuando recibes tu pedido y terminan los ${esc(S.cfg.holdDays||10)} días hábiles de garantía sin reclamos.</li>
   <li>Los cupones tienen las condiciones que indique cada uno (valor, compra mínima, fecha y número de usos). No son canjeables por dinero.</li></ul>
   <h3>4. Envíos y domicilios</h3>
+  ${hubOn()?`<ul><li><b>Todo llega junto:</b> los productos de tu compra, aunque sean de varias tiendas, llegan primero a MER-K. Allí revisamos que estén en buen estado y sean los correctos, los empacamos y te los enviamos en un solo paquete.</li>
+  <li>Pagas <b>un solo envío</b> por toda tu compra: el domicilio de tu zona en Medellín y alrededores, o la transportadora que elijas para el resto del país.</li>
+  <li>Los vendedores llevan o envían sus pedidos a MER-K por su cuenta; ese costo no se le cobra al comprador.</li></ul>`:''}
   <ul><li><b>Domicilios en Medellín y alrededores:</b> los entrega el mensajero de ${esc(courier())}. Tiempo aproximado: ${esc(etaDom())}.</li>
   <li><b>Envíos nacionales:</b> por transportadora, con número de guía. Tiempo aproximado: ${esc(etaNat())}.</li>
   <li>Los tiempos se cuentan desde que el pago queda aprobado. Te avisamos por la plataforma, y si es necesario por WhatsApp, cuando tu pedido se despache.</li>
@@ -3092,6 +3133,69 @@ function accountBanner(){
   if(u.status==='bloqueada') return `<div class="acctban bad">⛔ Tu cuenta está bloqueada. Si crees que es un error, escríbenos por <a href="#pqrs">PQRS</a>.</div>`;
   return '';
 }
+
+/* =================== ENVÍO ÚNICO: Administración → Envíos juntos =================== */
+const isHub = o => !!(o.ship && o.ship.hub);
+function bundles(st){ const m={}; S.orders.filter(o=>isHub(o) && st.includes(o.status)).forEach(o=>{ (m[o.ship.bundle]=m[o.ship.bundle]||[]).push(o); }); return Object.entries(m).sort((a,b)=>a[1][0].id-b[1][0].id); }
+function hubPendingCount(){ return bundles(['comanda','preparando']).length; }
+function hubLegTxt(i){ return !i ? '' : i.kind==='guia' ? `📦 ${i.carrier||''} · guía ${i.guia||''}` : `🚶 Lo lleva ${i.who||'la tienda'} · ${i.date||''} ${i.time||''}`; }
+function hubLegCell(o){
+  if(o.ship.at_hub) return `<span class="badge">✅ Recibido y revisado</span>`;
+  if(o.status==='comanda') return '<span class="note">Esperando que la tienda acepte</span>';
+  return o.pendingInfo ? `<span class="note">${esc(hubLegTxt(o.pendingInfo))}</span>` : '<span class="note">La tienda aún no ha avisado cómo lo envía</span>';
+}
+function adminHubTab(){
+  const pend=bundles(['comanda','preparando']), road=bundles(['despachado','agendado']);
+  const head=(os)=>{ const o=os[0], a=o.addr, fee=os.reduce((n,x)=>n+(x.ship.cost||0),0); return `<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><b>Compra ${esc(o.ship.bundle)}</b> · ${esc(BUY(o.bk).name||a.name)}<br><span class="note">${o.ship.type==='dom'?'🛵 Domicilio a':'📦 Envío nacional a'} ${esc(addrLine(a))} · ${esc(a.phone||'')}</span></div><span class="badge ${fee?'':'warn'}">Envío pagado: ${fee?cop(fee):'gratis (lo asumen las tiendas)'}</span></div>`; };
+  const card=(os)=>{ const ready=os.every(o=>o.ship.at_hub); return `<div class="panel hubcard">${head(os)}
+    <div class="tw"><table><tr><th>Pedido</th><th>Tienda</th><th>Cómo llega a MER-K</th><th>¿Llegó?</th></tr>${os.map(o=>`<tr><td>#${o.id}<br><span class="note">${esc(o.title)}</span></td><td>${esc(SEL(o.sk).name)}<br><span class="note">${esc(SEL(o.sk).city||o.origin)}</span></td><td>${hubLegCell(o)}</td>
+      <td>${o.ship.at_hub?'✅':o.status==='preparando'?`<button class="btn ghost sm" onclick="hubReceived(${o.id})">Llegó y está bien</button>`:'—'}</td></tr>`).join('')}</table></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">${ready?`<button class="btn" onclick="bundleForm('${os[0].ship.bundle}')">🚚 Despachar todo junto</button>`:`<span class="note">Cuando lleguen los ${os.length} pedido(s) a MER-K podrás despacharlos juntos. Faltan ${os.filter(o=>!o.ship.at_hub).length}.</span>`}</div></div>`; };
+  const roadCard=(os)=>`<div class="panel hubcard">${head(os)}<p class="note" style="margin:6px 0">${os.map(o=>'#'+o.id+' '+esc(SEL(o.sk).name)).join(' · ')} — ${esc((os[0].delivery&&(os[0].delivery.carrier?os[0].delivery.carrier+' guía '+os[0].delivery.guia:os[0].delivery.who))||'')}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm wa" onclick="bundleWa('${os[0].ship.bundle}')">📲 WhatsApp al comprador</button><button class="btn ghost sm" onclick="bundleDelivered('${os[0].ship.bundle}')">Marcar todo entregado</button></div></div>`;
+  return `<div class="panel"><h3>Envíos juntos</h3><p class="note" style="margin-top:-6px">Todas las tiendas llevan o envían sus pedidos al punto de despacho ${hubAddr()?'(<b>'+esc(hubAddr())+'</b>)':'(escribe la dirección en Configuración)'}, por su cuenta. Cuando llega cada uno, lo revisas y tocas <b>“Llegó y está bien”</b>: al comprador le llega el aviso. Cuando esté todo, lo empacas, le pegas la comanda y tocas <b>“Despachar todo junto”</b>.</p></div>
+    <h3 style="margin:16px 0 8px">Por reunir (${pend.length})</h3>${pend.length?pend.map(([b,os])=>card(os)).join(''):'<p class="empty">No hay compras por reunir.</p>'}
+    <h3 style="margin:16px 0 8px">En camino al comprador (${road.length})</h3>${road.length?road.map(([b,os])=>roadCard(os)).join(''):'<p class="empty">Nada en camino.</p>'}`;
+}
+function hubReceived(id){ const o=O(id); if(!confirm('¿El pedido #'+o.id+' llegó y está en buen estado?')) return; o.ship.at_hub=Date.now(); (o.timeline=o.timeline||[]).push({t:now(), s:o.status, note:'Recibimos tu producto en MER-K y lo revisamos ✅. Lo despachamos junto con el resto de tu compra.'});
+  notify(o.sk, `✅ Recibimos tu pedido #${o.id}`, 'Tu pedido llegó a MER-K y lo revisamos. Nosotros lo enviamos al comprador.'); notify(o.bk, `✅ Recibimos tu producto en MER-K · Pedido #${o.id}`, o.title+'\nLo revisamos y está listo. Te lo enviamos junto con el resto de tu compra.'); save(); toast('Listo. Le avisamos al comprador y a la tienda.'); render(); }
+function bundleOrders(b){ return S.orders.filter(o=>isHub(o) && o.ship.bundle===b); }
+function bundleForm(b){ const os=bundleOrders(b).filter(o=>['comanda','preparando'].includes(o.status)), o=os[0], dom=o.ship.type==='dom';
+  openModal(`<div class="mpad"><h2>Despachar todo junto</h2><p class="sub">${os.length} pedido(s) · ${esc(o.addr.name)} · ${esc(addrLine(o.addr))}</p>
+    <form class="form" onsubmit="bundleSave(event,'${b}')">${dom?`<label>Mensajero que lo lleva<input id="bdWho" required maxlength="60" placeholder="Nombre del mensajero de ${esc(courier())}"></label>
+      <div class="row2"><label>Fecha de entrega<input id="bdDate" type="date" required></label><label>Hora aproximada<input id="bdTime" required maxlength="40" placeholder="Ej: entre 2 y 5 p. m."></label></div>`
+    :`<div class="row2"><label>Transportadora <span class="note">(la eligió el comprador)</span><select id="bdCar">${CARRIERS.map(c=>`<option ${c===o.ship.carrier?'selected':''}>${esc(c)}</option>`).join('')}</select></label><label>Número de guía<input id="bdGuia" required pattern="[A-Za-z0-9\\-]{6,20}" title="Entre 6 y 20 letras o números"></label></div>
+      <label>Fecha estimada de entrega<input id="bdDate" type="date" required></label>`}
+    <p class="note" style="margin:0">Le avisamos al comprador y a las tiendas. Después puedes mandarle el WhatsApp al comprador.</p><button class="btn">Despachar y avisar</button></form></div>`);
+}
+function bundleInfo(dom){ return dom ? {kind:'domi', who:$('#bdWho').value.trim(), date:$('#bdDate').value, time:$('#bdTime').value.trim()} : {kind:'guia', carrier:$('#bdCar').value, guia:$('#bdGuia').value.trim().toUpperCase(), date:$('#bdDate').value}; }
+function bundleMsg(info, n){ const d=info.date?new Date(info.date+'T12:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}):''; return info.kind==='domi'
+  ? `Tu compra${n>1?' completa ('+n+' pedidos)':''} va en camino. Te la lleva ${info.who}, mensajero de ${courier()}, el ${d} ${String(info.time||'').replace(/\.+$/,'')}.`
+  : `Tu compra${n>1?' completa ('+n+' pedidos)':''} va en camino por ${info.carrier}. Número de guía: ${info.guia}. Entrega estimada: ${d}.`; }
+function bundleSave(e,b){ e.preventDefault(); const os=bundleOrders(b).filter(o=>['comanda','preparando'].includes(o.status)), info=bundleInfo(os[0].ship.type==='dom'), msg=bundleMsg(info, os.length);
+  os.forEach(o=>{ o.delivery=Object.assign({}, info, {guia:info.guia||'DOM-'+String(o.id).padStart(6,'0')}); setState(o,'despachado',msg); notify(o.sk, `🚚 Pedido #${o.id} despachado`, 'MER-K le envió al comprador su compra completa.'); });
+  save(); closeModal(); toast('¡Compra despachada! Avisamos al comprador.'); render(); bundleWa(b); }
+function bundleWa(b){ const os=bundleOrders(b), o=os[0]; if(!o||!o.delivery) return; openWa(o.addr.phone, `Hola ${o.addr.name.split(' ')[0]} 👋 Te escribimos de MER-K.\n\n${bundleMsg(o.delivery, os.length)}\n\nProductos: ${os.map(x=>x.title).join(' + ')}\n\n¡Gracias por comprar en MER-K!`); }
+function bundleDelivered(b){ if(!confirm('¿Marcar como entregados todos los pedidos de esta compra?')) return; bundleOrders(b).filter(o=>['despachado','agendado'].includes(o.status)).forEach(o=>markDelivered(o)); save(); toast('Compra entregada. Empieza a contar la garantía.'); render(); }
+
+/* El vendedor avisa cómo lleva el pedido a MER-K */
+function hubLegForm(id){ const o=O(id);
+  openModal(`<div class="mpad"><h2>¿Cómo nos llega el pedido #${o.id}?</h2><p class="sub">Llévalo o envíalo a: <b>${esc(hubAddr()||'el punto de despacho de MER-K')}</b>. Ese envío corre por tu cuenta.</p>
+    <form class="form" onsubmit="saveHubLeg(event,${id})">
+      <label class="opt"><input type="radio" name="hl" value="propio" checked onchange="hubLegMode()"><span><b>Lo llevo yo o mando a alguien</b></span></label>
+      <label class="opt"><input type="radio" name="hl" value="guia" onchange="hubLegMode()"><span><b>Lo envío por transportadora</b></span></label>
+      <div id="hlPropio" class="row2"><label>¿Quién lo lleva?<input id="hlWho" maxlength="40" placeholder="Tu nombre o el de quien lo lleva"></label><label>¿Qué día?<input id="hlDate" type="date"></label></div>
+      <div id="hlGuia" class="row2" style="display:none"><label>Transportadora<select id="hlCar">${CARRIERS.map(c=>`<option>${esc(c)}</option>`).join('')}</select></label><label>Número de guía<input id="hlGuiaN" maxlength="20" placeholder="El que te dio la transportadora"></label></div>
+      <label id="hlTimeL">Hora aproximada<input id="hlTime" maxlength="40" placeholder="Ej: entre 2 y 4 p. m."></label>
+      <p class="note" style="margin:0">No incluyas teléfonos. MER-K revisa el producto cuando llegue y te avisa.</p>
+      <button class="btn">Avisar a MER-K</button></form></div>`, true);
+}
+function hubLegMode(){ const g=document.querySelector('input[name=hl]:checked').value==='guia'; $('#hlPropio').style.display=g?'none':''; $('#hlGuia').style.display=g?'':'none'; $('#hlTimeL').style.display=g?'none':''; }
+function hubLegRead(){ const g=document.querySelector('input[name=hl]:checked').value==='guia';
+  if(g){ const n=$('#hlGuiaN').value.trim().toUpperCase(); if(!/^[A-Z0-9\-]{6,20}$/.test(n)){ toast('Escribe un número de guía válido (6 a 20 letras o números).'); return null; } return {kind:'guia', carrier:$('#hlCar').value, guia:n}; }
+  const who=$('#hlWho').value.trim(), date=$('#hlDate').value; if(!who||!date){ toast('Escribe quién lo lleva y qué día.'); return null; } return {kind:'propio', who, date, time:$('#hlTime').value.trim()}; }
+function saveHubLeg(e,id){ e.preventDefault(); const info=hubLegRead(); if(!info) return; const r=check([info.who,info.time].join(' ')); if(!r.ok){ toast('No se guardó: '+r.reason); return; }
+  const o=O(id); o.pendingInfo=info; notify('admin', `📦 Así llega a MER-K el pedido #${o.id}`, hubLegTxt(info)); save(); closeModal(); toast('Listo, le avisamos a MER-K.'); render(); }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -3563,7 +3667,7 @@ async function resolveClaim(id, how){ if(how==='refund' && !confirm('¿Devolver 
   await act(()=>api.rpc('admin_resolve_claim', {oid:id, how}), how==='refund'?'Dinero devuelto al comprador.':'Pago liberado al vendedor.'); }
 async function savePayout(e,k){ e.preventDefault(); const ref=$('#pRef').value.trim()+($('#pBank').value.trim()?' · '+$('#pBank').value.trim():'');
   await act(()=>api.rpc('admin_payout', {sid:k, reference:ref}), 'Transferencia registrada.'); }
-async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.waAlerts=$('#cwa').checked;
+async function saveCfg(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.etaDom=$('#cetaD').value.trim()||'4 a 7 días hábiles'; c.courier=$('#ccour').value.trim()||'Logística P y G'; c.etaNat=$('#cetaN').value.trim()||'4 a 7 días hábiles'; c.waAlerts=$('#cwa').checked; c.hub=$('#chub').checked; c.hubAddr=$('#chubA').value.trim();
   c.fees.gratis=+$('#cg').value; c.fees.emprendedor=+$('#ce').value; c.fees.pro=+$('#cp').value; c.limits.gratis=Math.max(1,+$('#lg').value); c.limits.emprendedor=Math.max(1,+$('#le').value);
   c.prices.emprendedor=+$('#pe').value; c.prices.pro=+$('#pp').value; c.graceDays=Math.max(0,+$('#cgr').value); c.wompiPct=+$('#wp').value; c.wompiFixed=+$('#wf').value; c.iva=+$('#wi').value;
   AREA_MED.forEach((z,i)=>c.zones[z]=+$('#z'+i).value); CARRIERS.forEach((k,i)=>c.carriers[k]=+$('#car'+i).value); c.holdDays=Math.max(1,+$('#chold').value||10); c.autoDays=Math.max(1,+$('#cdays').value||5);
@@ -3671,6 +3775,14 @@ async function doDeleteUser(k){
   try{ const r=await api.rpc('admin_delete_user', {target:k, reason:$('#mdWhy').value.trim()}); if(!r||!r.ok){ toast((r&&r.message)||'No se pudo eliminar.'); return; } closeModal(); toast('Cuenta eliminada para siempre.'); await reload(); }
   catch(x){ toast(friendly(x)); }
 }
+
+/* Envío único en la página real */
+async function saveHubLeg(e,id){ e.preventDefault(); const info=hubLegRead(); if(!info) return; await act(()=>api.rpc('seller_send_info', {oid:id, info}), 'Listo, le avisamos a MER-K.'); }
+async function hubReceived(id){ const o=O(id); if(!confirm('¿El pedido #'+o.id+' llegó y está en buen estado?')) return; await act(()=>api.rpc('admin_hub_received', {oid:id}), 'Listo. Le avisamos al comprador y a la tienda.', {close:false}); }
+async function bundleSave(e,b){ e.preventDefault(); const os=bundleOrders(b).filter(o=>['comanda','preparando'].includes(o.status)), info=bundleInfo(os[0].ship.type==='dom'), msg=bundleMsg(info, os.length);
+  await act(()=>api.rpc('admin_bundle_dispatch', {bundle:b, info, msg}), '¡Compra despachada! Avisamos al comprador.'); bundleWa(b); }
+async function bundleDelivered(b){ if(!confirm('¿Marcar como entregados todos los pedidos de esta compra?')) return;
+  await act(async()=>{ for(const o of bundleOrders(b).filter(o=>['despachado','agendado'].includes(o.status))) await api.rpc('admin_mark_delivered', {oid:o.id, note:'Pedido entregado.'}); }, 'Compra entregada. Empieza a contar la garantía.'); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
