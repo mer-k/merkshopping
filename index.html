@@ -478,6 +478,9 @@ input[readonly]{background:#f4f3f8;color:var(--ink2)}
 .steps-list{margin:0;padding-left:22px;display:grid;gap:8px}
 .labprev{background:#eee;border-radius:12px;padding:12px;display:flex;justify-content:center;overflow:auto}
 .labprev iframe{width:400px;height:590px;max-width:100%;border:0;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+/* Compra agrupada */
+.pitems{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.pitem{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 </style>
 </head>
 <body>
@@ -491,7 +494,7 @@ input[readonly]{background:#f4f3f8;color:var(--ink2)}
   </div>
 </header>
 <main id="app"></main>
-<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><nav class="footlinks"><a href="#terminos">Términos y condiciones</a><a href="#privacidad">Política de privacidad y tratamiento de datos</a><a href="#retracto">Derecho de retracto y devoluciones</a><a href="#pqrs">PQRS</a></nav><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
+<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><nav class="footlinks"><a href="#terminos">Términos y condiciones</a><a href="#privacidad">Política de privacidad y tratamiento de datos</a><a href="#retracto">Derecho de retracto y devoluciones</a><a href="#pqrs">PQRS</a><a href="#guia-vendedores">Guía para vendedores</a></nav><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
 <div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 <script>window.MERK_LIVE=true;</script>
@@ -814,7 +817,7 @@ function headerRight(){
     <button class="hello" onclick="goProfile()" title="Mi perfil">${avatarHtml()}Hola, <b>${esc(name)}</b></button><button class="btn ghost sm" onclick="logout()">Salir</button>`;
 }
 function navLinks(){
-  const s = me(), L = [['inicio','Inicio'],['ofertas','Ofertas']];
+  const s = me(), L = [['inicio','Inicio']];
   if(!s || s.role==='buyer') L.push(['compras','Mis compras']);
   if(!s || s.role==='seller') L.push(['vender', s?'Mi tienda':'Vender']);
   if(s && s.role==='admin') L.push(['admin','Administración']);
@@ -1088,14 +1091,13 @@ function viewBuyer(){
   const bk=me().key, b=BUY(bk), t=S.ui.buyTab, mine=S.orders.filter(o=>o.bk===bk);
   const tabs=[['compras','Mis compras', mine.filter(o=>!['liberado','devuelto'].includes(o.status)).length],['direcciones','Mis direcciones'],['cupones','Mis cupones y tiendas'],['cuenta','Mi perfil'],['soporte','Soporte',tkUnread(bk)]];
   let body='';
-  if(t==='compras') body = mine.length ? mine.map(o=>`<div class="panel" id="ord-${o.id}">
-      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
+  if(t==='compras') body = mine.length ? buyerGroups(mine).map(g=>g.length>1 ? purchaseCard(g) : `<div class="panel" id="ord-${g[0].id}">${(o=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
         ${['despachado','agendado'].includes(o.status)?`<button class="btn sm" onclick="received(${o.id})">Recibí mi pedido</button><button class="btn bad sm" onclick="claim(${o.id})">Tengo un problema</button>`:''}
         ${o.status==='entregado'?`<button class="btn bad sm" onclick="claim(${o.id})">Garantía o devolución</button>`:''}
         <button class="btn ghost sm" onclick="openChat('o${o.id}:b','b')">Escribir a MER-K</button></div></div>
       ${stepsHtml(o)}${deliveryHtml(o)}${o.status==='entregado'?`<div class="note" style="margin-top:6px">Garantía hasta el <b>${fdate(o.releaseAt)}</b></div>`:''}
-      ${rateBox(o)}<details style="margin-top:8px"><summary class="note">Ver historial del pedido</summary>${timelineHtml(o)}</details></div>`).join('')
+      ${rateBox(o)}<details style="margin-top:8px"><summary class="note">Ver historial del pedido</summary>${timelineHtml(o)}</details>`)(g[0])}</div>`).join('')
     : '<div class="panel"><p class="empty">Aún no tienes compras.</p></div>';
   if(t==='direcciones') body = `<div class="split"><div class="panel"><h3>Mis direcciones</h3>
     ${b.addresses.map(a=>`<div class="addr"><div><b>${esc(a.alias)}</b> · ${esc(a.name)}<br><span class="note">${esc(addrLine(a))}${a.phone?' · '+esc(a.phone):''}${a.notes?' · '+esc(a.notes):''}</span></div><button class="btn bad sm" onclick="delAddr(${a.id})">Quitar</button></div>`).join('') || '<p class="empty">No tienes direcciones guardadas.</p>'}</div>
@@ -1141,7 +1143,7 @@ function refund(o){
 }
 function autoRelease(){ let ch=false; S.orders.forEach(o=>{ if(o.status==='entregado' && T()>=o.releaseAt){ release(o); ch=true; } }); if(ch) save(); }
 function received(id){ const o=O(id); markDelivered(o,'Confirmaste que recibiste tu pedido.'); save(); toast(`¡Gracias! Tienes garantía hasta el ${fdate(o.releaseAt)}.`); render(); }
-function claim(id){ const o=O(id); o.prevStatus=o.status; setState(o,'reclamo'); notify('admin', `Reclamo · Pedido #${o.id}`, `${o.title} · ${BUY(o.bk).name}`); save(); toast('Reclamo abierto. Tu dinero sigue protegido mientras lo revisamos.'); render(); }
+function claim(id){ const o=O(id); if(isHub(o) && !confirm('Si hay que devolver el producto, lo envías a MER-K y nosotros se lo entregamos a la tienda. ¿Abrir el reclamo?')) return; o.prevStatus=o.status; setState(o,'reclamo'); notify('admin', `Reclamo · Pedido #${o.id}`, `${o.title} · ${BUY(o.bk).name}`); save(); toast('Reclamo abierto. Tu dinero sigue protegido mientras lo revisamos.'); render(); }
 
 /* =================== PANEL DEL VENDEDOR =================== */
 function viewSeller(){
@@ -1190,7 +1192,7 @@ function viewSeller(){
       <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct(${p.id})">Editar</button> ${adCell(p)}</td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no tienes productos.</p>'}</div>${sellerAdsPanel(sk)}`;
   if(t==='calculadora') body = sellerCalcPanel(sk);
   if(t==='publicar') body = `<div class="panel"><h3>Publicar un producto</h3><p class="note" style="margin-top:-6px">El título y la descripción pasan por el filtro anti-contacto. Las opciones de envío se configuran en la pestaña Envíos.</p>${productForm(null)}</div>`;
-  if(t==='envios' && hubOn()) body = `<div class="panel"><h3>Cómo funcionan los envíos</h3>
+  if(t==='envios' && hubOn()) body = `<div class="panel" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><span>📘 ¿Tienes dudas de cómo vender? Lee la <b>Guía para vendedores</b>.</span><a class="btn ghost sm" href="#guia-vendedores">Ver la guía</a></div><div class="panel"><h3>Cómo funcionan los envíos</h3>
       <ol class="steps-list">
         <li><b>Te llega la comanda</b> con los productos que el cliente te compró. Tócala en <b>Pedidos</b> y acéptala.</li>
         <li><b>Prepara el pedido</b>, empácalo bien y escribe en el paquete el <b>código del paquete</b> que sale en la comanda (cada pedido tiene uno distinto).</li>
@@ -1473,9 +1475,10 @@ function viewAdmin(){
       <td>${p.paused?'<span class="badge warn">Pausado</span>':'<span class="badge">Publicado</span>'}</td>
       <td style="text-align:right;white-space:nowrap"><button class="btn ${p.priority?'lav':'ghost'} sm" onclick="adminSetPriority(${p.id},${!p.priority})">${p.priority?'⭐ Con prioridad':'⭐ Dar prioridad'}</button> <button class="btn ghost sm" onclick="adminTogglePause(${p.id})">${p.paused?'Reactivar':'Pausar'}</button></td></tr>`).join('')}</table></div></div>`;
   if(t==='reclamos') body = `<div class="panel"><h3>Garantías y reclamos</h3>${claims.length?`<table>${claims.map(o=>`<tr><td><b>#${o.id} ${esc(o.title)}</b><br><span class="note">${cop(o.price)} · ${esc(SEL(o.sk).name)} → ${esc(BUY(o.bk).name)}</span></td>
-      <td style="text-align:right;white-space:nowrap"><button class="btn bad sm" onclick="resolveClaim(${o.id},'refund')">Devolver al comprador</button> <button class="btn sm" onclick="resolveClaim(${o.id},'ok')">Pagar al vendedor</button></td></tr>`).join('')}</table>`:'<p class="empty">No hay reclamos abiertos.</p>'}</div>`;
+      <td style="text-align:right;white-space:nowrap">${isHub(o)?(o.ship.returned_at?'<span class="badge">📦 Devolución en MER-K</span> ':`<button class="btn ghost sm" onclick="returnReceived(${o.id})">📦 Devolución recibida</button> `):''}<button class="btn bad sm" onclick="resolveClaim(${o.id},'refund')">Devolver al comprador</button> <button class="btn sm" onclick="resolveClaim(${o.id},'ok')">Pagar al vendedor</button></td></tr>`).join('')}</table>`:'<p class="empty">No hay reclamos abiertos.</p>'}</div>`;
   if(t==='alertas') body = `<div class="panel"><h3>Alertas del filtro anti-contacto</h3>${S.alerts.length?`<div class="tw"><table><tr><th>Cuándo</th><th>Quién</th><th>Dónde</th><th>Qué intentó</th><th>Motivo</th></tr>${S.alerts.map(a=>`<tr><td class="note">${esc(a.when)}</td><td>${esc(a.who)}</td><td>${esc(a.where)}</td><td>${esc(a.text)}</td><td><span class="alert">${esc(a.reason)}</span></td></tr>`).join('')}</table></div>`:'<p class="empty">Sin alertas todavía.</p>'}</div>`;
-  if(t==='config') body = `<div class="panel"><h3>Configuración</h3><form class="form" onsubmit="saveCfg(event)">
+  if(t==='config') body = `<div class="panel"><h3>📄 Copia de la información</h3><p class="note" style="margin-top:-6px">Descarga en PDF todos los vendedores, compradores, productos, pedidos y pagos a vendedores. Guárdala cada semana en tu computador o en Google Drive.</p><button class="btn" onclick="backupPdf()">Descargar copia en PDF</button></div>
+    <div class="panel"><h3>Configuración</h3><form class="form" onsubmit="saveCfg(event)">
       <fieldset><legend>Planes</legend><div class="row3">
         <label>Comisión Gratis (%)<input id="cg" type="number" min="0" max="50" step="0.1" value="${S.cfg.fees.gratis}"></label>
         <label>Comisión Emprendedor (%)<input id="ce" type="number" min="0" max="50" step="0.1" value="${S.cfg.fees.emprendedor}"></label>
@@ -3295,8 +3298,113 @@ function printHubLabel(id){
 }
 function printFrame(){ const f=$('#labFrame'); try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Tu navegador no dejó imprimir. Prueba desde el computador con Chrome.'); } }
 
+/* =================== MIS COMPRAS AGRUPADO =================== */
+function buyerGroups(list){ const out=[], seen={}; list.forEach(o=>{ const k=isHub(o)&&o.ship.bundle?o.ship.bundle:'o'+o.id; if(seen[k]) seen[k].push(o); else { seen[k]=[o]; out.push(seen[k]); } }); return out; }
+function purchaseCard(os){
+  const o=os[0], paid=os.reduce((n,x)=>n+x.price+(x.ship.cost||0),0), lead=os.reduce((a,x)=>(STATE_ORDER.indexOf(x.status)<STATE_ORDER.indexOf(a.status)?x:a), os[0]);
+  const allOut=os.every(x=>['despachado','agendado'].includes(x.status));
+  return `<div class="panel purchase" id="ord-${o.id}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>Compra del ${esc(String(o.created).split(',')[0])} · ${os.length} productos</b><br><span class="note">${cop(paid)} pagados${o.ship.cod?' · envío al recibir':''} · ${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier||'')} a ${esc(o.addr.city)} · Todo llega junto en un solo paquete</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">${allOut?`<button class="btn sm" onclick="receivedGroup('${o.ship.bundle}')">Recibí mi compra</button>`:''}<button class="btn ghost sm" onclick="openChat('o${o.id}:b','b')">Escribir a MER-K</button></div></div>
+    ${stepsHtml(lead)}${deliveryHtml(o)}
+    <div class="pitems">${os.map(x=>`<div class="pitem"><div><b>${esc(x.title)}</b><br><span class="note">${esc(SEL(x.sk).name)} · ${cop(x.price)} · Pedido #${x.id}${x.ship.at_hub&&!['despachado','agendado','entregado','liberado'].includes(x.status)?' · ✅ ya está en MER-K':''}</span>${x.status==='entregado'?`<div class="note">Garantía hasta el <b>${fdate(x.releaseAt)}</b></div>`:''}${rateBox(x)}</div>
+      <div>${['despachado','agendado'].includes(x.status)?`<button class="btn bad sm" onclick="claim(${x.id})">Tengo un problema</button>`:x.status==='entregado'?`<button class="btn bad sm" onclick="claim(${x.id})">Garantía o devolución</button>`:x.status==='reclamo'?'<span class="badge warn">En revisión</span>':''}</div></div>`).join('')}</div>
+    <details style="margin-top:8px"><summary class="note">Ver historial de la compra</summary>${timelineHtml(lead)}</details></div>`;
+}
+const STATE_ORDER = ['pendiente_pago','pagado','comanda','preparando','agendado','despachado','reclamo','entregado','liberado','devuelto','rechazado'];
+function receivedGroup(b){ const os=S.orders.filter(o=>isHub(o)&&o.ship.bundle===b&&['despachado','agendado'].includes(o.status)); os.forEach(o=>markDelivered(o,'Confirmaste que recibiste tu compra.')); save(); toast('¡Gracias! Tu garantía empezó a contar.'); render(); }
+
+/* =================== DEVOLUCIONES POR EL PUNTO MER-K =================== */
+function returnReceived(id){ const o=O(id); if(!confirm('¿El cliente ya devolvió el producto del pedido #'+o.id+' y llegó a MER-K?')) return; o.ship.returned_at=Date.now();
+  notify(o.sk, `📦 Devolución del pedido #${o.id}`, `El cliente devolvió "${o.title}" y ya está en MER-K. Te escribimos para coordinar la entrega.`); save(); toast('Listo. Le avisamos a la tienda.'); render(); }
+
+/* =================== COPIA EN PDF =================== */
+function backupHtml(){
+  const t=(h,rows)=>`<table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c==null?'':String(c))}</td>`).join('')}</tr>`).join('')}</table>`;
+  const sellers=Object.entries(S.sellers), buyers=Object.entries(S.buyers).filter(([k,b])=>b.role!=='admin');
+  const fecha=new Date().toLocaleString('es-CO');
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Copia MER-K ${fecha}</title><style>
+  @page{size:A4 landscape;margin:12mm} body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111} h1{font-size:16pt;margin:0 0 2mm;color:#4B63B6} h2{font-size:12pt;margin:6mm 0 2mm;color:#4B63B6;page-break-after:avoid}
+  table{width:100%;border-collapse:collapse;margin-bottom:4mm} th,td{border:1px solid #bbb;padding:1.2mm 1.6mm;text-align:left;vertical-align:top} th{background:#eef0fa} tr{page-break-inside:avoid}</style></head><body>
+  <h1>Copia de la información de MER-K</h1><div>Generada el ${fecha} · ${sellers.length} vendedores · ${buyers.length} compradores · ${S.products.length} productos · ${S.orders.length} pedidos</div>
+  <h2>Vendedores</h2>${t(['Tienda','Responsable','Correo','Celular','Cédula/NIT','Ciudad','Dirección','Plan','Estado','Por pagar','Pagado'], sellers.map(([k,x])=>[x.name,x.owner,x.email,x.phone,x.doc,x.city,x.addr,(PLAN_INFO[x.plan]||{}).name||x.plan,x.status,cop(x.available||0),cop(x.paid||0)]))}
+  <h2>Compradores</h2>${t(['Nombre','Correo','Celular','Cédula','Estado','Pedidos'], buyers.map(([k,x])=>[x.name,x.email,x.phone,x.doc,x.status,S.orders.filter(o=>o.bk===k).length]))}
+  <h2>Productos</h2>${t(['#','Producto','Tienda','Precio','Desc.','Unidades','Categoría'], S.products.map(p=>[p.id,p.t,SEL(p.s).name,cop(p.p),(p.disc||0)+'%',p.stock,p.c]))}
+  <h2>Pedidos</h2>${t(['#','Fecha','Producto(s)','Tienda','Comprador','Celular','Dirección','Venta','Envío','Estado','Guía'], S.orders.map(o=>[o.id,o.created,o.title,SEL(o.sk).name,o.addr.name,o.addr.phone,addrLine(o.addr),cop(o.price),o.ship.cod?'Al cobro':cop(o.ship.cost||0),(STATES[o.status]||{}).label||o.status,(o.delivery&&o.delivery.guia)||'']))}
+  <h2>Pagos a vendedores</h2>${t(['Fecha','Vendedor','Valor','Comprobante'], (S.payouts||[]).map(x=>[x.date,SEL(x.sk).name,cop(x.amount),x.ref]))}
+  </body></html>`;
+}
+function backupPdf(){ let f=document.getElementById('printTmp'); if(f) f.remove(); f=document.createElement('iframe'); f.id='printTmp'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.srcdoc=backupHtml(); f.onload=()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Tu navegador no dejó abrir la impresión.'); } };
+  toast('En la ventana que se abre, elige “Guardar como PDF”.'); }
+
+/* =================== GUÍA PARA VENDEDORES =================== */
+function guiaBody(){ const f=S.cfg.fees||{}, lim=(S.cfg.limits||{}).gratis||15;
+  return `<p>Todo lo que necesitas para vender en MER-K, paso a paso.</p>
+  <h3>1. Crea tu tienda</h3><ol><li>Toca <b>Vender</b> arriba y luego <b>Crear cuenta</b> como vendedor.</li><li>Llena tus datos, el nombre de tu tienda, tu ciudad y la cuenta bancaria donde quieres recibir tu plata.</li><li>En <b>Mi tienda</b> sube tu logo y una portada para que tu tienda se vea bonita.</li></ol>
+  <h3>2. Escoge tu plan</h3><ul><li><b>Gratis:</b> hasta ${lim} productos. Comisión del ${esc(f.gratis??8)}% por venta.</li><li><b>Emprendedor:</b> más productos, cupones y promociones. Comisión del ${esc(f.emprendedor??5)}%.</li><li><b>Pro:</b> todo lo anterior, tus productos destacados en el banner de inicio y prioridad en búsquedas. Comisión del ${esc(f.pro??3.5)}%.</li></ul><p>Puedes cambiar de plan cuando quieras desde <b>Mi plan</b>. En la pestaña <b>🧮 Calculadora</b> ves cuánto te queda de cada venta.</p>
+  <h3>3. Publica tus productos</h3><ol><li>Entra a <b>Publicar</b>.</li><li>Escribe un título claro, una buena descripción, el precio y las unidades que tienes.</li><li>Sube hasta 5 fotos reales y con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> llena lo que aplique: peso o contenido, talla, color, tamaño, material, marca…</li><li>Si vendes el mismo producto en varios pesos (Ej: 1 kg, 3 kg y 8 kg), agrega una fila por peso <b>con su precio</b>.</li><li>Si el cliente debe escoger talla, color u otra opción, marca <b>“El cliente elige una opción”</b> y separa las opciones con comas (Ej: S, M, L).</li></ol>
+  <h3>4. Lo que no se puede vender</h3><p>Animales vivos, armas, municiones, pólvora o explosivos, productos sexuales o pornográficos, drogas y medicamentos con fórmula, productos falsificados, robados o de contrabando. Estas publicaciones se bloquean.</p>
+  <h3>5. Cuando te compran</h3><ol><li>Te llega una notificación 🔔 y la <b>comanda</b> en <b>Pedidos</b>, con los productos y las unidades que tienes que preparar.</li><li>Toca <b>Aceptar y preparar</b>.</li><li>Empaca bien el pedido y escribe en el paquete el <b>código del paquete</b> que sale en la comanda (cada pedido tiene uno distinto).</li><li>Envíalo al <b>punto de recogida de MER-K</b> en máximo 2 días hábiles. Puedes llevarlo tú, mandar a alguien o usar una transportadora. <b>El valor de ese envío corre por tu cuenta.</b> Los datos están en la comanda y en la pestaña <b>Envíos</b>.</li><li>En MER-K lo revisamos, te avisamos que llegó bien y se lo enviamos al cliente junto con lo que haya comprado en otras tiendas.</li></ol>
+  <h3>6. ¿Cuándo te pagamos?</h3><ul><li>El cliente le paga a MER-K y tu plata queda protegida.</li><li>Cuando el cliente recibe, empiezan ${esc(S.cfg.holdDays||10)} días hábiles de garantía.</li><li>Si no hay reclamos, tu venta pasa a <b>Mi dinero → Listo para pagarte</b> y te transferimos a tu cuenta, descontando la comisión de tu plan y el costo del pago.</li></ul>
+  <h3>7. Reglas importantes</h3><ul><li>Todas las ventas se hacen dentro de MER-K. No compartas teléfonos, correos, redes sociales ni enlaces: el sistema los bloquea y después de 3 advertencias la cuenta se suspende.</li><li>Responde rápido las preguntas de los clientes en <b>Mensajes</b>.</li><li>Publica fotos y descripciones reales: si el producto no corresponde, el cliente puede pedir la devolución.</li></ul>
+  <h3>8. ¿Necesitas ayuda?</h3><p>Escríbenos desde la pestaña <b>Soporte</b> de tu panel o por el <a href="#pqrs">formulario de PQRS</a>.</p>`; }
+function viewGuiaVendedores(){ return `<div class="legal"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">Guía para vendedores</h2><button class="btn ghost sm" onclick="guiaPdf()">📄 Descargar en PDF</button></div>${guiaBody()}</div>`; }
+const GUIA_FONTS = '<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">';
+/* Guía para vendedores con la identidad de MER-K (para descargar en PDF) */
+function guiaDesignHtml(fontTags){
+  const f=S.cfg.fees||{}, lim=(S.cfg.limits||{}).gratis||15, logo=(document.querySelector('.logo img')||{}).src||'', hold=S.cfg.holdDays||10;
+  const step=(n,t,body)=>`<section class="st"><div class="num">${n}</div><div class="sb"><h2>${t}</h2>${body}</div></section>`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Guía para vendedores · MER-K</title>${fontTags||''}<style>
+  @page{size:A4;margin:0}
+  *{box-sizing:border-box} body{margin:0;font-family:'Nunito',Arial,sans-serif;color:#232234;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pg{width:210mm;min-height:297mm;padding:14mm 15mm 16mm;position:relative;page-break-after:always;background:repeating-linear-gradient(90deg,#F7F2FF 0 9mm,#FFFEEC 9mm 18mm)}
+  .pg:last-child{page-break-after:auto}
+  .cover{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+  .cover img{width:115mm;margin-bottom:10mm}
+  h1{font-family:'Fredoka',Arial,sans-serif;font-weight:700;color:#4B63B6;font-size:40pt;line-height:1.05;margin:0 0 5mm}
+  .pill{display:inline-block;background:#CBD83B;color:#232234;font-weight:800;border-radius:999px;padding:3mm 7mm;font-size:13pt}
+  .lead{font-size:13pt;color:#615C78;max-width:140mm;margin:8mm auto 0}
+  .web{position:absolute;bottom:10mm;left:0;right:0;text-align:center;font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6;font-size:11pt}
+  .card{background:#fff;border:1.5px solid #E9E3F5;border-radius:6mm;padding:6mm 7mm;margin-bottom:5mm;box-shadow:0 2mm 5mm rgba(60,50,120,.06)}
+  .st{display:flex;gap:5mm;background:#fff;border:1.5px solid #E9E3F5;border-radius:6mm;padding:5mm 6mm;margin-bottom:4.5mm;page-break-inside:avoid}
+  .num{flex:none;width:12mm;height:12mm;border-radius:50%;background:#4B63B6;color:#fff;font-family:'Fredoka',Arial,sans-serif;font-weight:700;font-size:16pt;display:flex;align-items:center;justify-content:center;box-shadow:0 1.2mm 0 #CBD83B}
+  .sb{flex:1;min-width:0}
+  h2{font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6;font-size:15pt;margin:1mm 0 2mm}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm}.top img{height:11mm}.top span{font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6}
+  ol,ul{margin:0;padding-left:5mm} li{margin:1mm 0}
+  b{color:#232234}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin:2mm 0 3mm}
+  .plan{border-radius:4mm;padding:3.5mm;text-align:center;border:1.5px solid #E9E3F5}
+  .plan h3{font-family:'Fredoka',Arial,sans-serif;margin:0 0 1mm;font-size:12.5pt}.plan .pct{font-family:'Fredoka',Arial,sans-serif;font-weight:700;font-size:20pt;line-height:1}.plan small{display:block;color:#615C78;font-size:8.5pt;margin-top:1mm}
+  .p1{background:#F3F6D6}.p2{background:#EFE8FD}.p3{background:#E8ECF8}.p3 h3,.p3 .pct{color:#4B63B6}
+  .tip{background:#F3F6D6;border-radius:4mm;padding:3mm 4mm;margin-top:2.5mm;font-size:10pt}
+  .warn{background:#FDE7E7;border-radius:4mm;padding:3mm 4mm;margin-top:2.5mm;font-size:10pt}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;margin-top:2mm}
+  .flow div{background:#E8ECF8;border-radius:4mm;padding:3mm;text-align:center;font-size:9pt;font-weight:700}.flow div b{display:block;font-family:'Fredoka',Arial,sans-serif;color:#4B63B6;font-size:13pt}
+  </style></head><body>
+  <div class="pg cover">${logo?`<img src="${logo}" alt="MER-K">`:''}<h1>Guía para<br>vendedores</h1><span class="pill">Vende en MER-K paso a paso</span>
+    <p class="lead">Todo lo que necesitas saber para crear tu tienda, publicar tus productos, despachar tus pedidos y recibir tu plata.</p><div class="web">merkshopping.com</div></div>
+  <div class="pg"><div class="top">${logo?`<img src="${logo}" alt="MER-K">`:'<span>MER-K</span>'}<span>Guía para vendedores</span></div>
+    ${step(1,'Crea tu tienda','<ol><li>Entra a <b>merkshopping.com</b>, toca <b>Vender</b> y luego <b>Crear cuenta</b> como vendedor.</li><li>Llena tus datos, el nombre de tu tienda, tu ciudad y la cuenta bancaria donde quieres recibir tu plata.</li><li>En <b>Mi tienda</b> sube tu logo y una portada para que tu tienda se vea bonita.</li></ol>')}
+    ${step(2,'Escoge tu plan',`<div class="plans"><div class="plan p1"><h3>Gratis</h3><div class="pct">${esc(f.gratis??8)}%</div><small>comisión por venta · hasta ${lim} productos</small></div><div class="plan p2"><h3>Emprendedor</h3><div class="pct">${esc(f.emprendedor??5)}%</div><small>más productos, cupones y promociones</small></div><div class="plan p3"><h3>Pro</h3><div class="pct">${esc(f.pro??3.5)}%</div><small>banner de inicio y prioridad en búsquedas</small></div></div>Cambia de plan cuando quieras en <b>Mi plan</b>. En <b>🧮 Calculadora</b> ves cuánto te queda de cada venta.`)}
+    ${step(3,'Publica tus productos','<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca.</li><li>¿Vendes en varios pesos? Agrega una fila por peso <b>con su precio</b> (Ej: 1 kg, 3 kg, 8 kg).</li><li>Si el cliente debe escoger talla o color, marca <b>“El cliente elige una opción”</b> y separa con comas: S, M, L.</li></ol>')}
+    ${step(4,'Lo que no se puede vender','<div class="warn">🚫 Animales vivos · armas, municiones, pólvora o explosivos · productos sexuales o pornográficos · drogas y medicamentos con fórmula · productos falsificados, robados o de contrabando. Estas publicaciones se bloquean.</div>')}
+    <div class="web">merkshopping.com</div></div>
+  <div class="pg"><div class="top">${logo?`<img src="${logo}" alt="MER-K">`:'<span>MER-K</span>'}<span>Guía para vendedores</span></div>
+    ${step(5,'Cuando te compran',`<ol><li>Te llega una notificación 🔔 y la <b>comanda</b> en <b>Pedidos</b>: los productos y unidades que debes preparar.</li><li>Toca <b>Aceptar y preparar</b>.</li><li>Empaca bien y escribe en el paquete el <b>código del paquete</b> de la comanda (cada pedido tiene uno distinto).</li><li>Envíalo al <b>punto de recogida de MER-K</b> en máximo <b>2 días hábiles</b>: lo llevas tú, mandas a alguien o usas una transportadora.</li></ol><div class="tip">📦 <b>El valor del envío hasta MER-K corre por tu cuenta.</b> Los datos del punto de recogida están en la comanda y en la pestaña <b>Envíos</b>. Nosotros revisamos el producto y se lo enviamos al cliente junto con el resto de su compra.</div>`)}
+    ${step(6,'¿Cuándo te pagamos?',`<div class="flow"><div><b>1</b>El cliente paga y tu plata queda protegida</div><div><b>2</b>MER-K le entrega al cliente</div><div><b>3</b>${hold} días hábiles de garantía</div><div><b>4</b>Te transferimos a tu cuenta</div></div><p style="margin:2.5mm 0 0">Se descuenta la comisión de tu plan y el costo del pago. Lo ves todo en <b>Mi dinero</b>.</p>`)}
+    ${step(7,'Reglas importantes','<ul><li>Todas las ventas se hacen dentro de MER-K. <b>No compartas teléfonos, correos, redes ni enlaces</b>: el sistema los bloquea y a las 3 advertencias la cuenta se suspende.</li><li>Responde rápido las preguntas de los clientes en <b>Mensajes</b>.</li><li>Publica fotos y descripciones reales: si el producto no corresponde, el cliente puede pedir la devolución.</li></ul>')}
+    ${step(8,'¿Necesitas ayuda?','Escríbenos desde la pestaña <b>Soporte</b> de tu panel o por el formulario de <b>PQRS</b> en merkshopping.com. ¡Estamos para ayudarte a vender más! 💜')}
+    <div class="web">merkshopping.com</div></div>
+  </body></html>`;
+}
+function guiaPdf(){ let f=document.getElementById('printTmp'); if(f) f.remove(); f=document.createElement('iframe'); f.id='printTmp'; f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.srcdoc=guiaDesignHtml(GUIA_FONTS);
+  f.onload=()=>{ const go=()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Tu navegador no dejó abrir la impresión.'); } }; try{ const d=f.contentDocument; (d.fonts&&d.fonts.ready?d.fonts.ready:Promise.resolve()).then(()=>setTimeout(go,300)); }catch(e){ go(); } };
+  toast('En la ventana que se abre, elige “Guardar como PDF”.'); }
+
 /* =================== RUTAS =================== */
-const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
+const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
   autoRelease(); subCheck();
   let v=(location.hash||'#inicio').slice(1); const openPid = v.startsWith('producto/') ? +v.slice(9) : 0;
@@ -3561,7 +3669,7 @@ async function addAddr(e){ e.preventDefault(); if(!validPhone($('#aPhone').value
 async function delAddr(id){ await act(()=>api.del('addresses', {id}), 'Dirección eliminada.'); }
 async function received(id){ await act(()=>api.rpc('buyer_received', {oid:id}), '¡Gracias! Tu garantía empezó a contar.'); }
 function claim(id){
-  openModal(`<div class="mpad"><h2>Garantía o reclamo · Pedido #${id}</h2><p class="sub">Cuéntanos qué pasó. Tu dinero sigue protegido mientras lo revisamos.</p>
+  openModal(`<div class="mpad"><h2>Garantía o reclamo · Pedido #${id}</h2><p class="sub">Cuéntanos qué pasó. Tu dinero sigue protegido mientras lo revisamos.${isHub(O(id))?' Si hay que devolver el producto, lo envías a MER-K y nosotros se lo entregamos a la tienda; te damos los datos por el chat.':''}</p>
     <form class="form" onsubmit="event.preventDefault();sendClaim(${id})"><label>¿Qué pasó?<textarea id="clText" rows="4" required maxlength="300"></textarea></label><button class="btn bad">Abrir reclamo</button></form></div>`, true);
 }
 async function sendClaim(id){ await act(()=>api.rpc('buyer_claim', {oid:id, reason:$('#clText').value.trim()}), 'Reclamo abierto. Te escribimos pronto.'); }
@@ -3882,6 +3990,11 @@ async function clientDispatchSave(e,id){ e.preventDefault(); const os=hubFind(id
   await act(()=>api.rpc('admin_dispatch_orders', {oids:os.map(o=>o.id), info:d, msg:dispatchText(os, d)}), '¡Despachado! Avisamos al cliente.'); }
 async function clientDelivered(id){ const os=hubFind(id).filter(o=>['despachado','agendado'].includes(o.status)); if(!confirm('¿Marcar como entregada la compra de '+(BUY(os[0].bk).name||'')+'?')) return; openWa(os[0].addr.phone, waDeliveredMsg(os), firstName(os[0]));
   await act(async()=>{ for(const o of os) await api.rpc('admin_mark_delivered', {oid:o.id, note:'Pedido entregado.'}); }, 'Entregado. Empieza a contar la garantía.'); }
+
+/* Mis compras agrupado y devoluciones (página real) */
+async function receivedGroup(b){ const os=S.orders.filter(o=>isHub(o)&&o.ship.bundle===b&&['despachado','agendado'].includes(o.status));
+  await act(async()=>{ for(const o of os) await api.rpc('buyer_received', {oid:o.id}); }, '¡Gracias! Tu garantía empezó a contar.'); }
+async function returnReceived(id){ const o=O(id); if(!confirm('¿El cliente ya devolvió el producto del pedido #'+o.id+' y llegó a MER-K?')) return; await act(()=>api.rpc('admin_return_received', {oid:id}), 'Listo. Le avisamos a la tienda.'); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
