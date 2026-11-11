@@ -1136,7 +1136,7 @@ function viewBuyer(){
   if(!isRole('buyer')) return gate('buyer');
   const bk=me().key, b=BUY(bk), t=S.ui.buyTab, mine=S.orders.filter(o=>o.bk===bk);
   const myChats=Object.keys(S.chats).filter(k=>k[0]==='p'&&k.split(':')[1]===bk&&S.chats[k].length);
-  const tabs=[['cuenta','Mi cuenta', myVerify()==='aprobado'?0:'!'],['mensajes','Mis chats'],['cupones','Tiendas que sigo'],['soporte','Soporte',tkUnread(bk)]];
+  const tabs=[['cuenta','Mi cuenta'],['mensajes','Mis chats'],['cupones','Tiendas que sigo'],['soporte','Soporte',tkUnread(bk)]];
   let body='';
   if(t==='compras') body = mine.length ? buyerGroups(mine).map(g=>g.length>1 ? purchaseCard(g) : `<div class="panel" id="ord-${g[0].id}">${(o=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
@@ -1155,10 +1155,11 @@ function viewBuyer(){
       <label>Punto de referencia<input id="aNotes" placeholder="Frente al parque, portería torre 2…"></label>
       <div><button class="btn">Guardar dirección</button></div></form></div></div>`;
   if(t==='mensajes') body = `<div class="panel"><h3>Mis chats con vendedores</h3>${myChats.length?myChats.map(k=>`<div class="addr"><div><b>${esc(chatTitle(k).replace('Pregunta · ',''))}</b><br><span class="note">${esc(SEL(chatInfo(k).sk)?.name||'')} · ${S.chats[k].filter(m=>!m.sys).length} mensajes</span></div><button class="btn ghost sm" onclick="openChat('${k}','b')">Abrir</button></div>`).join(''):'<p class="empty">Aún no le has escrito a ningún vendedor. Entra a un producto y toca “Chatear en MER-K”.</p>'}</div>`;
-  if(t==='cuenta') body = verificationPanel() + `<div class="panel"><h3>¿Quieres vender?</h3><p class="note" style="margin-top:-6px">Abre tu tienda con los mismos datos. Planes desde ${cop(planPrice('basico'))} al mes, sin comisión por venta.</p><button class="btn pear" onclick="becomeSellerModal()">Abrir mi tienda</button></div>` + profileTab() + `<div class="panel"><p class="note" style="margin:0">Cuenta ${statusBadge(b.status)} · Tu celular y tu correo solo los ve MER-K. Cuando escribes a un vendedor por WhatsApp, él ve tu número de WhatsApp.</p></div>`;
+  if(t==='cuenta') body = `<div class="panel"><h3>¿Quieres vender?</h3><p class="note" style="margin-top:-6px">Abre tu tienda con los mismos datos. Planes desde ${cop(planPrice('basico'))} al mes, sin comisión por venta. Para vender te pedimos verificar tu identidad.</p><button class="btn pear" onclick="becomeSellerModal()">Abrir mi tienda</button></div>` + profileTab() + `<div class="panel"><p class="note" style="margin:0">Cuenta ${statusBadge(b.status)} · Tu celular y tu correo solo los ve MER-K. Cuando escribes a un vendedor por WhatsApp, él ve tu número de WhatsApp.</p></div>`;
+  if(t==='cuenta') body += mktPanel();
   if(t==='soporte') body = supportTab(bk);
   if(t==='cupones') body = buyerCouponsTab(bk);
-  return `<h2>Mi cuenta</h2><p class="sub">Tu verificación, tus chats con vendedores y las tiendas que sigues.</p>
+  return `<h2>Mi cuenta</h2><p class="sub">Tus chats con vendedores, las tiendas que sigues y tus datos.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.buyTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
 }
 function addAddr(e){ e.preventDefault(); if(!validPhone($('#aPhone').value)){ toast('El celular debe tener 10 dígitos y empezar por 3.'); return; } BUY(me().key).addresses.push({id:Date.now(), alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), phone:$('#aPhone').value.replace(/\s/g,''), barrio:$('#aBarrio').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}); save(); toast('Dirección guardada.'); render(); }
@@ -1234,7 +1235,7 @@ function viewSeller(){
   if(t==='tienda') body = storeTab(sk);
   if(t==='cuentas') body = ledgerTab(sk);
   if(t==='soporte') body = supportTab(sk);
-  if(t==='perfil') body = profileTab();
+  if(t==='perfil') body = profileTab() + mktPanel();
   if(t==='productos') body = `<div class="panel"><h3>Mis productos (${mine.length}${lim===Infinity?', sin límite':' de '+lim})</h3>
     ${mine.length?`<div class="tw"><table><tr><th>Producto</th><th>Precio</th><th>Descuento</th><th>Recibes aprox.</th><th>Stock</th><th>Estado</th><th></th></tr>${mine.map(p=>`<tr>
       <td>${p.img?'':p.e} ${esc(p.t)}</td><td>${discOf(p)?`<span class="old">${cop(p.p)}</span><br>`:''}${cop(finalPrice(p))}</td><td>${discOf(p)?`<span class="badge">-${discOf(p)}%</span>`:'—'}</td><td><b>${cop(sellerNet(sk, finalPrice(p)).net)}</b></td><td>${p.stock}</td>
@@ -1456,7 +1457,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['verif','🪪 Verificaciones',verifPending()],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
+  const tabs=[['verif','🪪 Verificaciones',verifPending()],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['correos','📣 Correos'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1465,6 +1466,7 @@ function viewAdmin(){
       <td>${stepsHtml(o)}${o.readyPickup&&o.status==='preparando'?'<span class="badge warn">Pide domiciliario MER-K</span>':''}${o.pendingInfo&&o.status==='preparando'?'<span class="badge warn">Guía o domicilio por compartir</span>':''}</td>
       <td style="text-align:right;white-space:nowrap">${['agendado','despachado','entregado'].includes(o.status)?`<button class="btn wa sm" title="Enviar aviso por WhatsApp" onclick="openWa('${esc(o.addr.phone||'')}', waShipMsg(O(${o.id})))">📲 WhatsApp</button> `:''}<button class="btn ${o.status==='pagado'||(o.status==='preparando'&&(o.readyPickup||o.pendingInfo))?'':'ghost'} sm" onclick="manageOrder(${o.id})">Gestionar</button></td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no hay pedidos.</p>'}</div>`;
   if(t==='verif') body = adminVerifTab();
+  if(t==='correos') body = adminPromoTab();
   if(t==='resumen') body = adminResumen();
   if(t==='resumen_old'){
     const wOrders=S.orders.reduce((a,o)=>a+wompiCost(o.price+o.ship.cost),0), wSubs=S.subPays.reduce((a,x)=>a+wompiCost(x.amount),0);
@@ -1728,7 +1730,7 @@ const WHO = {b:'Comprador', s:'Vendedor', a:'MER-K'};
 function drawChat(){
   const info=chatInfo(chatKey), list=S.chats[chatKey], mine=roleOf(chatAs);
   const other = chatKey[0]==='p' ? (mine==='b' ? SEL(info.sk).name : chatName(info.bk).split(' ')[0]) : (mine==='a' ? (info.party==='b' ? BUY(info.o.bk).name+' (comprador)' : SEL(info.o.sk).name+' (vendedor)') : 'MER-K');
-  openModal(`<div class="chat"><div class="chead"><h3>${esc(other)}</h3><span class="note">${esc(info.title)}${info.filter?' · Comprador y vendedor verificados por MER-K':''}</span></div>
+  openModal(`<div class="chat"><div class="chead"><h3>${esc(other)}</h3><span class="note">${esc(info.title)}${info.filter?' · Vendedor verificado por MER-K':''}</span></div>
     <div class="msgs" id="msgs">${info.filter?'<div class="sys info">Aquí negocian directamente. Recomendación: verifica el producto antes de pagar y prefiere entregas en lugares públicos o contra entrega.</div>':'<div class="sys info">Conversación directa con el equipo de MER-K sobre este pedido.</div>'}
       ${list.map(m=>m.sys?`<div class="sys">${esc(m.text)}</div>`:`<div class="msg ${m.from===mine?'b':'s'} ${m.hidden?'hid':''}"><small>${WHO[m.from]}</small>${m.hidden?'Mensaje ocultado por contener datos de contacto':esc(m.text)}</div>`).join('')}</div>
     <form class="cinput" onsubmit="event.preventDefault();sendMsg($('#cm').value)"><input id="cm" placeholder="Escribe un mensaje…" autocomplete="off"><button class="btn">Enviar</button></form></div>`);
@@ -1740,7 +1742,6 @@ function sendMsg(text){
   if(info.filter){
     const acc = from==='b' ? (BUY(me().key)||SEL(me().key)) : SEL(info.sk), who=acc.name, key=chatKey+'|'+from;
     if(acc.status!=='activa'){ list.push({sys:1, text:`La cuenta de ${who} está ${acc.status}. No puede enviar mensajes.`}); save(); drawChat(); return; }
-    if(from==='b' && myVerify()!=='aprobado' && !isOfficial(info.sk)){ verifyNeeded('chat'); return; }
     list.push({from, text});
     if(from==='b') notify(info.sk, '💬 Nuevo mensaje de un comprador', `${info.title}: ${text.slice(0,80)}`); else notify(info.bk, '💬 El vendedor te respondió', `${info.title}: ${text.slice(0,80)}`);
   } else {
@@ -3491,7 +3492,7 @@ if(window.MERK_LIVE && 'serviceWorker' in navigator && location.protocol==='http
    ===================================================================== */
 Object.assign(PLAN_INFO, {basico:{name:'Básico'}, ninguno:{name:'Sin plan activo'}});
 PLAN_INFO.gratis.name = 'Básico';
-PLAN_PERKS.basico = ['Tu tienda con enlace para compartir','Chat y WhatsApp con compradores verificados','Insignia de identidad verificada','Soporte estándar'];
+PLAN_PERKS.basico = ['Tu tienda con enlace para compartir','Chat y WhatsApp con compradores','Insignia de identidad verificada','Soporte estándar'];
 PLAN_PERKS.emprendedor = ['Tienda personalizada (logo, portada y eslogan)','Inventario y alertas de pocas unidades','Estadísticas de visitas','Mayor visibilidad','Soporte prioritario'];
 PLAN_PERKS.pro = ['Prioridad en las búsquedas','Productos destacados y ofertas relámpago','Tus productos en el banner de inicio','Estadísticas avanzadas','Soporte preferencial'];
 PLAN_PERKS.ninguno = [];
@@ -3571,7 +3572,7 @@ function saveVerify(e){ e.preventDefault(); const err=t=>{ const el=$('#vErr'); 
 }
 function verifyNeeded(kind){
   const s=me();
-  if(!s) return openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">🪪</div><h2>Crea tu cuenta para escribirle al vendedor</h2><p class="sub">En MER-K todos verifican su identidad con la cédula. Así compras y vendes con más confianza.</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn" onclick="registerModal()">Crear cuenta</button><button class="btn ghost" onclick="loginModal()">Ya tengo cuenta</button></div></div>`);
+  if(!s) return openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">🪪</div><h2>Crea tu cuenta para escribirle al vendedor</h2><p class="sub">Es gratis y toma menos de un minuto. Después puedes hablar con cualquier tienda por WhatsApp o por el chat de MER-K.</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn" onclick="registerModal()">Crear cuenta</button><button class="btn ghost" onclick="loginModal()">Ya tengo cuenta</button></div></div>`);
   const v=myVerify();
   if(v==='revision') return openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">⏳</div><h2>Tu cuenta está en revisión</h2><p class="sub">MER-K está revisando tus documentos. Cuando la aprobemos te avisamos por la campanita 🔔 y podrás ${kind==='wa'?'escribirle por WhatsApp':'chatear'} con el vendedor.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`);
   openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">🪪</div><h2>Verifica tu identidad primero</h2><p class="sub">${v==='rechazado'?'Tus documentos necesitan corrección. ':''}Para escribirles a los vendedores sube la foto de tu cédula. Lo revisamos rápido.</p><button class="btn" onclick="verifyForm()">Verificar mi identidad</button></div>`);
@@ -3584,7 +3585,7 @@ function contactBlock(p){
       <div class="buybtns"><button class="btn wa" onclick="contactWa(${p.id})"><span>🟢</span> Escribir por WhatsApp</button><button class="btn lav" onclick="contactChat(${p.id})">💬 Chatear en MER-K</button></div>
       <p class="note" style="margin:8px 0 0">Negocias directo con el vendedor: el precio final, el pago y la entrega los acuerdan entre ustedes. MER-K verifica la identidad de los vendedores, pero no recibe el dinero de la venta. <a href="#retracto" onclick="closeModal()">Consejos para comprar seguro</a></p></div>`;
 }
-function contactOk(kind){ const s=me(); if(!s || myVerify()!=='aprobado'){ verifyNeeded(kind); return false; } return true; }
+function contactOk(kind){ if(!me()){ verifyNeeded(kind); return false; } return true; }
 function contactChat(pid){ const off=isOfficial(P(pid)?.s); if(off){ if(!me()) return verifyNeeded('chat'); } else if(!contactOk('chat')) return; if(isRole('admin')) return toast('Desde la administración usa la pestaña Mensajes.'); openChat('p'+pid,'b'); }
 function waTextFor(p){ let o=''; try{ const op=(typeof pickedOpts==='function')?pickedOpts(p):null; const l=op&&Object.keys(op).length&&typeof optsLabel==='function'?optsLabel(op):''; if(l) o=' ('+l+')'; }catch(e){}
   const pr = typeof itemPrice==='function' ? itemPrice(p, (()=>{ try{ return pickedOpts(p)||{}; }catch(e){ return {}; } })()) : finalPrice(p);
@@ -3601,21 +3602,22 @@ async function contactWa(pid){ const p=P(pid), s=SEL(p.s); if(!isOfficial(p.s) &
 function registerModal(){
   openModal(`<div class="mpad"><img src="${$('.logo img').src}" alt="MER-K" style="height:40px;margin-bottom:10px"><h2>Crear cuenta</h2><p class="sub">¿Cómo quieres usar MER-K?</p>
     <div class="roles">
-      <button class="rolecard" onclick="registerForm('buyer')"><span>🛍️</span><b>Modo comprador</b><small>Habla directo con vendedores verificados por chat o WhatsApp.</small></button>
+      <button class="rolecard" onclick="registerForm('buyer')"><span>🛍️</span><b>Modo comprador</b><small>Crea tu cuenta gratis en un minuto y habla directo con las tiendas.</small></button>
       <button class="rolecard" onclick="registerForm('seller')"><span>🏪</span><b>Modo vendedor</b><small>Publica tus productos con un plan desde ${cop(planPrice('basico'))} al mes. Sin comisión por venta.</small></button>
-    </div><p class="note" style="margin:12px 0 0;text-align:center">Todos verifican su identidad con la cédula. Si empiezas como comprador, después puedes pasarte a vendedor pagando un plan.</p></div>`, true);
+    </div><p class="note" style="margin:12px 0 0;text-align:center">Si empiezas como comprador, después puedes pasarte a vendedor: eliges tu plan y verificamos tu identidad.</p></div>`, true);
 }
 function registerForm(role){
   const seller = role==='seller';
   openModal(`<div class="mpad"><h2>${seller?'Cuenta de vendedor':'Cuenta de comprador'}</h2>
-    <p class="sub">${seller?'Después de crear la cuenta subes la foto de tu cédula y tu RUT o NIT, y eliges tu plan.':'Después de crear la cuenta subes la foto de tu cédula para verificar tu identidad.'}</p>
+    <p class="sub">${seller?'Después de crear la cuenta subes la foto de tu cédula y tu RUT o NIT, y eliges tu plan.':'Solo necesitas tus datos básicos. Es gratis.'}</p>
     <form class="form" onsubmit="doRegister(event,'${role}')">
       ${seller?`<div class="row2"><label>Tipo de vendedor<select id="rType"><option>Persona natural</option><option>Empresa</option></select></label><label>Nombre de la tienda<input id="rShop" required maxlength="40"></label></div>`:''}
-      <div class="row2"><label>Nombre completo (como en la cédula)<input id="rName" required></label><label>Número de cédula<input id="rDoc" required inputmode="numeric" pattern="[0-9]{5,12}" title="Solo números"></label></div>
+      ${seller?`<div class="row2"><label>Nombre completo (como en la cédula)<input id="rName" required></label><label>Número de cédula<input id="rDoc" required inputmode="numeric" pattern="[0-9]{5,12}" title="Solo números"></label></div>`:`<label>Nombre completo<input id="rName" required></label>`}
       ${seller?`<label>Número de RUT o NIT<input id="rNit" required maxlength="15" placeholder="Si eres persona natural, normalmente es tu cédula"></label>`:''}
       <div class="row2"><label>Correo<input id="rEmail" type="email" required></label><label>Celular de WhatsApp<input id="rPhone" required inputmode="numeric" placeholder="3XX XXX XXXX"></label></div>
       <div class="row2"><label>Contraseña<input id="rPass" type="password" required minlength="8" placeholder="Mínimo 8 caracteres"></label><label>Repite la contraseña<input id="rPass2" type="password" required minlength="8"></label></div>
-      <div class="row2"><label>Dirección<input id="rDir" required placeholder="Calle, carrera, número, apto"></label><label>Ciudad o municipio<select id="rCity" ${otherToggle('rCity','rCityO')}>${cityOptions(S.loc)}</select><input id="rCityO" placeholder="Escribe tu municipio" style="display:none"></label></div>
+      <div class="row2">${seller?'<label>Dirección<input id="rDir" required placeholder="Calle, carrera, número, apto"></label>':''}<label>Ciudad o municipio<select id="rCity" ${otherToggle('rCity','rCityO')}>${cityOptions(S.loc)}</select><input id="rCityO" placeholder="Escribe tu municipio" style="display:none"></label></div>
+      <label class="check"><input type="checkbox" id="rMkt"> <span>Quiero recibir promociones y novedades de MER-K en mi correo (opcional)</span></label>
       <label class="check"><input type="checkbox" id="rTerms" required> <span>Acepto los <a href="#terminos" target="_blank">términos y condiciones</a> y la <a href="#privacidad" target="_blank">política de tratamiento de datos</a> de MER-K</span></label>
       ${seller?physFields('r',null):''}
       ${seller?'<label class="check"><input type="checkbox" required> <span>Entiendo que para vender necesito un plan pago y que la negociación, el pago y la entrega los acuerdo directamente con cada comprador</span></label>':''}
@@ -3628,9 +3630,9 @@ function readRegister(role){
   if(!validPhone(phone)) throw 'El celular debe tener 10 dígitos y empezar por 3.';
   if(pass.length<8) throw 'La contraseña debe tener mínimo 8 caracteres.';
   if(pass!==$('#rPass2').value) throw 'Las contraseñas no coinciden.';
-  const name=$('#rName').value.trim(), doc=$('#rDoc').value.trim(), dir=$('#rDir').value.trim(), city=readCity('rCity','rCityO');
+  const name=$('#rName').value.trim(), doc=$('#rDoc')?$('#rDoc').value.trim():'', dir=$('#rDir')?$('#rDir').value.trim():'', city=readCity('rCity','rCityO');
   if(!city) throw 'Escribe tu municipio.';
-  const d={role, email, phone, pass, name, doc, dir, city};
+  const d={role, email, phone, pass, name, doc, dir, city, mkt:!!($('#rMkt')&&$('#rMkt').checked)};
   if(role==='seller'){ d.shop=$('#rShop').value.trim(); d.type=$('#rType').value; d.nit=$('#rNit').value.trim();
     const r=check(d.shop); if(!r.ok) throw 'El nombre de la tienda no puede tener datos de contacto ('+r.reason+').'; d.physical=readPhys('r'); }
   return d;
@@ -3640,24 +3642,25 @@ function doRegister(e, role){ e.preventDefault(); const err=t=>{ const el=$('#rE
   if(S.users.some(u=>u.email===d.email)) return err('Ya existe una cuenta con ese correo.');
   let key;
   if(role==='buyer'){ key='b'+(S.nextBuyer++);
-    S.buyers[key]={name:d.name, email:d.email, phone:d.phone, doc:d.doc, address:d.dir, city:d.city, verify:'sin_enviar', warnings:0, status:'activa', addresses:[{id:Date.now(), alias:'Principal', name:d.name, dir:d.dir, city:d.city, notes:''}]};
+    S.buyers[key]={name:d.name, email:d.email, phone:d.phone, doc:'', address:'', city:d.city, mkt:d.mkt, verify:'sin_enviar', warnings:0, status:'activa', addresses:[]};
   } else { key='s'+(S.nextSeller++);
-    S.sellers[key]={name:d.shop, type:d.type, plan:'basico', sub:null, city:d.city, rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:d.name, email:d.email, phone:d.phone, doc:d.doc, nit:d.nit, addr:d.dir, address:d.dir, verify:'sin_enviar', bank:null, ship:{domFree:false, natFree:false}, store:d.physical?{physical:d.physical}:{}};
+    S.sellers[key]={name:d.shop, type:d.type, plan:'basico', sub:null, city:d.city, rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:d.name, email:d.email, phone:d.phone, doc:d.doc, nit:d.nit, addr:d.dir, address:d.dir, mkt:d.mkt, verify:'sin_enviar', bank:null, ship:{domFree:false, natFree:false}, store:d.physical?{physical:d.physical}:{}};
     notify('admin','Nuevo vendedor', `${d.shop} (${d.city}) se registró. Falta que suba documentos y pague su plan.`); }
   S.users.push({email:d.email, pass:h(d.pass), role, key}); save();
-  startSession(S.users[S.users.length-1]); toast('¡Cuenta creada! Ahora verifica tu identidad.'); setTimeout(verifyForm, 300);
+  startSession(S.users[S.users.length-1]);
+  if(role==='seller'){ toast('¡Cuenta creada! Ahora verifica tu identidad.'); setTimeout(verifyForm, 300); } else toast('¡Bienvenido a MER-K! Ya puedes escribirles a las tiendas.');
 }
 
 /* ---------- Comprador que quiere vender ---------- */
 function becomeSellerModal(){
-  openModal(`<div class="mpad"><h2>Abre tu tienda en MER-K</h2><p class="sub">Usas los mismos datos de tu cuenta. Después subes tu RUT o NIT y eliges tu plan (desde ${cop(planPrice('basico'))} al mes, sin comisión por venta).</p>
+  openModal(`<div class="mpad"><h2>Abre tu tienda en MER-K</h2><p class="sub">Usas los mismos datos de tu cuenta. Después eliges tu plan (desde ${cop(planPrice('basico'))} al mes, sin comisión por venta) y verificas tu identidad con tu cédula, una selfie y tu RUT o NIT.</p>
     <form class="form" onsubmit="doBecomeSeller(event)"><label>Nombre de tu tienda<input id="bsShop" required maxlength="40"></label>${physFields('b',null)}<button class="btn">Abrir mi tienda</button></form></div>`);
 }
 function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); const r=check(shop); if(!r.ok) return toast('El nombre no puede tener datos de contacto.');
   const s=me(), b=BUY(s.key), key='s'+(S.nextSeller++), u=S.users.find(x=>x.key===s.key);
   S.sellers[key]={name:shop, type:'Persona natural', plan:'basico', sub:null, city:b.city||'', rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:b.name, email:b.email, phone:b.phone, doc:b.doc, addr:b.address||'', address:b.address||'', verify:b.verify, idFront:b.idFront, idBack:b.idBack, selfie:b.selfie, ship:{}};
   let ph=null; try{ ph=readPhys('b'); }catch(x){ return toast(x); } if(ph) S.sellers[key].store={physical:ph};
-  if(u){ u.role='seller'; u.key=key; } S.session={role:'seller', key}; save(); closeModal(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
+  if(u){ u.role='seller'; u.key=key; } S.session={role:'seller', key}; save(); closeModal(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora verifica tu identidad y elige tu plan.'); render(); setTimeout(verifyForm, 400); }
 
 /* ---------- Planes (todos pagos, sin comisión) ---------- */
 function planCards(cur, act){
@@ -3700,7 +3703,7 @@ function adminResumen(){ const sel=Object.entries(S.sellers).filter(([k])=>k!==O
 /* ---------- Administración: verificaciones ---------- */
 function verifList(){ const rows=[];
   Object.entries(S.sellers).forEach(([k,a])=>{ if(k!==OFFICIAL) rows.push({k, role:'seller', a}); });
-  Object.entries(S.buyers).forEach(([k,a])=>{ if(a.role!=='admin') rows.push({k, role:'buyer', a}); });
+  Object.entries(S.buyers).forEach(([k,a])=>{ if(a.role!=='admin' && (a.verify==='revision'||a.verify==='rechazado')) rows.push({k, role:'buyer', a}); });
   const ord={revision:0, rechazado:1, sin_enviar:2, aprobado:3};
   return rows.sort((x,y)=>(ord[x.a.verify||'sin_enviar']-ord[y.a.verify||'sin_enviar']) || String(x.a.name).localeCompare(y.a.name)); }
 const verifPending = () => verifList().filter(r=>r.a.verify==='revision').length;
@@ -3712,7 +3715,7 @@ function adminVerifTab(){
   const f=S.ui.verifF||'pend', rows=verifList().filter(r=>f==='todas' || (f==='pend' ? r.a.verify==='revision' : (r.a.verify||'sin_enviar')===f));
   const chip=(k,l,n)=>`<button class="chip ${f===k?'on':''}" onclick="S.ui.verifF='${k}';render()">${l}${n!=null?' ('+n+')':''}</button>`;
   setTimeout(hydrateDocs, 30);
-  return `<div class="panel"><h3>🪪 Verificaciones</h3><p class="note" style="margin-top:-6px">Revisa que el nombre y el número de la cédula coincidan con los datos de la cuenta, que las fotos se lean bien y que la cara de la selfie sea la misma de la cédula. A los vendedores revísales también el RUT o el NIT (y la Cámara de Comercio si son empresa). Solo después de aprobar pueden escribir a vendedores y, si tienen plan, vender.</p>
+  return `<div class="panel"><h3>🪪 Verificaciones</h3><p class="note" style="margin-top:-6px">Revisa que el nombre y el número de la cédula coincidan con los datos de la cuenta, que las fotos se lean bien y que la cara de la selfie sea la misma de la cédula. A los vendedores revísales también el RUT o el NIT (y la Cámara de Comercio si son empresa). Los compradores no necesitan verificarse: esto es solo para quienes quieren vender. Cuando apruebas una cuenta y tiene plan al día, sus productos empiezan a mostrarse.</p>
     <div class="chips" style="margin:8px 0 14px">${chip('pend','Por revisar',verifPending())}${chip('rechazado','Por corregir')}${chip('sin_enviar','Sin enviar')}${chip('aprobado','Aprobadas')}${chip('todas','Todas')}</div>
     ${rows.length?rows.map(({k,role,a})=>`<div class="vrow"><div class="vinfo"><b>${esc(role==='seller'?a.owner||a.name:a.name)}</b> ${verifyBadge(a.verify||'sin_enviar')}<br>
         <span class="note">${role==='seller'?'🏪 Vendedor · '+esc(a.type||'Persona natural')+' · '+esc(a.name)+' · Plan '+(effPlan(k)!=='ninguno'?PLAN_INFO[a.plan].name:'sin pagar'):'🛍️ Comprador'}<br>Cédula <b>${esc(a.doc||'—')}</b>${role==='seller'?' · RUT/NIT <b>'+esc(a.nit||'—')+'</b>':''} · ${esc(a.phone||'')} · ${esc(a.email||'')}<br>${esc(a.address||a.addr||'')}${a.city?', '+esc(a.city):''}</span>
@@ -3743,11 +3746,12 @@ function migrateClasif(){
   if(bks[1]){ const b=S.buyers[bks[1]]; b.verify='revision'; b.idFront=b.idFront||'demo'; b.idBack=b.idBack||'demo'; b.selfie=b.selfie||'demo'; b.doc=b.doc||'1036998877'; }
   if(S.sellers[OFFICIAL]) S.sellers[OFFICIAL].waStore='3332475844';
   if(S.sellers.s2){ S.sellers.s2.store=Object.assign({}, S.sellers.s2.store, {physical:{addr:'Cra. 7 # 72-10, local 3', city:'Bogotá', hours:'Lunes a sábado, 9 a. m. a 7 p. m.'}}); }
+  Object.values(S.buyers).forEach((b,i)=>{ if(b.role!=='admin') b.mkt = i%2===0; }); Object.entries(S.sellers).forEach(([k,x])=>{ if(k!==OFFICIAL) x.mkt=true; });
   S.ui.adminTab='verif'; S.ui.buyTab='cuenta'; S.ui.sellTab='resumen';
   S.clasif=true; try{ save(); }catch(e){}
 }
 function normTabs(){
-  const A=['verif','resumen','planes','vendedores','compradores','productos','alertas','mensajes','publicidad','pqrs','soporte','config','perfil'];
+  const A=['verif','resumen','planes','vendedores','compradores','productos','alertas','mensajes','publicidad','correos','pqrs','soporte','config','perfil'];
   const B=['cuenta','mensajes','cupones','soporte'], SL=['resumen','productos','publicar','inventario','estadisticas','promos','tienda','mensajes','plan','cuenta','soporte','perfil'];
   if(!A.includes(S.ui.adminTab)) S.ui.adminTab='verif';
   if(!B.includes(S.ui.buyTab)) S.ui.buyTab='cuenta';
@@ -3766,7 +3770,8 @@ function viewTerminos(){
   <h3>1. ¿Qué es MER-K?</h3>
   <p>MER-K es una plataforma de <b>avisos clasificados</b> en línea: un espacio donde personas y empresas publican productos y donde los interesados las contactan. <b>MER-K no es el vendedor, no es dueño de los productos publicados, no recibe el dinero de las ventas y no hace las entregas.</b> La negociación, el precio final, el pago, la entrega, las garantías y las devoluciones se acuerdan directamente entre comprador y vendedor.</p>
   <h3>2. Registro y verificación de identidad</h3>
-  <ul><li>Para escribirles a los vendedores o para vender debes crear una cuenta con datos reales y verificar tu identidad: número y foto de tu cédula por los dos lados, una selfie sosteniendo la cédula, celular y dirección.</li>
+  <ul><li>Para escribirles a los vendedores basta con crear una cuenta gratis con datos reales: nombre, correo, celular y ciudad.</li>
+  <li>Para <b>vender</b> debes verificar tu identidad: número y foto de tu cédula por los dos lados, una selfie sosteniendo la cédula, celular y dirección.</li>
   <li>Los vendedores además deben registrar su <b>RUT de la DIAN o el NIT</b> con la foto del documento y, si son empresa, el <b>certificado de Cámara de Comercio</b>. Esto aplica también al comprador que se pasa a vendedor.</li>
   <li>MER-K revisa los documentos y aprueba o rechaza la cuenta. La verificación confirma que los datos corresponden a una persona o empresa real; <b>no es una garantía</b> sobre la calidad de los productos ni sobre el cumplimiento de cada usuario.</li>
   <li>Debes ser mayor de 18 años. Eres responsable de guardar tu contraseña y de todo lo que se haga con tu cuenta.</li></ul>
@@ -3781,7 +3786,7 @@ function viewTerminos(){
   <li>Si el vendedor es comerciante, debe cumplir el Estatuto del Consumidor (Ley 1480 de 2011): información clara, garantía legal y derecho de retracto en las ventas a distancia.</li>
   <li>MER-K puede ocultar o borrar publicaciones que incumplan estas reglas.</li></ul>
   <h3>5. Comunicación entre usuarios</h3>
-  <p>Comprador y vendedor pueden hablar por el chat de MER-K o por WhatsApp. El número de WhatsApp del vendedor solo se muestra a usuarios con identidad verificada. Está prohibido usar los datos de otros usuarios para fines distintos a la negociación, enviar publicidad no pedida, acosar o engañar.</p>
+  <p>Comprador y vendedor pueden hablar por el chat de MER-K o por WhatsApp. El número de WhatsApp del vendedor solo se muestra a usuarios con cuenta en MER-K. Está prohibido usar los datos de otros usuarios para fines distintos a la negociación, enviar publicidad no pedida, acosar o engañar.</p>
   <h3>6. Responsabilidad</h3>
   <p>Como MER-K no participa en la venta, no responde por el estado, la calidad, la entrega o la garantía de los productos, ni por los pagos que se hagan entre usuarios. Sí nos comprometemos a: verificar la identidad de quienes se registran, atender los reportes de usuarios por ${legalContact()}, y sancionar a quienes incumplan. Te recomendamos seguir los <a href="#retracto">consejos de compra segura</a>.</p>
   <h3>7. Sanciones</h3>
@@ -3795,19 +3800,21 @@ function viewPrivacidad(){
   return legalPage('privacidad','Política de privacidad y tratamiento de datos personales', `
   <p>En cumplimiento de la Ley 1581 de 2012 y el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015), ${legalWho()}, como <b>responsable del tratamiento</b>, informa cómo recolecta, usa y protege tus datos personales en <b>merkshopping.com</b>.</p>
   <h3>1. Datos que recolectamos</h3>
-  <ul><li><b>De todos los usuarios:</b> nombre, número de cédula, <b>fotos de la cédula por los dos lados y una selfie sosteniendo la cédula</b>, correo, celular de WhatsApp, dirección y ciudad.</li>
+  <ul><li><b>De todos los usuarios:</b> nombre, correo, celular de WhatsApp y ciudad.</li>
+  <li><b>De quienes quieren vender:</b> número de cédula, <b>fotos de la cédula por los dos lados y una selfie sosteniendo la cédula</b>, y dirección.</li>
   <li><b>De los vendedores, además:</b> nombre de la tienda, número de RUT o NIT, foto del RUT o del certificado del NIT, certificado de Cámara de Comercio si es empresa, y de forma opcional el WhatsApp y las redes sociales de la tienda (que se muestran en su tienda).</li>
   <li><b>Uso de la plataforma:</b> productos publicados, mensajes del chat de MER-K, pagos de planes, solicitudes de soporte y PQRS.</li>
   <li><b>Pagos de planes:</b> el estado y la referencia de la transacción. Los datos de tarjetas y cuentas los maneja directamente Wompi; MER-K no los ve ni los guarda.</li></ul>
-  <p><b>Dato sensible:</b> la foto de la cédula y la selfie incluyen tu imagen, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás escribir a vendedores ni vender. Solo la usamos para verificar que eres tú.</p>
+  <p><b>Dato sensible:</b> la foto de la cédula y la selfie incluyen tu imagen, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás vender. Solo la usamos para verificar que eres tú.</p>
   <h3>2. ¿Para qué usamos tus datos?</h3>
-  <ul><li>Crear y administrar tu cuenta y <b>verificar tu identidad</b> (y el RUT o NIT de los vendedores), para dar confianza a compradores y vendedores.</li>
-  <li>Permitir el contacto entre usuarios: cuando un usuario verificado toca “Escribir por WhatsApp”, le mostramos el número de WhatsApp del vendedor.</li>
+  <ul><li>Crear y administrar tu cuenta y, si vas a vender, <b>verificar tu identidad</b> y tu RUT o NIT, para dar confianza a los compradores.</li>
+  <li>Permitir el contacto entre usuarios: cuando un usuario con cuenta toca “Escribir por WhatsApp”, le mostramos el número de WhatsApp del vendedor.</li>
   <li>Cobrar los planes y la publicidad, y enviarte avisos (vencimientos, aprobaciones, mensajes) por la plataforma, correo o WhatsApp.</li>
+  <li>Enviarte promociones y novedades de MER-K por correo <b>solo si lo aceptaste</b>. Puedes darte de baja cuando quieras con el enlace que trae cada correo o desde tu cuenta.</li>
   <li>Atender soporte, peticiones, quejas, reclamos y reportes de fraude, y colaborar con las autoridades cuando lo pidan legalmente.</li>
   <li>Cumplir obligaciones legales, contables y tributarias.</li></ul>
   <h3>3. ¿Quién ve tus documentos?</h3>
-  <p>Las fotos de la cédula, la selfie, el RUT y la Cámara de Comercio se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios verificados, el WhatsApp del vendedor.</p>
+  <p>Las fotos de la cédula, la selfie, el RUT y la Cámara de Comercio se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios con cuenta, el WhatsApp del vendedor.</p>
   <h3>4. ¿Con quién compartimos tus datos?</h3>
   <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: la pasarela de pagos Wompi y nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos), que están obligados a protegerlos. No vendemos tus datos.</p>
   <h3>5. Tus derechos</h3>
@@ -3854,7 +3861,7 @@ function guiaSteps(pdf){ const L=S.cfg.limits||{};
     ['Elige y paga tu plan', plans+'<p style="margin:2mm 0 0">Lo pagas en <b>Mi plan</b> con Wompi (tarjeta, PSE, Nequi o Bancolombia). <b>MER-K no cobra comisión por venta:</b> todo lo que vendes es tuyo.</p>'],
     ['Publica tus productos', '<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca. Si vendes varios pesos, agrega una fila por peso con su precio.</li><li>Tus productos se muestran cuando tu cuenta está aprobada y tu plan al día.</li><li>En <b>Mi tienda → WhatsApp y redes sociales</b> pon tu WhatsApp, Instagram, Facebook y TikTok para que te encuentren.</li></ol>'],
     ['Lo que no se puede vender', warn('🚫 Animales vivos · armas, municiones, pólvora o explosivos · pornografía o contenido sexual explícito · drogas y medicamentos con fórmula · productos falsificados, robados o de contrabando. Estas publicaciones se borran y la cuenta puede ser sancionada.')+tip('🔞 Los productos para adultos sí se pueden vender en la categoría <b>Adultos +18</b>, con fotos solo del producto (sin desnudos).')],
-    ['Cuando un comprador te escribe', '<ol><li>Te llega por el <b>chat de MER-K</b> (lo ves en <b>Mensajes</b>) o directo a tu <b>WhatsApp</b>. Solo pueden escribirte compradores con identidad verificada.</li><li>Responde rápido y acuerda con el comprador el precio final, la forma de pago y la entrega (en persona, domicilio o transportadora).</li><li>Confirma que el pago llegó a tu cuenta antes de entregar o enviar.</li></ol>'+tip('💡 El dinero de la venta te llega directo a ti: MER-K no lo recibe ni lo retiene.')],
+    ['Cuando un comprador te escribe', '<ol><li>Te llega por el <b>chat de MER-K</b> (lo ves en <b>Mensajes</b>) o directo a tu <b>WhatsApp</b>. Solo pueden escribirte personas con cuenta en MER-K.</li><li>Responde rápido y acuerda con el comprador el precio final, la forma de pago y la entrega (en persona, domicilio o transportadora).</li><li>Confirma que el pago llegó a tu cuenta antes de entregar o enviar.</li></ol>'+tip('💡 El dinero de la venta te llega directo a ti: MER-K no lo recibe ni lo retiene.')],
     ['Reglas importantes', '<ul><li>Publica solo productos reales, con fotos y precios verdaderos.</li><li>Trata bien a los compradores y cumple lo que acuerdas.</li><li>Si eres comerciante, das la garantía legal de tus productos (Ley 1480 de 2011).</li><li>Si incumples, MER-K puede suspender o bloquear tu cuenta.</li></ul>'],
     ['¿Necesitas ayuda?', 'Escríbenos desde la pestaña <b>Soporte</b> de tu panel o por el formulario de <b>PQRS</b> en merkshopping.com. ¡Estamos para ayudarte a vender más! 💜']
   ];
@@ -3889,7 +3896,7 @@ function gate(role){
   if(role==='seller' && isRole('buyer')) return `<div class="panel" style="text-align:center;padding:34px 20px;max-width:1100px;margin:24px auto"><div style="font-size:42px">🏪</div><h2>Pásate a modo vendedor</h2>
     <p class="sub">Abre tu tienda con los mismos datos de tu cuenta. Solo pagas tu plan: <b>MER-K no cobra comisión por venta</b>.</p>
     ${planCards(null, k=>`<button class="btn ${k==='pro'?'lav':''}" onclick="becomeSellerModal()">Empezar con ${PLAN_INFO[k].name}</button>`)}
-    <p class="note" style="margin-top:14px">Después de abrir tu tienda subes tu RUT o NIT, MER-K lo revisa y pagas el plan que elijas.</p></div>`;
+    <p class="note" style="margin-top:14px">Después de abrir tu tienda pagas el plan que elijas y subes tus documentos (cédula, selfie y RUT o NIT). MER-K los revisa y tus productos empiezan a mostrarse.</p></div>`;
   const what = {buyer:'tu cuenta', seller:'tu tienda', admin:'la administración'}[role];
   return `<div class="panel" style="text-align:center;padding:40px 20px;max-width:560px;margin:30px auto"><h2>Inicia sesión</h2><p class="sub">Para ver ${what} necesitas entrar con tu cuenta${role==='admin'?' de administrador':''}.</p>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn" onclick="loginModal()">Iniciar sesión</button>${role==='admin'?'':`<button class="btn ghost" onclick="registerForm('${role}')">Crear cuenta en modo ${role==='seller'?'vendedor':'comprador'}</button>`}</div></div>`;
@@ -3910,7 +3917,7 @@ function socialLinks(sk, withWa){
 }
 function socialPanel(sk){ const s=SEL(sk), so=socialOf(sk), wa = s.waStore || s.phone || '';
   return `<form class="panel form" onsubmit="saveSocial(event)"><h3>📱 WhatsApp, redes y punto físico</h3>
-    <p class="note" style="margin-top:-6px">Así los compradores te encuentran. El WhatsApp solo se lo mostramos a compradores con identidad verificada; las redes las ve cualquiera en tu tienda.</p>
+    <p class="note" style="margin-top:-6px">Así los compradores te encuentran. El WhatsApp se lo mostramos a los compradores que tienen cuenta en MER-K; las redes las ve cualquiera en tu tienda.</p>
     <div class="row2"><label>WhatsApp de la tienda<input id="soWa" inputmode="numeric" placeholder="3XX XXX XXXX" value="${esc(wa)}"></label><label>Instagram<input id="soIg" placeholder="@mitienda" value="${esc(so.ig?'@'+so.ig:'')}"></label></div>
     <div class="row2"><label>Facebook (enlace de tu página)<input id="soFb" placeholder="facebook.com/mitienda" value="${esc(so.fb)}"></label><label>TikTok<input id="soTt" placeholder="@mitienda" value="${esc(so.tt?'@'+so.tt:'')}"></label></div>
     <label>Página web<input id="soWeb" placeholder="www.mitienda.com" value="${esc(so.web)}"></label>
@@ -3968,6 +3975,44 @@ function doCourtesy(k){ const s=SEL(k), plan=$('#ctPlan').value, months=+$('#ctM
   S.subPays.unshift({sk:k, plan, amount:0, date:now(), ts:T(), ref:'Cortesía'+(note?' · '+note:''), how:'cortesia'});
   notify(k, '🎁 ¡MER-K te regaló tu plan!', `Tienes el plan ${PLAN_INFO[plan].name} gratis por ${months} ${months===1?'mes':'meses'}, activo hasta el ${fdate(s.sub.due)}. ¡Éxitos con tus ventas!`);
   save(); closeModal(); toast(`Cortesía dada: ${PLAN_INFO[plan].name} por ${months} ${months===1?'mes':'meses'}.`); render(); }
+
+/* ---------- Correos de promoción (publicidad por correo) ---------- */
+function mktOn(){ return !!(acctOfMe()||{}).mkt; }
+function setMkt(v){ const a=acctOfMe(); if(a){ a.mkt=v; save(); } toast(v?'Listo: te enviaremos promociones y novedades.':'Listo: ya no te enviaremos promociones.'); render(); }
+function mktPanel(){ const on=mktOn();
+  return `<div class="panel"><h3>📬 Promociones por correo</h3><p class="note" style="margin-top:-6px">${on?'Recibes ofertas y novedades de MER-K en tu correo.':'No recibes promociones. Los avisos importantes de tu cuenta te siguen llegando.'}</p>
+    <button class="btn ${on?'ghost':''} sm" onclick="setMkt(${!on})">${on?'Ya no quiero recibir promociones':'Quiero recibir promociones'}</button></div>`; }
+function promoCount(aud){ const L=[...Object.values(S.buyers).filter(b=>b.role!=='admin').map(b=>({r:'buyer',a:b})), ...Object.entries(S.sellers).filter(([k])=>k!==OFFICIAL).map(([k,a])=>({r:'seller',a}))];
+  return L.filter(x=>x.a.mkt && (aud==='todos' || (aud==='compradores'&&x.r==='buyer') || (aud==='vendedores'&&x.r==='seller'))).length; }
+function readPromo(){ const subject=$('#pmSubj').value.trim(), body=$('#pmBody').value.trim();
+  if(!subject || !body) throw 'Escribe el asunto y el mensaje.';
+  let url=$('#pmUrl').value.trim(); if(url && !/^https?:\/\//i.test(url)) url='https://'+url;
+  return {subject, title:$('#pmTitle').value.trim(), body, btn:$('#pmBtn').value.trim()||'Ver en MER-K', url:url||'https://merkshopping.com', audience:$('#pmAud').value}; }
+async function sendPromo(e){ e.preventDefault(); let d; try{ d=readPromo(); }catch(x){ return toast(x); }
+  const n=promoCount(d.audience); if(!n) return toast('Nadie de ese grupo ha aceptado recibir promociones todavía.');
+  if(!confirm(`¿Enviar "${d.subject}" a ${n} persona${n>1?'s':''}?`)) return;
+  (S.promoCampaigns=S.promoCampaigns||[]).unshift({subject:d.subject, audience:d.audience, sent_count:n, created_at:new Date().toISOString()});
+  save(); toast(`Promoción enviada a ${n} persona${n>1?'s':''} (demo).`); render(); }
+function promoPreview(){ let d; try{ d=readPromo(); }catch(x){ return toast(x); }
+  const e=t=>esc(t).replace(/\n/g,'<br>');
+  openModal(`<div class="mpad"><p class="note" style="margin:0 0 6px">Asunto: <b>${esc(d.subject)}</b></p><div style="background:#EAF3FF;padding:18px 10px;border-radius:14px"><div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #DCE7F7;overflow:hidden">
+    <div style="padding:20px;text-align:center"><img src="${$('.logo img').src}" alt="MER-K" style="height:44px"></div>
+    <div style="padding:4px 24px 20px;color:#011E58;line-height:1.55"><h2 style="margin:6px 0 10px;font-size:21px">${e(d.title||d.subject)}</h2><p>Hola Laura,</p><p>${e(d.body)}</p>
+    <p style="text-align:center;margin:18px 0 4px"><span class="btn">${esc(d.btn)}</span></p></div>
+    <div style="background:#F5F9FF;color:#4A5878;font-size:12px;text-align:center;padding:12px">MER-K · Compra y vende · merkshopping.com<br><u>Ya no quiero recibir promociones</u></div></div></div></div>`, true); }
+function adminPromoTab(){
+  if(LIVE && !S._promoLoaded){ S._promoLoaded=true; Promise.all(['todos','compradores','vendedores'].map(a=>promoCount(a))).then(r=>{ S._promoN=r; return api.sel('promo_campaigns', {order:'id', limit:20}).catch(()=>[]); }).then(c=>{ S.promoCampaigns=c||[]; render(); }); }
+  const N = LIVE ? (S._promoN||['…','…','…']) : ['todos','compradores','vendedores'].map(promoCount);
+  const camps=S.promoCampaigns||[], audName={todos:'Todos',compradores:'Compradores',vendedores:'Vendedores'};
+  return `<form class="panel form" onsubmit="sendPromo(event)"><h3>📣 Enviar promoción por correo</h3>
+    <p class="note" style="margin-top:-6px">Solo les llega a quienes aceptaron recibir promociones (${N[0]} personas: ${N[1]} compradores y ${N[2]} vendedores). Cada correo trae un enlace para darse de baja. Salen poco a poco: máximo 450 correos al día, por el límite de Gmail.</p>
+    <div class="row2"><label>Asunto del correo<input id="pmSubj" required maxlength="90" placeholder="Ej: 🔥 Ofertas de fin de semana en MER-K"></label><label>¿A quién?<select id="pmAud"><option value="todos">Todos (${N[0]})</option><option value="compradores">Solo compradores (${N[1]})</option><option value="vendedores">Solo vendedores (${N[2]})</option></select></label></div>
+    <label>Título dentro del correo<input id="pmTitle" maxlength="90" placeholder="Ej: Descuentos en todas las tiendas"></label>
+    <label>Mensaje<textarea id="pmBody" rows="5" required maxlength="1500" placeholder="Escribe aquí tu promoción…"></textarea></label>
+    <div class="row2"><label>Texto del botón<input id="pmBtn" maxlength="30" placeholder="Ver ofertas"></label><label>Enlace del botón<input id="pmUrl" placeholder="https://merkshopping.com"></label></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost" onclick="promoPreview()">👀 Ver cómo queda</button><button class="btn">Enviar promoción</button></div></form>
+    <div class="panel"><h3>Promociones enviadas</h3>${camps.length?`<div class="tw"><table><thead><tr><th>Fecha</th><th>Asunto</th><th>Para</th><th>Personas</th></tr></thead><tbody>${camps.map(c=>`<tr><td>${new Date(c.created_at).toLocaleDateString('es-CO')}</td><td>${esc(c.subject)}</td><td>${audName[c.audience]||c.audience}</td><td>${c.sent_count}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Todavía no has enviado promociones.</p>'}</div>`;
+}
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -4518,7 +4563,9 @@ async function boot(){
   if(/access_token|type=|message=|error_description=/.test(location.hash)) history.replaceState(null, '', location.pathname + (PROFILE?.role==='seller' ? '#vender' : '#inicio'));
   if(/confirm link sent to the other email/i.test(authMsg)) openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">✉️</div><h2>Te falta un paso</h2><p class="sub">Ya confirmaste uno de los enlaces. Por seguridad, abre también el enlace que te llegó a tu <b>otro correo</b> (el anterior o el nuevo) para terminar el cambio.</p><button class="btn" onclick="closeModal()">Entendido</button></div>`, true);
   else if(EMAIL_UPDATED) toast('✅ Tu correo quedó actualizado: '+(ME?.email||''));
-  if(recovering) newPasswordModal();
+  const baja = new URLSearchParams(location.search).get('baja');
+  if(baja){ history.replaceState(null,'',location.pathname+'#inicio'); unsubscribeFromLink(baja); }
+  else if(recovering) newPasswordModal();
   else if(!S.locAsked && !new URLSearchParams(location.search).get('id')) setTimeout(()=>askLocation(), 400);
   wompiReturn();
   let tmr=null; api.live(()=>{ clearTimeout(tmr); tmr=setTimeout(async()=>{ const before=S.notifs.filter(n=>!n.read).length; await loadAll();
@@ -4576,13 +4623,14 @@ async function doRegister(e, role){
   e.preventDefault(); const err=t=>{ const el=$('#rErr'); el.textContent=t; el.style.display='block'; };
   let d; try{ d=readRegister(role); }catch(x){ return err(x); }
   const meta = {role, name:d.name, phone:d.phone, doc:d.doc, address:d.dir, city:d.city, terms_accepted_at:new Date().toISOString(), terms_version:LEGAL_DATE};
+  meta.mkt = !!d.mkt;
   if(role==='seller') Object.assign(meta, {store_name:d.shop, seller_type:d.type, nit:d.nit, physical:d.physical||null});
   const btn = e.target.querySelector('button.btn:last-child'); if(btn){ btn.disabled = true; btn.textContent = 'Creando…'; }
   try{
     const r = await api.auth.signUp(d.email, d.pass, meta);
     if(r.user && Array.isArray(r.user.identities) && !r.user.identities.length) return err('Ya existe una cuenta con ese correo.');
-    if(r.session){ $('#scrim').classList.remove('open'); await setUser(r.user); location.hash = role==='seller' ? '#vender' : '#compras'; toast('¡Cuenta creada! Ahora verifica tu identidad.'); render(); setTimeout(verifyForm, 400); }
-    else openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo</h2><p class="sub">Te enviamos un enlace a <b>${esc(d.email)}</b>. Ábrelo para activar tu cuenta y luego inicia sesión.</p><p class="note">Después de entrar te pedimos la foto de tu cédula${role==='seller'?' y tu RUT o NIT':''} para verificar tu identidad. Si no ves el correo, revisa spam o promociones.</p><button class="btn" onclick="loginModal()">Ya lo confirmé, iniciar sesión</button></div>`);
+    if(r.session){ $('#scrim').classList.remove('open'); await setUser(r.user); location.hash = role==='seller' ? '#vender' : '#inicio'; render(); if(role==='seller'){ toast('¡Cuenta creada! Ahora verifica tu identidad.'); setTimeout(verifyForm, 400); } else toast('¡Bienvenido a MER-K! Ya puedes escribirles a las tiendas.'); }
+    else openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">📩</div><h2>Confirma tu correo</h2><p class="sub">Te enviamos un enlace a <b>${esc(d.email)}</b>. Ábrelo para activar tu cuenta y luego inicia sesión.</p><p class="note">${role==='seller'?'Después de entrar te pedimos la foto de tu cédula, una selfie y tu RUT o NIT para verificar tu identidad. ':''}Si no ves el correo, revisa spam o promociones.</p><button class="btn" onclick="loginModal()">Ya lo confirmé, iniciar sesión</button></div>`);
   }catch(x){ err(friendly(x)); }
   finally{ if(btn){ btn.disabled = false; btn.textContent = 'Crear cuenta'; } }
 }
@@ -4603,11 +4651,10 @@ async function adminVerifyAcct(role, k, ok){ let note='';
   await act(()=>api.rpc('admin_verify', {uid:k, ok, note}), ok?'Cuenta aprobada. Le avisamos.':'Le pedimos la corrección.', {close:false}); }
 async function hydrateDocs(){ for(const im of document.querySelectorAll('img[data-doc]')){ const path=im.getAttribute('data-doc'); im.removeAttribute('data-doc'); try{ im.src = await api.signed('documentos', path); }catch(e){} } }
 async function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); if(!shop) return; let ph=null; try{ ph=readPhys('b'); }catch(x){ return toast(x); }
-  try{ await api.rpc('become_seller', {p_store:shop}); if(ph) await api.upd('sellers', {store:{physical:ph}}, {id:ME.id}); closeModal(); await setUser(ME); await reload(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
+  try{ await api.rpc('become_seller', {p_store:shop}); if(ph) await api.upd('sellers', {store:{physical:ph}}, {id:ME.id}); closeModal(); await setUser(ME); await reload(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora verifica tu identidad y elige tu plan.'); render(); setTimeout(verifyForm, 400); }
   catch(x){ toast(friendly(x)); } }
 async function sendMsg(text){
   text = String(text||'').trim(); if(!text) return;
-  if(chatKey[0]==='p' && isRole('buyer') && myVerify()!=='aprobado' && !isOfficial(chatInfo(chatKey).sk)){ verifyNeeded('chat'); return; }
   const acc = isRole('buyer') ? BUY(me().key) : isRole('seller') ? SEL(me().key) : null;
   if(acc && acc.status!=='activa'){ toast('Tu cuenta está '+acc.status+'. No puedes enviar mensajes.'); return; }
   if(isRole('admin')) waAlertForChat(chatKey);
@@ -4621,6 +4668,20 @@ async function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }c
 
 async function doCourtesy(k){ const plan=$('#ctPlan').value, months=+$('#ctMonths').value, note=$('#ctNote').value.trim();
   await act(()=>api.rpc('admin_courtesy', {sid:k, new_plan:plan, months, note}), `Cortesía dada: ${PLAN_INFO[plan].name} por ${months} ${months===1?'mes':'meses'}.`); }
+
+/* ---------- Correos de promoción ---------- */
+async function unsubscribeFromLink(tok){
+  let ok=false; try{ ok = await api.rpc('unsubscribe_promos', {tok}); }catch(e){}
+  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:44px">📭</div><h2>${ok?'Listo, ya no te enviaremos promociones':'No encontramos tu suscripción'}</h2><p class="sub">${ok?'Seguirás recibiendo solo los avisos importantes de tu cuenta. Si cambias de opinión, puedes activarlas de nuevo en tu cuenta.':'Es posible que ya te hayas dado de baja antes.'}</p><button class="btn" onclick="closeModal()">Entendido</button></div>`);
+}
+async function setMkt(v){ await act(async()=>{ await api.upd('profiles', {mkt_ok:v}, {id:ME.id}); if(PROFILE) PROFILE.mkt_ok=v; }, v?'Listo: te enviaremos promociones y novedades.':'Listo: ya no te enviaremos promociones.', {close:false}); }
+function mktOn(){ return !!(PROFILE && PROFILE.mkt_ok); }
+async function promoCount(aud){ try{ return await api.rpc('promo_audience_count', {audience:aud}); }catch(e){ return 0; } }
+async function sendPromo(e){ e.preventDefault(); let d; try{ d=readPromo(); }catch(x){ return toast(x); }
+  const n = await promoCount(d.audience); if(!n) return toast('Nadie de ese grupo ha aceptado recibir promociones todavía.');
+  if(!confirm(`¿Enviar "${d.subject}" a ${n} persona${n>1?'s':''}?`)) return;
+  await act(async()=>{ const sent = await api.rpc('admin_send_promo', {subj:d.subject, title:d.title, body:d.body, btn_text:d.btn, btn_url:d.url, audience:d.audience}); toast(`Promoción en cola para ${sent} persona${sent>1?'s':''}. Sale poco a poco (máx. 450 correos al día).`); }, '', {close:false});
+  try{ S.promoCampaigns = await api.sel('promo_campaigns', {order:'id', limit:20}) || []; }catch(e){} render(); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
