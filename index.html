@@ -1502,7 +1502,7 @@ function viewAdmin(){
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
     body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
       <td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)}</span></td><td>${PLAN_INFO[s.plan].name}</td><td>${s.plan==='gratis'?'$0':cop(planPrice(s.plan))}</td><td>${s.sub?fdate(s.sub.due):'—'}</td><td>${SUB_BADGE[st]||'<span class="badge lav">Gratis</span>'}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="btn sm" onclick="subPayForm('${k}')">${s.plan==='gratis'?'Activar plan pago':st==='suspendido'?'Registrar pago y reactivar':'Registrar pago'}</button>
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm" onclick="subPayForm('${k}')">${s.plan==='gratis'?'Activar plan pago':st==='suspendido'?'Registrar pago y reactivar':'Registrar pago'}</button> <button class="btn ghost sm" onclick="courtesyForm('${k}')">🎁 Cortesía</button>
         ${s.plan==='gratis'?'':`<button class="btn ghost sm" onclick="remindSub('${k}')">Enviar recordatorio</button>`}
         ${s.plan==='gratis'||st==='suspendido'?'':`<button class="btn bad sm" onclick="adminSuspend('${k}')">Desactivar plan</button>`}</td></tr>`;}).join('')}</table></div>`:'<p class="empty">Aún no hay vendedores con plan pago.</p>'}
       <p class="note" style="margin:12px 0 0">La página avisa sola: 5 días antes de vencer, el día que vence y cuando se desactiva (después de ${S.cfg.graceDays} días de gracia). Al desactivarse, los productos del vendedor se ocultan hasta que pague.</p></div>
@@ -3951,6 +3951,24 @@ function physBox(sk){ const p=physOf(sk); if(!p) return '';
 /* productos cerca de la ciudad elegida: primero */
 function nearCity(p){ const c=deacc(String((SEL(p.s)||{}).city||'').toLowerCase()), l=deacc(String(S.loc||'').toLowerCase()); return c && l && (c===l || c.includes(l) || l.includes(c)) ? 1 : 0; }
 
+/* ---------- Cortesía: regalar meses de plan (sin cobro) ---------- */
+function courtesyForm(k){ const s=SEL(k), cur=PAID.includes(s.plan)?s.plan:'pro';
+  openModal(`<div class="mpad"><h2>🎁 Dar cortesía</h2><p class="sub">${esc(s.name)} · Regálale meses de plan sin cobrarle. No cuenta como ingreso.</p>
+    <form class="form" onsubmit="event.preventDefault();doCourtesy('${k}')">
+    <div class="row2"><label>Plan<select id="ctPlan">${PAID.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${PLAN_INFO[p].name}</option>`).join('')}</select></label>
+    <label>¿Cuántos meses?<select id="ctMonths">${[1,2,3,4,5,6,9,12].map(m=>`<option value="${m}" ${m===3?'selected':''}>${m} ${m===1?'mes':'meses'}</option>`).join('')}</select></label></div>
+    <label>Nota (opcional, solo la ves tú)<input id="ctNote" maxlength="80" placeholder="Ej: cortesía para Laura por lanzamiento"></label>
+    <p class="note" style="margin:0">El plan queda activo desde hoy (o desde que vence el actual, si es el mismo plan) por los meses que elijas. Se muestran sus productos y le llega la notificación y el correo.</p>
+    <button class="btn">Dar cortesía</button></form></div>`, true); }
+function doCourtesy(k){ const s=SEL(k), plan=$('#ctPlan').value, months=+$('#ctMonths').value, note=$('#ctNote').value.trim();
+  const same = s.plan===plan && s.sub && !s.sub.suspended; s.plan=plan;
+  const from = same ? Math.max(s.sub.due, T()) : T();
+  s.sub = {due: from + months*30*DAY, suspended:false, r5:false, r0:false};
+  S.products.filter(p=>p.s===k && p.pausedByPlan).forEach(p=>{ p.paused=false; p.pausedByPlan=false; });
+  S.subPays.unshift({sk:k, plan, amount:0, date:now(), ts:T(), ref:'Cortesía'+(note?' · '+note:''), how:'cortesia'});
+  notify(k, '🎁 ¡MER-K te regaló tu plan!', `Tienes el plan ${PLAN_INFO[plan].name} gratis por ${months} ${months===1?'mes':'meses'}, activo hasta el ${fdate(s.sub.due)}. ¡Éxitos con tus ventas!`);
+  save(); closeModal(); toast(`Cortesía dada: ${PLAN_INFO[plan].name} por ${months} ${months===1?'mes':'meses'}.`); render(); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -4600,6 +4618,9 @@ async function sendMsg(text){
 async function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }catch(x){ return toast(x); }
   const sk=me().key, st=Object.assign({}, storeOf(sk), {social:d.social}); if(d.physical) st.physical=d.physical; else delete st.physical; delete st.slug;
   await act(async()=>{ await api.upd('sellers', {store:st}, {id:sk}); await api.upd('seller_private', {whatsapp:d.wa||null}, {seller_id:sk}); }, '¡Guardado! Ya se ven en tu tienda.', {close:false}); }
+
+async function doCourtesy(k){ const plan=$('#ctPlan').value, months=+$('#ctMonths').value, note=$('#ctNote').value.trim();
+  await act(()=>api.rpc('admin_courtesy', {sid:k, new_plan:plan, months, note}), `Cortesía dada: ${PLAN_INFO[plan].name} por ${months} ${months===1?'mes':'meses'}.`); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
