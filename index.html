@@ -11,6 +11,10 @@
 <meta property="og:title" content="MER-K · Compra, vende y recibe"><meta property="og:description" content="Compra y vende de todo en Colombia con tu dinero protegido.">
 <meta property="og:url" content="https://merkshopping.com/"><meta property="og:image" content="https://merkshopping.com/logo-completo.png">
 <meta name="theme-color" content="#4B63B6">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MER-K"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -486,6 +490,16 @@ input[readonly]{background:#f4f3f8;color:var(--ink2)}
 .vbadge i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;line-height:1}
 .vbadge.big{background:var(--blue-soft);padding:3px 9px 3px 4px;border-radius:999px;margin-left:6px}
 h2 .vbadge i{width:20px;height:20px;font-size:12px}
+
+.instchip{position:fixed;left:12px;right:12px;bottom:14px;z-index:60;max-width:460px;margin:0 auto;display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:10px 10px 10px 12px;box-shadow:0 10px 30px rgba(60,50,120,.18);animation:instup .35s ease}
+.instchip img{width:42px;height:42px;border-radius:11px;flex:none}
+.instchip div{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.instchip b{font-family:'Fredoka',sans-serif;color:var(--blue);font-size:15px}.instchip span{font-size:12.5px;color:var(--ink2)}
+.instchip .x{background:none;border:0;color:var(--ink2);font-size:15px;cursor:pointer;padding:6px}
+@keyframes instup{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.inststeps{display:flex;flex-direction:column;gap:8px;text-align:left;margin-top:12px}
+.inststeps div{display:flex;align-items:center;gap:10px;background:var(--blue-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.inststeps .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif}
 </style>
 </head>
 <body>
@@ -499,7 +513,7 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
   </div>
 </header>
 <main id="app"></main>
-<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><nav class="footlinks"><a href="#terminos">Términos y condiciones</a><a href="#privacidad">Política de privacidad y tratamiento de datos</a><a href="#retracto">Derecho de retracto y devoluciones</a><a href="#pqrs">PQRS</a><a href="#guia-vendedores">Guía para vendedores</a></nav><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
+<footer class="foot"><img src="logo-completo.png" alt="MER-K · Compra, vende y recibe"><nav class="footlinks"><a href="#terminos">Términos y condiciones</a><a href="#privacidad">Política de privacidad y tratamiento de datos</a><a href="#retracto">Derecho de retracto y devoluciones</a><a href="#pqrs">PQRS</a><a href="#guia-vendedores">Guía para vendedores</a><a href="javascript:installApp()">📲 Instalar la app</a></nav><p class="note">Hecho en Colombia 🇨🇴 · Pagos protegidos · Domicilios en Medellín y alrededores y envíos a todo el país</p></footer>
 <div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 <script>window.MERK_LIVE=true;</script>
@@ -3414,6 +3428,37 @@ function guiaPdf(){ let f=document.getElementById('printTmp'); if(f) f.remove();
   f.srcdoc=guiaDesignHtml(GUIA_FONTS);
   f.onload=()=>{ const go=()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Tu navegador no dejó abrir la impresión.'); } }; try{ const d=f.contentDocument; (d.fonts&&d.fonts.ready?d.fonts.ready:Promise.resolve()).then(()=>setTimeout(go,300)); }catch(e){ go(); } };
   toast('En la ventana que se abre, elige “Guardar como PDF”.'); }
+
+/* =================== APP INSTALABLE (PWA) =================== */
+let _bip=null;
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); _bip=e; showInstallChip(); });
+window.addEventListener('appinstalled', ()=>{ _bip=null; hideInstallChip(); try{ localStorage.setItem('merk-inst','1'); }catch(e){} toast('¡Listo! MER-K quedó instalada en tu celular.'); });
+function installApp(){
+  if(isStandalone()) return toast('Ya estás usando la app de MER-K 🎉');
+  if(_bip){ _bip.prompt(); _bip.userChoice.then(()=>{ _bip=null; hideInstallChip(); }); return; }
+  const ios=isIOS();
+  openModal(`<div class="mpad" style="text-align:center"><img src="${(document.querySelector('.logo img')||{}).src||''}" alt="MER-K" style="height:46px;margin:4px 0 10px"><h2>Instala MER-K en tu celular</h2>
+    <p class="sub">Te queda el ícono en la pantalla como cualquier app, sin ocupar espacio y sin pasar por la tienda de apps.</p>
+    <div class="inststeps">${ios?`<div><b class="n">1</b><span>Abre merkshopping.com en <b>Safari</b>.</span></div><div><b class="n">2</b><span>Toca el botón <b>Compartir</b> <span class="ico">⬆️</span> (abajo en el centro).</span></div><div><b class="n">3</b><span>Baja y toca <b>“Agregar a inicio”</b> ➕.</span></div><div><b class="n">4</b><span>Toca <b>Agregar</b>. ¡Listo!</span></div>`
+      :`<div><b class="n">1</b><span>Abre merkshopping.com en <b>Google Chrome</b>.</span></div><div><b class="n">2</b><span>Toca los <b>tres puntitos ⋮</b> de arriba a la derecha.</span></div><div><b class="n">3</b><span>Toca <b>“Instalar aplicación”</b> o <b>“Agregar a la pantalla principal”</b>.</span></div><div><b class="n">4</b><span>Toca <b>Instalar</b>. ¡Listo!</span></div>`}</div>
+    <button class="btn" style="margin-top:14px" onclick="closeModal()">Entendido</button></div>`);
+}
+function showInstallChip(){
+  if(isStandalone() || document.getElementById('instChip')) return;
+  try{ const k=+localStorage.getItem('merk-inst-x')||0; if(localStorage.getItem('merk-inst') || Date.now()-k < 7*864e5) return; }catch(e){}
+  const d=document.createElement('div'); d.id='instChip'; d.className='instchip';
+  d.innerHTML=`<img src="icon-192.png" alt=""><div><b>Instala la app de MER-K</b><span>Compra más rápido desde tu celular</span></div><button class="btn sm" onclick="installApp()">Instalar</button><button class="x" aria-label="Cerrar" onclick="dismissInstall()">✕</button>`;
+  document.body.appendChild(d);
+}
+function hideInstallChip(){ const d=document.getElementById('instChip'); if(d) d.remove(); }
+function dismissInstall(){ hideInstallChip(); try{ localStorage.setItem('merk-inst-x', Date.now()); }catch(e){} }
+if(window.MERK_LIVE && 'serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  // en iPhone no existe el aviso automático: mostramos el chip a los 20 segundos en móvil
+  if(isIOS()) setTimeout(()=>{ if(!isStandalone() && innerWidth<900) showInstallChip(); }, 20000);
+}
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
