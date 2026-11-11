@@ -968,13 +968,13 @@ function viewHome(){
   const featured = visibleProducts().filter(p=>!isAdult(p) && (isFeatured(p) || p.priority)).sort(byRank).slice(0,12);
   return `
   ${!q ? `<section class="hero">
-    <div><h1>Compra y vende de todo, con personas verificadas.</h1>
-    <p>Todos en MER-K verifican su identidad con la cédula. Encuentras lo que buscas y hablas directo con el vendedor por chat o WhatsApp.</p>
+    <div><h1>Compra y vende con confianza en toda Colombia.</h1>
+    <p>Encuentra productos de tiendas y emprendedores reales, habla directo con quien vende y acuerda tu compra de forma segura y sencilla.</p>
     ${me()?'':`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn" onclick="registerModal()">Crear cuenta</button><button class="btn ghost" onclick="loginModal()">Iniciar sesión</button><button class="btn pear" onclick="document.getElementById('planes').scrollIntoView({behavior:'smooth'})">¿Vendes? Mira los planes</button></div>`}</div>
     <div class="shield">
-      <div><b>🪪 Identidad verificada.</b> Compradores y vendedores con cédula revisada por MER-K.</div>
-      <div><b>🏪 Vendedores con RUT o NIT</b> y tienda registrada.</div>
-      <div><b>💬 Negocia directo</b> por el chat de MER-K o por WhatsApp.</div>
+      <div><b>🛡️ Comunidad confiable.</b> Nuestro equipo revisa cada cuenta antes de que pueda vender.</div>
+      <div><b>🤝 Trato directo.</b> Conversa con el vendedor por el chat de MER-K o por WhatsApp.</div>
+      <div><b>📈 Vende sin comisiones.</b> Publica tus productos y conserva el 100 % de cada venta.</div>
     </div></section>
   ${bannerHtml()}
   ${featured.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${featured.map(card).join('')}</div>`:''}
