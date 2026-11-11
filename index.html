@@ -481,6 +481,11 @@ input[readonly]{background:#f4f3f8;color:var(--ink2)}
 /* Compra agrupada */
 .pitems{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .pitem{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+
+.vbadge{display:inline-flex;align-items:center;gap:4px;margin-left:5px;vertical-align:middle;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;color:var(--blue);white-space:nowrap}
+.vbadge i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;line-height:1}
+.vbadge.big{background:var(--blue-soft);padding:3px 9px 3px 4px;border-radius:999px;margin-left:6px}
+h2 .vbadge i{width:20px;height:20px;font-size:12px}
 </style>
 </head>
 <body>
@@ -980,7 +985,7 @@ function card(p){
     <div class="cbody">${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}
       <div><span class="price">${fromTxt(p)}${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
       <div class="ptitle">${esc(p.t)}</div>${shipLine(p)}
-      ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
+      ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}${vBadge(p.s)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
 }
 function shipBox(p, city){
   const sh = shipping(p, city);
@@ -999,7 +1004,7 @@ function showProduct(id){
       ${pickerHtml(p)}
       <div class="shipbox"><b>Envío a ${esc(S.loc)}</b>${p.freeShip?'<span class="badge" style="justify-self:start">Envío gratis</span>':''}${shipBox(p, S.loc)}<a class="note" href="javascript:askLocation()">Cambiar ubicación</a></div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}${cps.length?`<div class="cpline">🎟️ Cupón de la tienda: ${cps.map(c=>`<b>${esc(c.code)}</b> (${couponLabel(c)})`).join(' · ')}</div>`:''}
-      <div class="seller"><div><b>${esc(s.name)}</b><br><span class="note">${ratingLine(p.s)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
+      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${ratingLine(p.s)} · ${s.sales} ventas · ${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
       <div class="protect"><b>Compra protegida:</b> tu pago queda en MER-K y tienes ${S.cfg.holdDays} días hábiles de garantía después de recibir.</div>
       <div class="buybtns"><button class="btn" onclick="buyNow(${p.id})">Comprar ahora</button><button class="btn lav" onclick="addToCart(${p.id})">🛒 Agregar y seguir comprando</button></div>
       <button class="btn ghost sm" style="justify-self:start" onclick="openChat('p${p.id}','b')">Preguntar al vendedor</button></div></div>`);
@@ -1231,7 +1236,7 @@ function viewSeller(){
           <p class="note" style="margin:0">Debe estar a nombre del vendedor. Solo MER-K la ve.</p><div><button class="btn">Guardar cuenta</button></div></form>`}</div>
       <div class="panel"><h3>Transferencias recibidas</h3>${pays.length?`<table><tr><th>Fecha</th><th>Valor</th><th>Comprobante</th></tr>${pays.map(x=>`<tr><td>${x.date}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div></div>`; }
   if(t==='plan') body = sk===OFFICIAL ? `<div class="panel"><h3>Tienda oficial</h3><ul>${PLAN_INFO.oficial.perks.map(x=>`<li>${x}</li>`).join('')}</ul></div>` : plansHtml(sk);
-  return `<h2>${esc(s.name)}</h2><div class="who">${planBadge(sk)} ${statusBadge(s.status)} <span class="note">${esc(s.city)}</span>
+  return `<h2>${esc(s.name)}${vBadge(sk)}</h2><div class="who">${planBadge(sk)} ${statusBadge(s.status)} <span class="note">${esc(s.city)}</span>
     <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="S.ui.sellTab='tienda';render()">🎨 Personalizar tienda</button><a class="btn ghost sm" style="text-decoration:none" href="${storeUrl(sk)}">Ver mi tienda</a><button class="btn ghost sm" onclick="S.ui.sellTab='soporte';render()">🛟 Soporte</button></span></div>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.sellTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
 }
@@ -1463,9 +1468,9 @@ function viewAdmin(){
       <p class="note" style="margin:12px 0 0">🏦 Cuando un vendedor cambia su cuenta bancaria, queda <b>sin verificar</b> y no se le puede transferir hasta que ustedes la revisen (pídanle el certificado bancario por Soporte).</p>
       <p class="note" style="margin:12px 0 0">Ustedes hacen la transferencia desde la cuenta bancaria de MER-K y aquí guardan el comprobante. El vendedor lo ve en su panel.</p></div>
       <div class="panel"><h3>Historial de transferencias</h3>${S.payouts.length?`<table><tr><th>Fecha</th><th>Vendedor</th><th>Valor</th><th>Comprobante</th></tr>${S.payouts.map(x=>`<tr><td>${x.date}</td><td>${esc(SEL(x.sk).name)}</td><td>${cop(x.amount)}</td><td class="note">${esc(x.ref)}</td></tr>`).join('')}</table>`:'<p class="empty">Aún no hay transferencias.</p>'}</div>`; }
-  if(t==='vendedores') body = `<div class="panel"><h3>Vendedores</h3><p class="note" style="margin-top:-6px">Con <b>⭐ Prioridad en búsquedas</b> los productos de una tienda Pro salen de primeras cuando la gente busca o mira una categoría. Si su plan Pro se vence, la prioridad se pausa sola.</p><div class="tw"><table><tr><th>Vendedor</th><th>Contacto (solo MER-K)</th><th>Plan</th><th>Prioridad en búsquedas</th><th>Advertencias</th><th>Estado</th><th></th></tr>
+  if(t==='vendedores') body = `<div class="panel"><h3>Vendedores</h3><p class="note" style="margin-top:-6px">Con <b>⭐ Prioridad en búsquedas</b> los productos de una tienda Pro salen de primeras cuando la gente busca o mira una categoría. Si su plan Pro se vence, la prioridad se pausa sola. Con <b>✔ Verificado</b> la tienda muestra la insignia azul de confianza en sus productos y en su tienda: dásela solo a tiendas que revisaste (datos reales, productos reales, buenas ventas).</p><div class="tw"><table><tr><th>Vendedor</th><th>Contacto (solo MER-K)</th><th>Plan</th><th>Prioridad en búsquedas</th><th>Verificado</th><th>Advertencias</th><th>Estado</th><th></th></tr>
     ${sellers.map(([k,s])=>`<tr><td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)} · ${esc(s.city)}</span></td><td class="note">${esc(s.email)}<br>${esc(s.phone)}<br>CC/NIT ${esc(s.doc)}</td><td>${planBadge(k)}<br><a class="note" href="${storeUrl(k)}">Ver tienda</a></td>
-      <td>${boostCell(k)}</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status, s.until)}</td>
+      <td>${boostCell(k)}</td><td>${verifyCell(k)}</td><td>${s.warnings} / 3</td><td>${statusBadge(s.status, s.until)}</td>
       <td style="text-align:right;white-space:nowrap">${k===OFFICIAL||s.deleted?'':`<button class="btn ghost sm" onclick="modUser('${k}')">⚙️ Sanciones</button>`}</td></tr>`).join('')}</table></div></div>`;
   if(t==='compradores') body = `<div class="panel"><h3>Compradores</h3><div class="tw"><table><tr><th>Comprador</th><th>Contacto (solo MER-K)</th><th>Pedidos</th><th>Advertencias</th><th>Estado</th><th></th></tr>
     ${Object.entries(S.buyers).map(([k,b])=>`<tr><td><b>${esc(b.name)}</b><br><span class="note">CC ${esc(b.doc)}</span></td><td class="note">${esc(b.email)}<br>${esc(b.phone)}</td><td>${S.orders.filter(o=>o.bk===k).length}</td><td>${b.warnings} / 3</td><td>${statusBadge(b.status, b.until)}</td>
@@ -1727,7 +1732,7 @@ function populateDemo(){
 
   // Mensualidades de los planes pagos
   const subAt=(k,paidDaysAgo,ref)=>{ at(paidDaysAgo); const s=SEL(k); s.sub={due:T()+30*DAY, suspended:false, r5:false, r0:false}; S.subPays.unshift({sk:k, plan:s.plan, amount:planPrice(s.plan), date:now(), ts:T(), ref, how:'vendedor'}); S.earnings.subs+=planPrice(s.plan); };
-  subAt('s2',28,'WOMPI-5521098'); SEL('s2').boost=true; subAt('s4',12,'WOMPI-5530117'); subAt('s3',32,'WOMPI-5519984');
+  subAt('s2',28,'WOMPI-5521098'); SEL('s2').boost=true; SEL('s2').verified=true; SEL('s1').verified=true; subAt('s4',12,'WOMPI-5530117'); subAt('s3',32,'WOMPI-5519984');
   // Tiendas personalizadas, cupones, visitas e inventario
   Object.assign(storeOf('of'), {slogan:'La tienda de los dueños de MER-K', about:'Productos seleccionados por el equipo de MER-K, con envío rápido en Medellín.', theme:'azul', notice:'Bienvenido a MER-K: usa el cupón BIENVENIDA en tu primera compra.', policy:'Cambios hasta 5 días hábiles después de recibir.', hours:'Lunes a sábado, 8 a. m. a 6 p. m.', slug:'mer-k-oficial'});
   Object.assign(storeOf('s2'), {slogan:'Detalles que hacen hogar', about:'Somos una tienda bogotana de decoración y menaje. Escogemos piezas hechas a mano por artesanos colombianos.', theme:'coral', notice:'¡Envío gratis a todo el país en toda la tienda!', policy:'Cambios hasta 8 días después de recibir, con el producto sin usar y en su empaque.', hours:'Lunes a viernes, 9 a. m. a 6 p. m.', slug:'casa-bonita'});
@@ -1853,7 +1858,7 @@ function viewStore(slug){
     ${mine?`<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px"><span class="note">Así ven los compradores tu tienda.</span><button class="btn sm" onclick="S.ui.sellTab='tienda';location.hash='#vender'">🎨 Personalizar tienda</button></div>`:''}
     <div class="sbanner" style="${adv&&st.banner?`background-image:url(${st.banner})`:''}"></div>
     <div class="shead"><div class="slogo" style="${cus&&st.logo?`background-image:url(${st.logo})`:''}">${cus&&st.logo?'':esc(initials(s.name))}</div>
-      <div class="sname"><h2>${esc(s.name)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div></div>
+      <div class="sname"><h2>${esc(s.name)}${vBadge(sk)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div></div>
       ${mine?'':`<button class="btn ${fol?'ghost':''}" onclick="toggleFollow('${sk}')">${fol?'✓ Siguiendo':'+ Seguir tienda'}</button>`}</div>
     <div class="sstats">
       <div><b>${r.n?r.avg.toFixed(1):'—'}</b>${r.n?stars(r.avg):'<span class="note">Tienda nueva</span>'}<span class="note">${r.n?r.n+' calificaciones':'Aún sin calificaciones'}</span></div>
@@ -2165,6 +2170,13 @@ function boostCell(k){
   return isBoosted(k) ? `<span class="badge lav">⭐ Activa</span><br><button class="btn ghost sm" style="margin-top:6px" onclick="adminBoost('${k}',false)">Quitar prioridad</button>`
                       : `<button class="btn sm" onclick="adminBoost('${k}',true)">⭐ Dar prioridad</button>`;
 }
+/* Insignia "Vendedor verificado" (la da la administración) */
+const isVerified = k => !!(S.sellers[k] && S.sellers[k].verified) && k!==OFFICIAL;
+function vBadge(k, big){ return isVerified(k) ? `<span class="vbadge${big?' big':''}" title="Vendedor verificado por MER-K"><i>✔</i>${big?' Vendedor verificado':''}</span>` : ''; }
+function verifyCell(k){ if(k===OFFICIAL) return '<span class="note">Tienda oficial</span>';
+  return isVerified(k) ? `<span class="vbadge big"><i>✔</i> Verificado</span><br><button class="btn ghost sm" style="margin-top:6px" onclick="adminVerify('${k}',false)">Quitar insignia</button>`
+                       : `<button class="btn sm" onclick="adminVerify('${k}',true)">✔ Verificar</button>`; }
+function adminVerify(k, on){ if(!on && !confirm('¿Quitarle la insignia de verificado a esta tienda?')) return; SEL(k).verified=on; if(on) notify(k,'✔ ¡Tu tienda está verificada!', 'MER-K revisó tu tienda y le dio la insignia de Vendedor verificado. Ahora tus productos y tu tienda muestran el chulito azul que da más confianza a los compradores.'); save(); toast(on?'Tienda verificada. Le avisamos al vendedor.':'Insignia quitada.'); render(); }
 function adminBoost(k, on){ SEL(k).boost=on; if(on) notify(k,'⭐ Tienes prioridad en las búsquedas', 'MER-K activó la prioridad para tu tienda: tus productos salen de primeras cuando la gente busca o mira tu categoría.'); save(); toast(on?'Prioridad activada.':'Prioridad quitada.'); render(); }
 
 /* ---------- Enlace de la tienda para compartir ---------- */
@@ -3479,7 +3491,7 @@ function mapSeller(r, prof, priv){
     bank: b ? {banco:b.banco, tipo:b.tipo, numero:b.numero, num: isRole('admin') ? (b.numero||'') : '•••• '+String(b.numero||'').slice(-4), titular:b.titular, doc:b.doc} : null,
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
-    storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
+    storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost, verified:!!r.verified, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
 }
 const mapAddr = a => ({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||'', phone:a.phone||'', barrio:a.barrio||''});
 function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, items:r.items||null, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
@@ -3995,6 +4007,8 @@ async function clientDelivered(id){ const os=hubFind(id).filter(o=>['despachado'
 async function receivedGroup(b){ const os=S.orders.filter(o=>isHub(o)&&o.ship.bundle===b&&['despachado','agendado'].includes(o.status));
   await act(async()=>{ for(const o of os) await api.rpc('buyer_received', {oid:o.id}); }, '¡Gracias! Tu garantía empezó a contar.'); }
 async function returnReceived(id){ const o=O(id); if(!confirm('¿El cliente ya devolvió el producto del pedido #'+o.id+' y llegó a MER-K?')) return; await act(()=>api.rpc('admin_return_received', {oid:id}), 'Listo. Le avisamos a la tienda.'); }
+
+async function adminVerify(k, on){ if(!on && !confirm('¿Quitarle la insignia de verificado a esta tienda?')) return; await act(()=>api.rpc('admin_set_verified', {sid:k, turn_on:on}), on?'Tienda verificada. Le avisamos al vendedor.':'Insignia quitada.', {close:false}); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
