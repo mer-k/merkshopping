@@ -524,6 +524,9 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
 .socs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .soc{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:var(--blue);background:var(--blue-soft);border:0;border-radius:999px;padding:5px 11px;text-decoration:none;cursor:pointer;font-family:inherit}
 .soc.wa{background:#25D366;color:#fff}.soc:hover{filter:brightness(.96)}
+
+.physbox{margin-top:8px;font-size:13px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:7px 11px;line-height:1.45}
+.physbox a{font-weight:800;color:var(--blue)}
 </style>
 </head>
 <body>
@@ -1044,7 +1047,7 @@ function showProduct(id){
       ${pickerHtml(p)}
       <div class="shipbox"><b>📍 ${esc(s.city||'Colombia')}</b>${p.freeShip?'<span class="badge" style="justify-self:start">El vendedor ofrece envío gratis</span>':''}<span class="note">La entrega (en persona, domicilio o transportadora) la acuerdas con el vendedor.</span></div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}
-      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}</div>${planBadge(p.s)}</div>
+      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}${physBox(p.s)}</div>${planBadge(p.s)}</div>
       ${contactBlock(p)}</div></div>`);
 }
 
@@ -1896,7 +1899,7 @@ function viewStore(slug){
     ${mine?`<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px"><span class="note">Así ven los compradores tu tienda.</span><button class="btn sm" onclick="S.ui.sellTab='tienda';location.hash='#vender'">🎨 Personalizar tienda</button></div>`:''}
     <div class="sbanner" style="${adv&&st.banner?`background-image:url(${st.banner})`:''}"></div>
     <div class="shead"><div class="slogo" style="${cus&&st.logo?`background-image:url(${st.logo})`:''}">${cus&&st.logo?'':esc(initials(s.name))}</div>
-      <div class="sname"><h2>${esc(s.name)}${vBadge(sk)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div>${mine?'':socialLinks(sk,true)}</div>
+      <div class="sname"><h2>${esc(s.name)}${vBadge(sk)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div>${mine?'':socialLinks(sk,true)}${physBox(sk)}</div>
       ${mine?'':`<button class="btn ${fol?'ghost':''}" onclick="toggleFollow('${sk}')">${fol?'✓ Siguiendo':'+ Seguir tienda'}</button>`}</div>
     <div class="sstats">
       <div><b>${r.n?r.avg.toFixed(1):'—'}</b>${r.n?stars(r.avg):'<span class="note">Tienda nueva</span>'}<span class="note">${r.n?r.n+' calificaciones':'Aún sin calificaciones'}</span></div>
@@ -3613,6 +3616,7 @@ function registerForm(role){
       <div class="row2"><label>Contraseña<input id="rPass" type="password" required minlength="8" placeholder="Mínimo 8 caracteres"></label><label>Repite la contraseña<input id="rPass2" type="password" required minlength="8"></label></div>
       <div class="row2"><label>Dirección<input id="rDir" required placeholder="Calle, carrera, número, apto"></label><label>Ciudad o municipio<select id="rCity" ${otherToggle('rCity','rCityO')}>${cityOptions(S.loc)}</select><input id="rCityO" placeholder="Escribe tu municipio" style="display:none"></label></div>
       <label class="check"><input type="checkbox" id="rTerms" required> <span>Acepto los <a href="#terminos" target="_blank">términos y condiciones</a> y la <a href="#privacidad" target="_blank">política de tratamiento de datos</a> de MER-K</span></label>
+      ${seller?physFields('r',null):''}
       ${seller?'<label class="check"><input type="checkbox" required> <span>Entiendo que para vender necesito un plan pago y que la negociación, el pago y la entrega los acuerdo directamente con cada comprador</span></label>':''}
       <p class="alert" id="rErr" style="display:none"></p>
       <div style="display:flex;gap:8px"><button type="button" class="btn ghost" onclick="registerModal()">Atrás</button><button class="btn">Crear cuenta</button></div></form></div>`);
@@ -3627,7 +3631,7 @@ function readRegister(role){
   if(!city) throw 'Escribe tu municipio.';
   const d={role, email, phone, pass, name, doc, dir, city};
   if(role==='seller'){ d.shop=$('#rShop').value.trim(); d.type=$('#rType').value; d.nit=$('#rNit').value.trim();
-    const r=check(d.shop); if(!r.ok) throw 'El nombre de la tienda no puede tener datos de contacto ('+r.reason+').'; }
+    const r=check(d.shop); if(!r.ok) throw 'El nombre de la tienda no puede tener datos de contacto ('+r.reason+').'; d.physical=readPhys('r'); }
   return d;
 }
 function doRegister(e, role){ e.preventDefault(); const err=t=>{ const el=$('#rErr'); el.textContent=t; el.style.display='block'; };
@@ -3637,7 +3641,7 @@ function doRegister(e, role){ e.preventDefault(); const err=t=>{ const el=$('#rE
   if(role==='buyer'){ key='b'+(S.nextBuyer++);
     S.buyers[key]={name:d.name, email:d.email, phone:d.phone, doc:d.doc, address:d.dir, city:d.city, verify:'sin_enviar', warnings:0, status:'activa', addresses:[{id:Date.now(), alias:'Principal', name:d.name, dir:d.dir, city:d.city, notes:''}]};
   } else { key='s'+(S.nextSeller++);
-    S.sellers[key]={name:d.shop, type:d.type, plan:'basico', sub:null, city:d.city, rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:d.name, email:d.email, phone:d.phone, doc:d.doc, nit:d.nit, addr:d.dir, address:d.dir, verify:'sin_enviar', bank:null, ship:{domFree:false, natFree:false}};
+    S.sellers[key]={name:d.shop, type:d.type, plan:'basico', sub:null, city:d.city, rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:d.name, email:d.email, phone:d.phone, doc:d.doc, nit:d.nit, addr:d.dir, address:d.dir, verify:'sin_enviar', bank:null, ship:{domFree:false, natFree:false}, store:d.physical?{physical:d.physical}:{}};
     notify('admin','Nuevo vendedor', `${d.shop} (${d.city}) se registró. Falta que suba documentos y pague su plan.`); }
   S.users.push({email:d.email, pass:h(d.pass), role, key}); save();
   startSession(S.users[S.users.length-1]); toast('¡Cuenta creada! Ahora verifica tu identidad.'); setTimeout(verifyForm, 300);
@@ -3646,11 +3650,12 @@ function doRegister(e, role){ e.preventDefault(); const err=t=>{ const el=$('#rE
 /* ---------- Comprador que quiere vender ---------- */
 function becomeSellerModal(){
   openModal(`<div class="mpad"><h2>Abre tu tienda en MER-K</h2><p class="sub">Usas los mismos datos de tu cuenta. Después subes tu RUT o NIT y eliges tu plan (desde ${cop(planPrice('basico'))} al mes, sin comisión por venta).</p>
-    <form class="form" onsubmit="doBecomeSeller(event)"><label>Nombre de tu tienda<input id="bsShop" required maxlength="40"></label><button class="btn">Abrir mi tienda</button></form></div>`);
+    <form class="form" onsubmit="doBecomeSeller(event)"><label>Nombre de tu tienda<input id="bsShop" required maxlength="40"></label>${physFields('b',null)}<button class="btn">Abrir mi tienda</button></form></div>`);
 }
 function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); const r=check(shop); if(!r.ok) return toast('El nombre no puede tener datos de contacto.');
   const s=me(), b=BUY(s.key), key='s'+(S.nextSeller++), u=S.users.find(x=>x.key===s.key);
   S.sellers[key]={name:shop, type:'Persona natural', plan:'basico', sub:null, city:b.city||'', rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:b.name, email:b.email, phone:b.phone, doc:b.doc, addr:b.address||'', address:b.address||'', verify:b.verify, idFront:b.idFront, idBack:b.idBack, selfie:b.selfie, ship:{}};
+  let ph=null; try{ ph=readPhys('b'); }catch(x){ return toast(x); } if(ph) S.sellers[key].store={physical:ph};
   if(u){ u.role='seller'; u.key=key; } S.session={role:'seller', key}; save(); closeModal(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
 
 /* ---------- Planes (todos pagos, sin comisión) ---------- */
@@ -3735,6 +3740,8 @@ function migrateClasif(){
     if(!s.sub) s.sub={due, suspended:false}; s.verify='aprobado'; s.rutPhoto=s.rutPhoto||'demo'; s.idFront=s.idFront||'demo'; s.idBack=s.idBack||'demo'; s.selfie=s.selfie||'demo'; s.waStore=s.waStore||s.phone; s.store=s.store||{}; if(k==='s1') s.store.social={ig:'tecnomed.co', fb:'', tt:'', web:''}; if(k==='s2') s.store.social={ig:'casabonita', fb:'https://facebook.com/casabonita', tt:'casabonita', web:''}; s.nit=s.nit||s.doc; s.address=s.address||s.addr; });
   const bks=Object.keys(S.buyers); bks.forEach((k,i)=>{ const b=S.buyers[k]; if(b.role==='admin') return; b.verify = i===0 ? 'aprobado' : (b.verify||'sin_enviar'); const a=(b.addresses||[])[0]; if(a){ b.address=b.address||a.dir; b.city=b.city||a.city; } if(i===0){ b.idFront='demo'; b.idBack='demo'; b.selfie='demo'; } });
   if(bks[1]){ const b=S.buyers[bks[1]]; b.verify='revision'; b.idFront=b.idFront||'demo'; b.idBack=b.idBack||'demo'; b.selfie=b.selfie||'demo'; b.doc=b.doc||'1036998877'; }
+  if(S.sellers[OFFICIAL]) S.sellers[OFFICIAL].waStore='3332475844';
+  if(S.sellers.s2){ S.sellers.s2.store=Object.assign({}, S.sellers.s2.store, {physical:{addr:'Cra. 7 # 72-10, local 3', city:'Bogotá', hours:'Lunes a sábado, 9 a. m. a 7 p. m.'}}); }
   S.ui.adminTab='verif'; S.ui.buyTab='cuenta'; S.ui.sellTab='resumen';
   S.clasif=true; try{ save(); }catch(e){}
 }
@@ -3901,11 +3908,12 @@ function socialLinks(sk, withWa){
   return L.length ? `<div class="socs">${L.join('')}</div>` : '';
 }
 function socialPanel(sk){ const s=SEL(sk), so=socialOf(sk), wa = s.waStore || s.phone || '';
-  return `<form class="panel form" onsubmit="saveSocial(event)"><h3>📱 WhatsApp y redes sociales</h3>
+  return `<form class="panel form" onsubmit="saveSocial(event)"><h3>📱 WhatsApp, redes y punto físico</h3>
     <p class="note" style="margin-top:-6px">Así los compradores te encuentran. El WhatsApp solo se lo mostramos a compradores con identidad verificada; las redes las ve cualquiera en tu tienda.</p>
     <div class="row2"><label>WhatsApp de la tienda<input id="soWa" inputmode="numeric" placeholder="3XX XXX XXXX" value="${esc(wa)}"></label><label>Instagram<input id="soIg" placeholder="@mitienda" value="${esc(so.ig?'@'+so.ig:'')}"></label></div>
     <div class="row2"><label>Facebook (enlace de tu página)<input id="soFb" placeholder="facebook.com/mitienda" value="${esc(so.fb)}"></label><label>TikTok<input id="soTt" placeholder="@mitienda" value="${esc(so.tt?'@'+so.tt:'')}"></label></div>
     <label>Página web<input id="soWeb" placeholder="www.mitienda.com" value="${esc(so.web)}"></label>
+    ${physFields('so', physOf(sk))}
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn">Guardar</button><button type="button" class="btn ghost sm" onclick="testWa()">Probar mi WhatsApp</button></div></form>`; }
 function readSocial(){
   const wa=$('#soWa').value.replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'');
@@ -3913,15 +3921,31 @@ function readSocial(){
   const fb=cleanUrl($('#soFb').value), web=cleanUrl($('#soWeb').value);
   if($('#soFb').value.trim() && !/facebook\.com|fb\.com/i.test(fb)) throw 'El enlace de Facebook debe ser de facebook.com.';
   if($('#soWeb').value.trim() && !web) throw 'Escribe bien la dirección de tu página web.';
-  return {wa, social:{ig:cleanHandle($('#soIg').value), fb, tt:cleanHandle($('#soTt').value), web}};
+  return {wa, social:{ig:cleanHandle($('#soIg').value), fb, tt:cleanHandle($('#soTt').value), web}, physical:readPhys('so')};
 }
 function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }catch(x){ return toast(x); }
-  const s=SEL(me().key); s.waStore=d.wa; s.store=Object.assign({}, s.store||{}, {social:d.social}); save(); toast('¡Guardado! Ya se ven en tu tienda.'); render(); }
+  const s=SEL(me().key); s.waStore=d.wa; s.store=Object.assign({}, s.store||{}, {social:d.social, physical:d.physical||undefined}); save(); toast('¡Guardado! Ya se ven en tu tienda.'); render(); }
 function testWa(){ const wa=$('#soWa').value.replace(/\D/g,''); if(!validPhone(wa.replace(/^57/,''))) return toast('Escribe primero tu WhatsApp (10 números).'); openWa(wa.replace(/^57/,''), 'Prueba de MER-K: así te va a llegar el mensaje de un comprador 👋', 'tu WhatsApp'); }
 async function contactWaSeller(sk){ if(!contactOk('wa')) return; const s=SEL(sk); let phone=s.waStore||s.phone, name=s.name;
   if(LIVE){ try{ const r=await api.rpc('seller_contact', {sid:sk}); phone=r.phone; name=r.name; }catch(x){ return toast(friendly(x)); } }
   if(!phone) return toast('Esta tienda no tiene WhatsApp. Escríbele por el chat de MER-K.');
   openWa(phone, `Hola 👋 Vi tu tienda *${s.name}* en MER-K y quiero hacerte una pregunta.\nhttps://merkshopping.com/${storeUrl(sk)}`, name); }
+
+/* ---------- Punto físico (opcional) ---------- */
+function physOf(sk){ const p=((SEL(sk)||{}).store||{}).physical; return p&&p.addr ? p : null; }
+function physFields(px, p){ const on=!!(p&&p.addr);
+  return `<fieldset><legend>Punto físico (opcional)</legend>
+    <label class="check"><input type="checkbox" id="${px}PhOn" ${on?'checked':''} onchange="$('#${px}PhBox').style.display=this.checked?'':'none'"> <span>Tengo un local o punto físico donde los clientes pueden ir</span></label>
+    <div id="${px}PhBox" style="${on?'':'display:none'}"><div class="row2"><label>Dirección del local<input id="${px}PhAddr" maxlength="120" placeholder="Ej: Cra. 43A # 1-50, local 120, C.C. Oviedo" value="${esc(p?.addr||'')}"></label><label>Ciudad o municipio<input id="${px}PhCity" maxlength="40" value="${esc(p?.city||'')}"></label></div>
+    <label>Horario de atención<input id="${px}PhHours" maxlength="80" placeholder="Ej: Lunes a sábado, 9 a. m. a 7 p. m." value="${esc(p?.hours||'')}"></label></div>
+    <span class="note">No todos tienen local: si vendes solo en línea, deja esto sin marcar.</span></fieldset>`; }
+function readPhys(px){ const on=$('#'+px+'PhOn'); if(!on||!on.checked) return null;
+  const addr=$('#'+px+'PhAddr').value.trim(), city=$('#'+px+'PhCity').value.trim(), hours=$('#'+px+'PhHours').value.trim();
+  if(!addr || !city) throw 'Escribe la dirección y la ciudad de tu punto físico (o desmarca la casilla).';
+  return {addr, city, hours}; }
+function physBox(sk){ const p=physOf(sk); if(!p) return '';
+  const q=encodeURIComponent(p.addr+', '+p.city+', Colombia');
+  return `<div class="physbox">🏬 <b>Punto físico:</b> ${esc(p.addr)}, ${esc(p.city)}${p.hours?` · <span class="note">${esc(p.hours)}</span>`:''} · <a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Ver en el mapa</a></div>`; }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -4530,7 +4554,7 @@ async function doRegister(e, role){
   e.preventDefault(); const err=t=>{ const el=$('#rErr'); el.textContent=t; el.style.display='block'; };
   let d; try{ d=readRegister(role); }catch(x){ return err(x); }
   const meta = {role, name:d.name, phone:d.phone, doc:d.doc, address:d.dir, city:d.city, terms_accepted_at:new Date().toISOString(), terms_version:LEGAL_DATE};
-  if(role==='seller') Object.assign(meta, {store_name:d.shop, seller_type:d.type, nit:d.nit});
+  if(role==='seller') Object.assign(meta, {store_name:d.shop, seller_type:d.type, nit:d.nit, physical:d.physical||null});
   const btn = e.target.querySelector('button.btn:last-child'); if(btn){ btn.disabled = true; btn.textContent = 'Creando…'; }
   try{
     const r = await api.auth.signUp(d.email, d.pass, meta);
@@ -4556,8 +4580,8 @@ async function adminVerifyAcct(role, k, ok){ let note='';
   if(!ok){ note=prompt('¿Qué debe corregir? (le llega este mensaje)', 'La foto de la cédula no se lee bien.'); if(note===null) return; }
   await act(()=>api.rpc('admin_verify', {uid:k, ok, note}), ok?'Cuenta aprobada. Le avisamos.':'Le pedimos la corrección.', {close:false}); }
 async function hydrateDocs(){ for(const im of document.querySelectorAll('img[data-doc]')){ const path=im.getAttribute('data-doc'); im.removeAttribute('data-doc'); try{ im.src = await api.signed('documentos', path); }catch(e){} } }
-async function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); if(!shop) return;
-  try{ await api.rpc('become_seller', {p_store:shop}); closeModal(); await setUser(ME); await reload(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
+async function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); if(!shop) return; let ph=null; try{ ph=readPhys('b'); }catch(x){ return toast(x); }
+  try{ await api.rpc('become_seller', {p_store:shop}); if(ph) await api.upd('sellers', {store:{physical:ph}}, {id:ME.id}); closeModal(); await setUser(ME); await reload(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
   catch(x){ toast(friendly(x)); } }
 async function sendMsg(text){
   text = String(text||'').trim(); if(!text) return;
@@ -4570,7 +4594,7 @@ async function sendMsg(text){
 }
 
 async function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }catch(x){ return toast(x); }
-  const sk=me().key, st=Object.assign({}, storeOf(sk), {social:d.social}); delete st.slug;
+  const sk=me().key, st=Object.assign({}, storeOf(sk), {social:d.social}); if(d.physical) st.physical=d.physical; else delete st.physical; delete st.slug;
   await act(async()=>{ await api.upd('sellers', {store:st}, {id:sk}); await api.upd('seller_private', {whatsapp:d.wa||null}, {seller_id:sk}); }, '¡Guardado! Ya se ven en tu tienda.', {close:false}); }
 
 
