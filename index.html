@@ -520,6 +520,10 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
 .docth.empty{height:78px;justify-content:center;font-size:11px;color:var(--ink2);cursor:default;text-align:center}
 @media(max-width:760px){.vrow{grid-template-columns:1fr}.vact{flex-direction:row}}
 .card.adult18 .thumb{background:repeating-linear-gradient(45deg,#EFE8FD 0 12px,#F7F2FF 12px 24px);display:flex;align-items:center;justify-content:center;font-size:46px}
+
+.socs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.soc{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:var(--blue);background:var(--blue-soft);border:0;border-radius:999px;padding:5px 11px;text-decoration:none;cursor:pointer;font-family:inherit}
+.soc.wa{background:#25D366;color:#fff}.soc:hover{filter:brightness(.96)}
 </style>
 </head>
 <body>
@@ -1040,7 +1044,7 @@ function showProduct(id){
       ${pickerHtml(p)}
       <div class="shipbox"><b>📍 ${esc(s.city||'Colombia')}</b>${p.freeShip?'<span class="badge" style="justify-self:start">El vendedor ofrece envío gratis</span>':''}<span class="note">La entrega (en persona, domicilio o transportadora) la acuerdas con el vendedor.</span></div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}
-      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a></div>${planBadge(p.s)}</div>
+      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}</div>${planBadge(p.s)}</div>
       ${contactBlock(p)}</div></div>`);
 }
 
@@ -1522,7 +1526,7 @@ function viewAdmin(){
   if(t==='reclamos') body = `<div class="panel"><h3>Garantías y reclamos</h3>${claims.length?`<table>${claims.map(o=>`<tr><td><b>#${o.id} ${esc(o.title)}</b><br><span class="note">${cop(o.price)} · ${esc(SEL(o.sk).name)} → ${esc(BUY(o.bk).name)}</span></td>
       <td style="text-align:right;white-space:nowrap">${isHub(o)?(o.ship.returned_at?'<span class="badge">📦 Devolución en MER-K</span> ':`<button class="btn ghost sm" onclick="returnReceived(${o.id})">📦 Devolución recibida</button> `):''}<button class="btn bad sm" onclick="resolveClaim(${o.id},'refund')">Devolver al comprador</button> <button class="btn sm" onclick="resolveClaim(${o.id},'ok')">Pagar al vendedor</button></td></tr>`).join('')}</table>`:'<p class="empty">No hay reclamos abiertos.</p>'}</div>`;
   if(t==='alertas') body = `<div class="panel"><h3>Alertas del filtro anti-contacto</h3>${S.alerts.length?`<div class="tw"><table><tr><th>Cuándo</th><th>Quién</th><th>Dónde</th><th>Qué intentó</th><th>Motivo</th></tr>${S.alerts.map(a=>`<tr><td class="note">${esc(a.when)}</td><td>${esc(a.who)}</td><td>${esc(a.where)}</td><td>${esc(a.text)}</td><td><span class="alert">${esc(a.reason)}</span></td></tr>`).join('')}</table></div>`:'<p class="empty">Sin alertas todavía.</p>'}</div>`;
-  if(t==='config') body = `<div class="panel"><h3>📄 Copia de la información</h3><p class="note" style="margin-top:-6px">Descarga en PDF todos los vendedores, compradores, productos, pedidos y pagos a vendedores. Guárdala cada semana en tu computador o en Google Drive.</p><button class="btn" onclick="backupPdf()">Descargar copia en PDF</button></div>
+  if(t==='config') body = `<div class="panel"><h3>📄 Copia de la información</h3><p class="note" style="margin-top:-6px">Descarga en PDF todos los vendedores, compradores, productos y pagos de planes. Guárdala cada semana en tu computador o en Google Drive.</p><button class="btn" onclick="backupPdf()">Descargar copia en PDF</button></div>
     <div class="panel"><h3>Configuración</h3><form class="form" onsubmit="saveCfg(event)">
       <fieldset><legend>Planes</legend><div class="row3">
         <input id="cg" type="hidden" value="0"><input id="ce" type="hidden" value="0"><input id="cp" type="hidden" value="0">
@@ -1539,6 +1543,7 @@ function viewAdmin(){
         <label>Enlace plan Emprendedor<input id="wlE" type="url" placeholder="https://checkout.wompi.co/l/..." value="${esc(S.cfg.wompiLinks?.emprendedor||'')}"></label>
         <label>Enlace plan Pro<input id="wlP" type="url" placeholder="https://checkout.wompi.co/l/..." value="${esc(S.cfg.wompiLinks?.pro||'')}"></label></div>
         <span class="note">Créenlos en Wompi → Links de pago (monto fijo, varios usos). Cuando el vendedor toca "Pagar con Wompi", se abre ese enlace.</span></fieldset>`}
+      <div style="display:none" aria-hidden="true"><!-- opciones del modelo anterior (envíos, garantía, punto de despacho): ya no se usan -->
       <fieldset><legend>Procesamiento de pago (lo paga el vendedor en cada venta)</legend><div class="row3">
         <label>Porcentaje (%)<input id="wp" type="number" min="0" step="0.01" value="${S.cfg.wompiPct}"></label>
         <label>Valor fijo<input id="wf" type="number" min="0" step="10" value="${S.cfg.wompiFixed}"></label>
@@ -1563,6 +1568,7 @@ function viewAdmin(){
         <span class="note">Si dejas algo vacío se usan sus datos actuales. En Medellín y alrededores el cliente paga el domicilio de su zona al comprar; en otras ciudades paga solo los productos y el envío lo paga al recibir (al cobro).</span></fieldset>
       <label>Empresa de mensajería de los domicilios<input id="ccour" maxlength="40" value="${esc(courier())}" placeholder="Logística P y G"><span class="note" style="font-weight:500">Así sale en los mensajes al comprador y al vendedor: “mensajero de …”.</span></label>
       <p class="note" style="margin:-4px 0 0">Así lo ven los compradores en los productos, en el carrito y en el pago. Escríbelo como “4 a 7 días hábiles”.</p>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar configuración</button>${LIVE?'':'<button type="button" class="btn bad" onclick="resetDemo()">Reiniciar la demo</button>'}</div></form></div>`;
   return `<h2>Panel de administración</h2><p class="sub">Aquí revisan las cuentas, los planes de los vendedores, los productos, la publicidad y el soporte de MER-K.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.adminTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
@@ -1890,7 +1896,7 @@ function viewStore(slug){
     ${mine?`<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px"><span class="note">Así ven los compradores tu tienda.</span><button class="btn sm" onclick="S.ui.sellTab='tienda';location.hash='#vender'">🎨 Personalizar tienda</button></div>`:''}
     <div class="sbanner" style="${adv&&st.banner?`background-image:url(${st.banner})`:''}"></div>
     <div class="shead"><div class="slogo" style="${cus&&st.logo?`background-image:url(${st.logo})`:''}">${cus&&st.logo?'':esc(initials(s.name))}</div>
-      <div class="sname"><h2>${esc(s.name)}${vBadge(sk)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div></div>
+      <div class="sname"><h2>${esc(s.name)}${vBadge(sk)}</h2>${cus&&st.slogan?`<p class="sslogan">${esc(st.slogan)}</p>`:''}<div>${planBadge(sk)} ${isBoosted(sk)?'<span class="badge lav">⭐ Tienda destacada</span>':''}</div>${mine?'':socialLinks(sk,true)}</div>
       ${mine?'':`<button class="btn ${fol?'ghost':''}" onclick="toggleFollow('${sk}')">${fol?'✓ Siguiendo':'+ Seguir tienda'}</button>`}</div>
     <div class="sstats">
       <div><b>${r.n?r.avg.toFixed(1):'—'}</b>${r.n?stars(r.avg):'<span class="note">Tienda nueva</span>'}<span class="note">${r.n?r.n+' calificaciones':'Aún sin calificaciones'}</span></div>
@@ -1913,6 +1919,7 @@ function storeTab(sk){
       <div><h3 style="margin:0">Personalizar mi tienda</h3><span class="note">Dirección de tu tienda: <b>merkshopping.com/tienda/${esc(st.slug)}</b></span></div>
       <a class="btn ghost sm" href="${storeUrl(sk)}" style="text-decoration:none">Ver mi tienda</a></div>
     ${shareBox(sk)}
+    ${socialPanel(sk)}
     <form class="panel form" onsubmit="saveStore(event)">
       <label>Sobre nosotros (descripción de la tienda)<textarea id="stAbout" rows="3" maxlength="600" placeholder="Cuenta quiénes son y qué venden">${esc(st.about)}</textarea></label>
       ${cus?`<label>Eslogan<input id="stSlogan" maxlength="80" value="${esc(st.slogan)}" placeholder="Ej: Detalles hechos a mano en Medellín"></label>
@@ -3400,7 +3407,7 @@ function guiaDesignHtml(fontTags){
   const step=(n,t,body)=>`<section class="st"><div class="num">${n}</div><div class="sb"><h2>${t}</h2>${body}</div></section>`;
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Guía para vendedores · MER-K</title>${fontTags||''}<style>
   @page{size:A4;margin:0}
-  *{box-sizing:border-box} body{margin:0;font-family:'Nunito',Arial,sans-serif;color:#232234;font-size:10.5pt;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  *{box-sizing:border-box} body{margin:0;font-family:'Nunito',Arial,sans-serif;color:#232234;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .pg{width:210mm;min-height:297mm;padding:14mm 15mm 16mm;position:relative;page-break-after:always;background:repeating-linear-gradient(90deg,#F7F2FF 0 9mm,#FFFEEC 9mm 18mm)}
   .pg:last-child{page-break-after:auto}
   .cover{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
@@ -3410,10 +3417,10 @@ function guiaDesignHtml(fontTags){
   .lead{font-size:13pt;color:#615C78;max-width:140mm;margin:8mm auto 0}
   .web{position:absolute;bottom:10mm;left:0;right:0;text-align:center;font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6;font-size:11pt}
   .card{background:#fff;border:1.5px solid #E9E3F5;border-radius:6mm;padding:6mm 7mm;margin-bottom:5mm;box-shadow:0 2mm 5mm rgba(60,50,120,.06)}
-  .st{display:flex;gap:5mm;background:#fff;border:1.5px solid #E9E3F5;border-radius:6mm;padding:5mm 6mm;margin-bottom:4.5mm;page-break-inside:avoid}
+  .st{display:flex;gap:5mm;background:#fff;border:1.5px solid #E9E3F5;border-radius:6mm;padding:3.6mm 5.5mm;margin-bottom:3.4mm;page-break-inside:avoid}
   .num{flex:none;width:12mm;height:12mm;border-radius:50%;background:#4B63B6;color:#fff;font-family:'Fredoka',Arial,sans-serif;font-weight:700;font-size:16pt;display:flex;align-items:center;justify-content:center;box-shadow:0 1.2mm 0 #CBD83B}
   .sb{flex:1;min-width:0}
-  h2{font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6;font-size:15pt;margin:1mm 0 2mm}
+  h2{font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6;font-size:14pt;margin:.5mm 0 1.5mm}
   .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm}.top img{height:11mm}.top span{font-family:'Fredoka',Arial,sans-serif;font-weight:600;color:#4B63B6}
   ol,ul{margin:0;padding-left:5mm} li{margin:1mm 0}
   b{color:#232234}
@@ -3510,7 +3517,7 @@ function sellSteps(k){ const s=SEL(k), v=myVerify(), plan=effPlan(k)!=='ninguno'
 /* ---------- Verificación de identidad ---------- */
 function verificationPanel(){
   const s=me(), a=acctOfMe(), v=myVerify(), seller=s.role==='seller';
-  const msg = {sin_enviar:'Para '+(seller?'vender y ':'')+'escribirles a los vendedores necesitas verificar tu identidad. Es rápido: subes la foto de tu cédula'+(seller?' y de tu RUT o NIT':'')+' y MER-K la revisa.',
+  const msg = {sin_enviar:'Para '+(seller?'vender y ':'')+'escribirles a los vendedores necesitas verificar tu identidad. Es rápido: subes la foto de tu cédula, una selfie con ella'+(seller?' y tu RUT o NIT':'')+' y MER-K lo revisa.',
     revision:'Recibimos tus documentos. MER-K los está revisando y te avisamos por la campanita 🔔.',
     aprobado:'Tu identidad está verificada. '+(seller?'Ya puedes vender (con tu plan al día).':'Ya puedes escribirles a los vendedores.'),
     rechazado:'Tus documentos necesitan corrección: '+esc((a&&a.verifyNote)||'las fotos no se ven bien o los datos no coinciden.')}[v];
@@ -3523,13 +3530,15 @@ function verificationPanel(){
 let VF = {};
 function verifyForm(){
   const s=me(); if(!s) return loginModal(); const a=acctOfMe()||{}, seller=s.role==='seller';
-  VF = {idFront:a.idFront||'', idBack:a.idBack||'', rutPhoto:a.rutPhoto||''};
+  VF = {idFront:a.idFront||'', idBack:a.idBack||'', selfie:a.selfie||'', rutPhoto:a.rutPhoto||'', camara:a.camara||''};
   const ph = (k, label) => `<label class="docpick"><span>${label}</span><div class="docbox" id="db_${k}">${VF[k]?'<b>✔ Foto cargada</b><small>Toca para cambiarla</small>':'<b>📷 Subir foto</b><small>Toca para tomarla o elegirla</small>'}</div><input type="file" accept="image/*" capture="environment" style="display:none" onchange="vfPick('${k}',this)"></label>`;
   openModal(`<div class="mpad"><h2>Verifica tu identidad</h2><p class="sub">Así compradores y vendedores saben que eres una persona real. Solo MER-K ve estas fotos.</p>
     <form class="form" onsubmit="saveVerify(event)">
       <div class="row2"><label>Número de cédula<input id="vDoc" required inputmode="numeric" pattern="[0-9]{5,12}" title="Solo números" value="${esc(a.doc||'')}"></label><label>Celular de WhatsApp<input id="vPhone" required inputmode="numeric" placeholder="3XX XXX XXXX" value="${esc(a.phone||'')}"></label></div>
       <div class="row2"><label>Dirección<input id="vDir" required placeholder="Calle, carrera, número, apto" value="${esc(a.address||a.addr||'')}"></label><label>Ciudad o municipio<input id="vCity" required value="${esc(a.city||'')}"></label></div>
-      <div class="docs">${ph('idFront','Cédula · parte de adelante')}${ph('idBack','Cédula · parte de atrás')}${seller?ph('rutPhoto','RUT de la DIAN o certificado del NIT'):''}</div>
+      ${seller?`<label>¿Vendes como persona natural o como empresa?<select id="vType" onchange="$('#camWrap').style.display=this.value==='Empresa'?'':'none'"><option ${a.type!=='Empresa'?'selected':''}>Persona natural</option><option ${a.type==='Empresa'?'selected':''}>Empresa</option></select></label>`:''}
+      <div class="docs">${ph('idFront','Cédula · parte de adelante')}${ph('idBack','Cédula · parte de atrás')}${ph('selfie','Selfie sosteniendo tu cédula')}${seller?ph('rutPhoto','RUT de la DIAN o certificado del NIT'):''}${seller?`<div id="camWrap" style="${a.type==='Empresa'?'':'display:none'}">${ph('camara','Certificado de Cámara de Comercio')}</div>`:''}</div>
+      <p class="note" style="margin:0">📸 <b>Selfie:</b> tómate una foto de frente sosteniendo tu cédula al lado de tu cara, que se vean bien tu cara y los datos.</p>
       ${seller?`<label>Número de RUT o NIT<input id="vNit" required maxlength="15" placeholder="Ej: 900123456-7 o tu cédula si eres persona natural" value="${esc(a.nit||'')}"></label>`:''}
       <p class="note" style="margin:0">Consejos: foto con buena luz, sin reflejos, que se lean todos los datos. El nombre de la cédula debe ser el mismo de tu cuenta.</p>
       <label class="check"><input type="checkbox" required> <span>Autorizo a MER-K a guardar y revisar mis documentos solo para verificar mi identidad, según la <a href="#privacidad" target="_blank">política de tratamiento de datos</a>.</span></label>
@@ -3543,13 +3552,16 @@ function readVerify(){
   if(!/^[0-9]{5,12}$/.test(doc)) throw 'Escribe tu número de cédula (solo números).';
   if(!validPhone(phone)) throw 'El celular debe tener 10 dígitos y empezar por 3.';
   if(!VF.idFront || !VF.idBack) throw 'Sube la foto de tu cédula por los dos lados.';
+  if(!VF.selfie) throw 'Sube una selfie sosteniendo tu cédula al lado de tu cara.';
+  const type = seller ? $('#vType').value : '';
+  if(seller && type==='Empresa' && !VF.camara) throw 'Como eres empresa, sube el certificado de Cámara de Comercio.';
   if(seller && (!nit || !VF.rutPhoto)) throw 'Para vender escribe tu RUT o NIT y sube la foto del documento.';
-  return {doc, phone, address, city, nit, seller};
+  return {doc, phone, address, city, nit, seller, type};
 }
 function saveVerify(e){ e.preventDefault(); const err=t=>{ const el=$('#vErr'); el.textContent=t; el.style.display='block'; };
   let d; try{ d=readVerify(); }catch(x){ return err(x); }
-  const a=acctOfMe(); Object.assign(a, {doc:d.doc, phone:d.phone, address:d.address, city:d.city, idFront:VF.idFront, idBack:VF.idBack, verify:'revision', verifyNote:''});
-  if(d.seller){ a.nit=d.nit; a.rutPhoto=VF.rutPhoto; a.addr=d.address; a.city=d.city; }
+  const a=acctOfMe(); Object.assign(a, {doc:d.doc, phone:d.phone, address:d.address, city:d.city, idFront:VF.idFront, idBack:VF.idBack, selfie:VF.selfie, verify:'revision', verifyNote:''});
+  if(d.seller){ a.nit=d.nit; a.rutPhoto=VF.rutPhoto; a.type=d.type; a.camara=d.type==='Empresa'?VF.camara:''; a.addr=d.address; a.city=d.city; }
   notify('admin','🪪 Nueva cuenta por verificar', `${a.name} envió sus documentos. Revísalos en Administración → Verificaciones.`);
   save(); closeModal(); toast('¡Listo! MER-K revisará tus documentos y te avisará.'); render();
 }
@@ -3574,7 +3586,7 @@ function waTextFor(p){ let o=''; try{ const op=(typeof pickedOpts==='function')?
   const pr = typeof itemPrice==='function' ? itemPrice(p, (()=>{ try{ return pickedOpts(p)||{}; }catch(e){ return {}; } })()) : finalPrice(p);
   return `Hola 👋 Vi tu producto *${p.t}*${o} en MER-K a ${cop(pr)}. ¿Está disponible?\nhttps://merkshopping.com/#producto/${p.id}`; }
 async function contactWa(pid){ if(!contactOk('wa')) return; const p=P(pid), s=SEL(p.s);
-  let phone=s.phone, name=s.name;
+  let phone=s.waStore||s.phone, name=s.name;
   if(LIVE){ try{ const r=await api.rpc('seller_contact', {sid:p.s}); phone=r.phone; name=r.name; }catch(x){ return toast(friendly(x)); } }
   if(!phone) return toast('Este vendedor no tiene WhatsApp. Escríbele por el chat de MER-K.');
   if(!LIVE) notify(p.s, '💬 Un comprador te escribió por WhatsApp', `${acctOfMe()?.name||'Un comprador'} preguntó por ${p.t}.`);
@@ -3638,7 +3650,7 @@ function becomeSellerModal(){
 }
 function doBecomeSeller(e){ e.preventDefault(); const shop=$('#bsShop').value.trim(); const r=check(shop); if(!r.ok) return toast('El nombre no puede tener datos de contacto.');
   const s=me(), b=BUY(s.key), key='s'+(S.nextSeller++), u=S.users.find(x=>x.key===s.key);
-  S.sellers[key]={name:shop, type:'Persona natural', plan:'basico', sub:null, city:b.city||'', rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:b.name, email:b.email, phone:b.phone, doc:b.doc, addr:b.address||'', address:b.address||'', verify:b.verify, idFront:b.idFront, idBack:b.idBack, ship:{}};
+  S.sellers[key]={name:shop, type:'Persona natural', plan:'basico', sub:null, city:b.city||'', rating:5.0, sales:0, warnings:0, status:'activa', available:0, paid:0, owner:b.name, email:b.email, phone:b.phone, doc:b.doc, addr:b.address||'', address:b.address||'', verify:b.verify, idFront:b.idFront, idBack:b.idBack, selfie:b.selfie, ship:{}};
   if(u){ u.role='seller'; u.key=key; } S.session={role:'seller', key}; save(); closeModal(); location.hash='#vender'; S.ui.sellTab='resumen'; toast('¡Tu tienda está creada! Ahora sube tu RUT o NIT y elige tu plan.'); render(); }
 
 /* ---------- Planes (todos pagos, sin comisión) ---------- */
@@ -3694,12 +3706,12 @@ function adminVerifTab(){
   const f=S.ui.verifF||'pend', rows=verifList().filter(r=>f==='todas' || (f==='pend' ? r.a.verify==='revision' : (r.a.verify||'sin_enviar')===f));
   const chip=(k,l,n)=>`<button class="chip ${f===k?'on':''}" onclick="S.ui.verifF='${k}';render()">${l}${n!=null?' ('+n+')':''}</button>`;
   setTimeout(hydrateDocs, 30);
-  return `<div class="panel"><h3>🪪 Verificaciones</h3><p class="note" style="margin-top:-6px">Revisa que el nombre y el número de la cédula coincidan con los datos de la cuenta y que las fotos se lean bien. A los vendedores revísales también el RUT o el NIT. Solo después de aprobar pueden escribir a vendedores y, si tienen plan, vender.</p>
+  return `<div class="panel"><h3>🪪 Verificaciones</h3><p class="note" style="margin-top:-6px">Revisa que el nombre y el número de la cédula coincidan con los datos de la cuenta, que las fotos se lean bien y que la cara de la selfie sea la misma de la cédula. A los vendedores revísales también el RUT o el NIT (y la Cámara de Comercio si son empresa). Solo después de aprobar pueden escribir a vendedores y, si tienen plan, vender.</p>
     <div class="chips" style="margin:8px 0 14px">${chip('pend','Por revisar',verifPending())}${chip('rechazado','Por corregir')}${chip('sin_enviar','Sin enviar')}${chip('aprobado','Aprobadas')}${chip('todas','Todas')}</div>
     ${rows.length?rows.map(({k,role,a})=>`<div class="vrow"><div class="vinfo"><b>${esc(role==='seller'?a.owner||a.name:a.name)}</b> ${verifyBadge(a.verify||'sin_enviar')}<br>
-        <span class="note">${role==='seller'?'🏪 Vendedor · '+esc(a.name)+' · Plan '+(effPlan(k)!=='ninguno'?PLAN_INFO[a.plan].name:'sin pagar'):'🛍️ Comprador'}<br>Cédula <b>${esc(a.doc||'—')}</b>${role==='seller'?' · RUT/NIT <b>'+esc(a.nit||'—')+'</b>':''} · ${esc(a.phone||'')} · ${esc(a.email||'')}<br>${esc(a.address||a.addr||'')}${a.city?', '+esc(a.city):''}</span>
+        <span class="note">${role==='seller'?'🏪 Vendedor · '+esc(a.type||'Persona natural')+' · '+esc(a.name)+' · Plan '+(effPlan(k)!=='ninguno'?PLAN_INFO[a.plan].name:'sin pagar'):'🛍️ Comprador'}<br>Cédula <b>${esc(a.doc||'—')}</b>${role==='seller'?' · RUT/NIT <b>'+esc(a.nit||'—')+'</b>':''} · ${esc(a.phone||'')} · ${esc(a.email||'')}<br>${esc(a.address||a.addr||'')}${a.city?', '+esc(a.city):''}</span>
         ${a.verifyNote&&a.verify==='rechazado'?`<br><span class="note">Motivo: ${esc(a.verifyNote)}</span>`:''}</div>
-      <div class="vdocs">${docImg(a.idFront,'Cédula adelante')}${docImg(a.idBack,'Cédula atrás')}${role==='seller'?docImg(a.rutPhoto,'RUT / NIT'):''}</div>
+      <div class="vdocs">${docImg(a.idFront,'Cédula adelante')}${docImg(a.idBack,'Cédula atrás')}${docImg(a.selfie,'Selfie con cédula')}${role==='seller'?docImg(a.rutPhoto,'RUT / NIT'):''}${role==='seller'&&a.type==='Empresa'?docImg(a.camara,'Cámara de Comercio'):''}</div>
       <div class="vact">${a.verify!=='aprobado'&&a.idFront?`<button class="btn sm" onclick="adminVerifyAcct('${role}','${k}',true)">✔ Aprobar</button>`:''}${a.idFront&&a.verify!=='rechazado'?`<button class="btn ghost sm" onclick="adminVerifyAcct('${role}','${k}',false)">Pedir corrección</button>`:''}</div></div>`).join('')
       :'<p class="empty">No hay cuentas en esta lista.</p>'}</div>`;
 }
@@ -3720,9 +3732,9 @@ function migrateClasif(){
   S.cfg.fees = {gratis:0, basico:0, emprendedor:0, pro:0, oficial:0};
   const due = Date.now()+20*DAY;
   Object.entries(S.sellers).forEach(([k,s])=>{ if(k===OFFICIAL) return; if(s.plan==='gratis'){ s.plan='basico'; }
-    if(!s.sub) s.sub={due, suspended:false}; s.verify='aprobado'; s.rutPhoto=s.rutPhoto||'demo'; s.idFront=s.idFront||'demo'; s.idBack=s.idBack||'demo'; s.nit=s.nit||s.doc; s.address=s.address||s.addr; });
-  const bks=Object.keys(S.buyers); bks.forEach((k,i)=>{ const b=S.buyers[k]; if(b.role==='admin') return; b.verify = i===0 ? 'aprobado' : (b.verify||'sin_enviar'); const a=(b.addresses||[])[0]; if(a){ b.address=b.address||a.dir; b.city=b.city||a.city; } if(i===0){ b.idFront='demo'; b.idBack='demo'; } });
-  if(bks[1]){ const b=S.buyers[bks[1]]; b.verify='revision'; b.idFront=b.idFront||'demo'; b.idBack=b.idBack||'demo'; b.doc=b.doc||'1036998877'; }
+    if(!s.sub) s.sub={due, suspended:false}; s.verify='aprobado'; s.rutPhoto=s.rutPhoto||'demo'; s.idFront=s.idFront||'demo'; s.idBack=s.idBack||'demo'; s.selfie=s.selfie||'demo'; s.waStore=s.waStore||s.phone; s.store=s.store||{}; if(k==='s1') s.store.social={ig:'tecnomed.co', fb:'', tt:'', web:''}; if(k==='s2') s.store.social={ig:'casabonita', fb:'https://facebook.com/casabonita', tt:'casabonita', web:''}; s.nit=s.nit||s.doc; s.address=s.address||s.addr; });
+  const bks=Object.keys(S.buyers); bks.forEach((k,i)=>{ const b=S.buyers[k]; if(b.role==='admin') return; b.verify = i===0 ? 'aprobado' : (b.verify||'sin_enviar'); const a=(b.addresses||[])[0]; if(a){ b.address=b.address||a.dir; b.city=b.city||a.city; } if(i===0){ b.idFront='demo'; b.idBack='demo'; b.selfie='demo'; } });
+  if(bks[1]){ const b=S.buyers[bks[1]]; b.verify='revision'; b.idFront=b.idFront||'demo'; b.idBack=b.idBack||'demo'; b.selfie=b.selfie||'demo'; b.doc=b.doc||'1036998877'; }
   S.ui.adminTab='verif'; S.ui.buyTab='cuenta'; S.ui.sellTab='resumen';
   S.clasif=true; try{ save(); }catch(e){}
 }
@@ -3746,8 +3758,8 @@ function viewTerminos(){
   <h3>1. ¿Qué es MER-K?</h3>
   <p>MER-K es una plataforma de <b>avisos clasificados</b> en línea: un espacio donde personas y empresas publican productos y donde los interesados las contactan. <b>MER-K no es el vendedor, no es dueño de los productos publicados, no recibe el dinero de las ventas y no hace las entregas.</b> La negociación, el precio final, el pago, la entrega, las garantías y las devoluciones se acuerdan directamente entre comprador y vendedor.</p>
   <h3>2. Registro y verificación de identidad</h3>
-  <ul><li>Para escribirles a los vendedores o para vender debes crear una cuenta con datos reales y verificar tu identidad: número y foto de tu cédula por los dos lados, celular y dirección.</li>
-  <li>Los vendedores además deben registrar su <b>RUT de la DIAN o el NIT</b> de la empresa con la foto del documento.</li>
+  <ul><li>Para escribirles a los vendedores o para vender debes crear una cuenta con datos reales y verificar tu identidad: número y foto de tu cédula por los dos lados, una selfie sosteniendo la cédula, celular y dirección.</li>
+  <li>Los vendedores además deben registrar su <b>RUT de la DIAN o el NIT</b> con la foto del documento y, si son empresa, el <b>certificado de Cámara de Comercio</b>. Esto aplica también al comprador que se pasa a vendedor.</li>
   <li>MER-K revisa los documentos y aprueba o rechaza la cuenta. La verificación confirma que los datos corresponden a una persona o empresa real; <b>no es una garantía</b> sobre la calidad de los productos ni sobre el cumplimiento de cada usuario.</li>
   <li>Debes ser mayor de 18 años. Eres responsable de guardar tu contraseña y de todo lo que se haga con tu cuenta.</li></ul>
   <h3>3. Planes para vender</h3>
@@ -3775,11 +3787,11 @@ function viewPrivacidad(){
   return legalPage('privacidad','Política de privacidad y tratamiento de datos personales', `
   <p>En cumplimiento de la Ley 1581 de 2012 y el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015), ${legalWho()}, como <b>responsable del tratamiento</b>, informa cómo recolecta, usa y protege tus datos personales en <b>merkshopping.com</b>.</p>
   <h3>1. Datos que recolectamos</h3>
-  <ul><li><b>De todos los usuarios:</b> nombre, número de cédula, <b>fotos de la cédula por los dos lados</b>, correo, celular de WhatsApp, dirección y ciudad.</li>
-  <li><b>De los vendedores, además:</b> nombre de la tienda, número de RUT o NIT y foto del RUT o del certificado del NIT.</li>
+  <ul><li><b>De todos los usuarios:</b> nombre, número de cédula, <b>fotos de la cédula por los dos lados y una selfie sosteniendo la cédula</b>, correo, celular de WhatsApp, dirección y ciudad.</li>
+  <li><b>De los vendedores, además:</b> nombre de la tienda, número de RUT o NIT, foto del RUT o del certificado del NIT, certificado de Cámara de Comercio si es empresa, y de forma opcional el WhatsApp y las redes sociales de la tienda (que se muestran en su tienda).</li>
   <li><b>Uso de la plataforma:</b> productos publicados, mensajes del chat de MER-K, pagos de planes, solicitudes de soporte y PQRS.</li>
   <li><b>Pagos de planes:</b> el estado y la referencia de la transacción. Los datos de tarjetas y cuentas los maneja directamente Wompi; MER-K no los ve ni los guarda.</li></ul>
-  <p><b>Dato sensible:</b> la foto de la cédula incluye tu fotografía, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás escribir a vendedores ni vender. Solo la usamos para verificar que eres tú.</p>
+  <p><b>Dato sensible:</b> la foto de la cédula y la selfie incluyen tu imagen, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás escribir a vendedores ni vender. Solo la usamos para verificar que eres tú.</p>
   <h3>2. ¿Para qué usamos tus datos?</h3>
   <ul><li>Crear y administrar tu cuenta y <b>verificar tu identidad</b> (y el RUT o NIT de los vendedores), para dar confianza a compradores y vendedores.</li>
   <li>Permitir el contacto entre usuarios: cuando un usuario verificado toca “Escribir por WhatsApp”, le mostramos el número de WhatsApp del vendedor.</li>
@@ -3787,7 +3799,7 @@ function viewPrivacidad(){
   <li>Atender soporte, peticiones, quejas, reclamos y reportes de fraude, y colaborar con las autoridades cuando lo pidan legalmente.</li>
   <li>Cumplir obligaciones legales, contables y tributarias.</li></ul>
   <h3>3. ¿Quién ve tus documentos?</h3>
-  <p>Las fotos de la cédula y del RUT se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios verificados, el WhatsApp del vendedor.</p>
+  <p>Las fotos de la cédula, la selfie, el RUT y la Cámara de Comercio se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios verificados, el WhatsApp del vendedor.</p>
   <h3>4. ¿Con quién compartimos tus datos?</h3>
   <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: la pasarela de pagos Wompi y nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos), que están obligados a protegerlos. No vendemos tus datos.</p>
   <h3>5. Tus derechos</h3>
@@ -3830,9 +3842,9 @@ function guiaSteps(pdf){ const L=S.cfg.limits||{};
   const tip = t => pdf ? `<div class="tip">${t}</div>` : `<p class="note">${t}</p>`, warn = t => pdf ? `<div class="warn">${t}</div>` : `<p class="note">${t}</p>`;
   return [
     ['Crea tu cuenta', '<ol><li>Entra a <b>merkshopping.com</b>, toca <b>Crear cuenta</b> y elige <b>Quiero vender</b>.</li><li>Escribe el nombre de tu tienda, tu nombre completo como aparece en la cédula, tu número de cédula, tu RUT o NIT, tu correo, tu WhatsApp y tu dirección.</li><li>Confirma tu correo con el enlace que te llega.</li></ol>'],
-    ['Verifica tu identidad', '<ol><li>En tu panel entra a <b>Verificación</b> y toca <b>Subir documentos</b>.</li><li>Sube la foto de tu <b>cédula por los dos lados</b> y la foto de tu <b>RUT de la DIAN</b> o del certificado del <b>NIT</b> de tu empresa.</li><li>MER-K los revisa y te avisa por la campanita 🔔 cuando tu cuenta quede aprobada.</li></ol>'+tip('🔒 Tus documentos solo los ve el equipo de MER-K. Nunca se muestran a los compradores.')],
+    ['Verifica tu identidad', '<ol><li>En tu panel entra a <b>Verificación</b> y toca <b>Subir documentos</b>.</li><li>Sube la foto de tu <b>cédula por los dos lados</b>, una <b>selfie sosteniendo tu cédula</b> y la foto de tu <b>RUT de la DIAN</b> o del <b>NIT</b>. Si eres empresa, también el certificado de <b>Cámara de Comercio</b>.</li><li>MER-K los revisa y te avisa por la campanita 🔔 cuando tu cuenta quede aprobada.</li></ol>'+tip('🔒 Tus documentos solo los ve el equipo de MER-K. Nunca se muestran a los compradores.')],
     ['Elige y paga tu plan', plans+'<p style="margin:2mm 0 0">Lo pagas en <b>Mi plan</b> con Wompi (tarjeta, PSE, Nequi o Bancolombia). <b>MER-K no cobra comisión por venta:</b> todo lo que vendes es tuyo.</p>'],
-    ['Publica tus productos', '<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca. Si vendes varios pesos, agrega una fila por peso con su precio.</li><li>Tus productos se muestran cuando tu cuenta está aprobada y tu plan al día.</li></ol>'],
+    ['Publica tus productos', '<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca. Si vendes varios pesos, agrega una fila por peso con su precio.</li><li>Tus productos se muestran cuando tu cuenta está aprobada y tu plan al día.</li><li>En <b>Mi tienda → WhatsApp y redes sociales</b> pon tu WhatsApp, Instagram, Facebook y TikTok para que te encuentren.</li></ol>'],
     ['Lo que no se puede vender', warn('🚫 Animales vivos · armas, municiones, pólvora o explosivos · pornografía o contenido sexual explícito · drogas y medicamentos con fórmula · productos falsificados, robados o de contrabando. Estas publicaciones se borran y la cuenta puede ser sancionada.')+tip('🔞 Los productos para adultos sí se pueden vender en la categoría <b>Adultos +18</b>, con fotos solo del producto (sin desnudos).')],
     ['Cuando un comprador te escribe', '<ol><li>Te llega por el <b>chat de MER-K</b> (lo ves en <b>Mensajes</b>) o directo a tu <b>WhatsApp</b>. Solo pueden escribirte compradores con identidad verificada.</li><li>Responde rápido y acuerda con el comprador el precio final, la forma de pago y la entrega (en persona, domicilio o transportadora).</li><li>Confirma que el pago llegó a tu cuenta antes de entregar o enviar.</li></ol>'+tip('💡 El dinero de la venta te llega directo a ti: MER-K no lo recibe ni lo retiene.')],
     ['Reglas importantes', '<ul><li>Publica solo productos reales, con fotos y precios verdaderos.</li><li>Trata bien a los compradores y cumple lo que acuerdas.</li><li>Si eres comerciante, das la garantía legal de tus productos (Ley 1480 de 2011).</li><li>Si incumples, MER-K puede suspender o bloquear tu cuenta.</li></ul>'],
@@ -3874,6 +3886,42 @@ function gate(role){
   return `<div class="panel" style="text-align:center;padding:40px 20px;max-width:560px;margin:30px auto"><h2>Inicia sesión</h2><p class="sub">Para ver ${what} necesitas entrar con tu cuenta${role==='admin'?' de administrador':''}.</p>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn" onclick="loginModal()">Iniciar sesión</button>${role==='admin'?'':`<button class="btn ghost" onclick="registerForm('${role}')">Crear cuenta en modo ${role==='seller'?'vendedor':'comprador'}</button>`}</div></div>`;
 }
+
+/* ---------- WhatsApp de la tienda y redes sociales ---------- */
+const cleanHandle = v => String(v||'').trim().replace(/^https?:\/\/(www\.)?(instagram|tiktok)\.com\/@?/i,'').replace(/^@/,'').replace(/[/?#].*$/,'').replace(/[^A-Za-z0-9._-]/g,'').slice(0,40);
+const cleanUrl = v => { v=String(v||'').trim(); if(!v) return ''; if(!/^https?:\/\//i.test(v)) v='https://'+v; try{ const u=new URL(v); return /^https?:$/.test(u.protocol) ? u.href.slice(0,200) : ''; }catch(e){ return ''; } };
+function socialOf(sk){ const st=(SEL(sk)||{}).store||{}; return Object.assign({ig:'', fb:'', tt:'', web:''}, st.social||{}); }
+function socialLinks(sk, withWa){
+  const so=socialOf(sk), L=[];
+  if(withWa) L.push(`<button class="soc wa" onclick="contactWaSeller('${sk}')" title="WhatsApp">🟢 WhatsApp</button>`);
+  if(so.ig) L.push(`<a class="soc" href="https://instagram.com/${encodeURIComponent(so.ig)}" target="_blank" rel="noopener nofollow">📷 Instagram</a>`);
+  if(so.fb) L.push(`<a class="soc" href="${esc(so.fb)}" target="_blank" rel="noopener nofollow">👍 Facebook</a>`);
+  if(so.tt) L.push(`<a class="soc" href="https://www.tiktok.com/@${encodeURIComponent(so.tt)}" target="_blank" rel="noopener nofollow">🎵 TikTok</a>`);
+  if(so.web) L.push(`<a class="soc" href="${esc(so.web)}" target="_blank" rel="noopener nofollow">🌐 Página web</a>`);
+  return L.length ? `<div class="socs">${L.join('')}</div>` : '';
+}
+function socialPanel(sk){ const s=SEL(sk), so=socialOf(sk), wa = s.waStore || s.phone || '';
+  return `<form class="panel form" onsubmit="saveSocial(event)"><h3>📱 WhatsApp y redes sociales</h3>
+    <p class="note" style="margin-top:-6px">Así los compradores te encuentran. El WhatsApp solo se lo mostramos a compradores con identidad verificada; las redes las ve cualquiera en tu tienda.</p>
+    <div class="row2"><label>WhatsApp de la tienda<input id="soWa" inputmode="numeric" placeholder="3XX XXX XXXX" value="${esc(wa)}"></label><label>Instagram<input id="soIg" placeholder="@mitienda" value="${esc(so.ig?'@'+so.ig:'')}"></label></div>
+    <div class="row2"><label>Facebook (enlace de tu página)<input id="soFb" placeholder="facebook.com/mitienda" value="${esc(so.fb)}"></label><label>TikTok<input id="soTt" placeholder="@mitienda" value="${esc(so.tt?'@'+so.tt:'')}"></label></div>
+    <label>Página web<input id="soWeb" placeholder="www.mitienda.com" value="${esc(so.web)}"></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn">Guardar</button><button type="button" class="btn ghost sm" onclick="testWa()">Probar mi WhatsApp</button></div></form>`; }
+function readSocial(){
+  const wa=$('#soWa').value.replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,'');
+  if(wa && !validPhone(wa)) throw 'El WhatsApp debe tener 10 números y empezar por 3.';
+  const fb=cleanUrl($('#soFb').value), web=cleanUrl($('#soWeb').value);
+  if($('#soFb').value.trim() && !/facebook\.com|fb\.com/i.test(fb)) throw 'El enlace de Facebook debe ser de facebook.com.';
+  if($('#soWeb').value.trim() && !web) throw 'Escribe bien la dirección de tu página web.';
+  return {wa, social:{ig:cleanHandle($('#soIg').value), fb, tt:cleanHandle($('#soTt').value), web}};
+}
+function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }catch(x){ return toast(x); }
+  const s=SEL(me().key); s.waStore=d.wa; s.store=Object.assign({}, s.store||{}, {social:d.social}); save(); toast('¡Guardado! Ya se ven en tu tienda.'); render(); }
+function testWa(){ const wa=$('#soWa').value.replace(/\D/g,''); if(!validPhone(wa.replace(/^57/,''))) return toast('Escribe primero tu WhatsApp (10 números).'); openWa(wa.replace(/^57/,''), 'Prueba de MER-K: así te va a llegar el mensaje de un comprador 👋', 'tu WhatsApp'); }
+async function contactWaSeller(sk){ if(!contactOk('wa')) return; const s=SEL(sk); let phone=s.waStore||s.phone, name=s.name;
+  if(LIVE){ try{ const r=await api.rpc('seller_contact', {sid:sk}); phone=r.phone; name=r.name; }catch(x){ return toast(friendly(x)); } }
+  if(!phone) return toast('Esta tienda no tiene WhatsApp. Escríbele por el chat de MER-K.');
+  openWa(phone, `Hola 👋 Vi tu tienda *${s.name}* en MER-K y quiero hacerte una pregunta.\nhttps://merkshopping.com/${storeUrl(sk)}`, name); }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -3954,7 +4002,7 @@ function mapSeller(r, prof, priv){
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
     storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost,
-    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', verified:!!r.verified, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
+    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', selfie:prof?.selfie||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', type:priv?.seller_type||'Persona natural', camara:priv?.camara_photo||'', waStore:priv?.whatsapp||'', verified:!!r.verified, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
 }
 const mapAddr = a => ({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||'', phone:a.phone||'', barrio:a.barrio||''});
 function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, items:r.items||null, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
@@ -3994,7 +4042,7 @@ async function loadAll(){
   S.adRequests = ads.map(a=>({id:a.id, pid:a.product_id, sk:a.seller_id, note:a.note||'', status:a.status, starts:a.starts, ends:a.ends, budget:a.budget, adminNote:a.admin_note||'', ts:Date.parse(a.created_at), created:fmtTs(a.created_at)}));
   { const mine = uid && profs.find(p=>p.id===uid); if(mine && PROFILE) Object.assign(PROFILE, mine); }
   S.buyers = {};
-  profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', verify:p.verify||'sin_enviar', verifyNote:p.verify_note||'', idFront:p.id_front||'', idBack:p.id_back||'', address:p.address||'', city:p.city||'', warnings:p.warnings, status:p.status, until:p.suspended_until?Date.parse(p.suspended_until):null, role:p.role, addresses:[]}; });
+  profs.filter(p=>p.role==='buyer' || p.id===uid).forEach(p=>{ S.buyers[p.id] = {name:p.name, email:p.email||'', phone:p.phone||'', doc:p.doc||'', verify:p.verify||'sin_enviar', verifyNote:p.verify_note||'', idFront:p.id_front||'', idBack:p.id_back||'', selfie:p.selfie||'', address:p.address||'', city:p.city||'', warnings:p.warnings, status:p.status, until:p.suspended_until?Date.parse(p.suspended_until):null, role:p.role, addresses:[]}; });
   addrs.forEach(a=>{ const b=S.buyers[a.buyer_id]; if(b) b.addresses.push(mapAddr(a)); });
   const EV = {}; evs.forEach(e=>(EV[e.order_id] = EV[e.order_id] || []).push(e));
   S.orders = orders.filter(o=>!['pendiente_pago','rechazado'].includes(o.status)).map(o=>mapOrder(o, EV[o.id]));
@@ -4497,8 +4545,8 @@ async function saveVerify(e){ e.preventDefault(); const err=t=>{ const el=$('#vE
   const b=$('#vBtn'); b.disabled=true; b.textContent='Subiendo fotos…';
   try{
     const up = async k => VF[k+'New'] ? api.uploadPriv('documentos', `${ME.id}/${k}-${Date.now()}.jpg`, await toBlob(VF[k])) : VF[k];
-    const p = {doc:d.doc, phone:d.phone, address:d.address, city:d.city, id_front: await up('idFront'), id_back: await up('idBack')};
-    if(d.seller){ p.nit=d.nit; p.rut_photo = await up('rutPhoto'); }
+    const p = {doc:d.doc, phone:d.phone, address:d.address, city:d.city, id_front: await up('idFront'), id_back: await up('idBack'), selfie: await up('selfie')};
+    if(d.seller){ p.nit=d.nit; p.rut_photo = await up('rutPhoto'); p.seller_type=d.type; p.camara_photo = d.type==='Empresa' ? await up('camara') : ''; }
     b.textContent='Enviando…';
     await api.rpc('submit_verification', {p});
     closeModal(); toast('¡Listo! MER-K revisará tus documentos y te avisará.'); await setUser(ME); await reload();
@@ -4520,6 +4568,10 @@ async function sendMsg(text){
   try{ await api.ins('messages', [{thread:chatKey, body:text}]); await loadAll(); if($('#scrim').classList.contains('open')) drawChat(); }
   catch(e){ toast(friendly(e)); }
 }
+
+async function saveSocial(e){ e.preventDefault(); let d; try{ d=readSocial(); }catch(x){ return toast(x); }
+  const sk=me().key, st=Object.assign({}, storeOf(sk), {social:d.social}); delete st.slug;
+  await act(async()=>{ await api.upd('sellers', {store:st}, {id:sk}); await api.upd('seller_private', {whatsapp:d.wa||null}, {seller_id:sk}); }, '¡Guardado! Ya se ven en tu tienda.', {close:false}); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
