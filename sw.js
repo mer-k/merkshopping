@@ -1,6 +1,6 @@
 /* MER-K · service worker: permite instalar la app y abrirla aunque la señal esté mala.
    Los datos (pedidos, pagos, productos) siempre se piden en vivo a Supabase: aquí no se guardan. */
-const CACHE = 'merk-v2';
+const CACHE = 'merk-v3';
 const SHELL = ['/', '/index.html', '/logo.png', '/logo-completo.png', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
