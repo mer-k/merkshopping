@@ -540,9 +540,24 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
 .ktag.pers{background:#FFF1E0;color:#A65300}.ktag.lead{background:#EAF3FF;color:#0047CC}
 .leadbox{background:#EAF3FF;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}
 .rates{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.rates label{font-size:13px}
+.rates label{font-size:13px;min-width:0}.rates input{width:100%;min-width:0;box-sizing:border-box}
 .shipfrom{margin:0}
 @media(max-width:600px){.kindpick{grid-template-columns:1fr}}
+/* Etapa 2 */
+.askrow{margin-top:8px;font-size:13.5px;font-weight:700}.askrow a{color:var(--blue,#005CFF)}
+.paybox{background:#EAF3FF;border-radius:16px;padding:16px;display:grid;gap:6px;text-align:center}
+.paybox small{font-weight:800;color:#0047CC;text-transform:uppercase;letter-spacing:.06em}
+.llave{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;background:#fff;border-radius:12px;padding:10px}
+.llave span{font-size:12px;color:var(--ink2,#4A5878);font-weight:700}.llave b{font-size:20px}
+.pedido .phead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.psteps{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0}.psteps span{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:99px;background:#F0F3F8;color:#8A97B0}
+.psteps span.on{background:#005CFF;color:#fff}
+.pitems{margin:8px 0;padding-left:18px;font-size:14px}.pitems li{margin:3px 0}
+.pmoney{display:grid;gap:2px;font-size:13.5px;background:#F5F9FF;border-radius:10px;padding:8px 10px}
+.pbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pproof{display:grid;gap:4px;margin-top:8px}.proof{max-width:160px;max-height:200px;border-radius:10px;border:1px solid #DCE7F7;cursor:zoom-in}
+td .proof{max-width:60px;max-height:60px}
+.check:has(input[type=radio]){display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -1153,7 +1168,7 @@ function viewBuyer(){
   if(!isRole('buyer')) return gate('buyer');
   const bk=me().key, b=BUY(bk), t=S.ui.buyTab, mine=S.orders.filter(o=>o.bk===bk);
   const myChats=Object.keys(S.chats).filter(k=>k[0]==='p'&&k.split(':')[1]===bk&&S.chats[k].length);
-  const tabs=[['cuenta','Mi cuenta'],['mensajes','Mis chats'],['cupones','Tiendas que sigo'],['soporte','Soporte',tkUnread(bk)]];
+  const tabs=[['pedidos','Mis pedidos'],['cuenta','Mi cuenta'],['mensajes','Mis chats'],['cupones','Tiendas que sigo'],['soporte','Soporte',tkUnread(bk)]];
   let body='';
   if(t==='compras') body = mine.length ? buyerGroups(mine).map(g=>g.length>1 ? purchaseCard(g) : `<div class="panel" id="ord-${g[0].id}">${(o=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(o.title)}</b><br><span class="note">Pedido #${o.id} · ${o.created} · ${cop(o.price+o.ship.cost)} · ${esc(SEL(o.sk).name)}<br>${o.ship.type==='dom'?'Domicilio':'Envío por '+esc(o.ship.carrier)} a ${esc(o.addr.city)}</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
@@ -1175,8 +1190,9 @@ function viewBuyer(){
   if(t==='cuenta') body = `<div class="panel"><h3>¿Quieres vender?</h3><p class="note" style="margin-top:-6px">Abre tu tienda con los mismos datos. Planes desde ${cop(planPrice('basico'))} al mes, sin comisión por venta. Para vender te pedimos verificar tu identidad.</p><button class="btn pear" onclick="becomeSellerModal()">Abrir mi tienda</button></div>` + profileTab() + `<div class="panel"><p class="note" style="margin:0">Cuenta ${statusBadge(b.status)} · Tu celular y tu correo solo los ve MER-K. Cuando escribes a un vendedor por WhatsApp, él ve tu número de WhatsApp.</p></div>`;
   if(t==='cuenta') body += mktPanel();
   if(t==='soporte') body = supportTab(bk);
+  if(t==='pedidos') body = misPedidosTab(bk);
   if(t==='cupones') body = buyerCouponsTab(bk);
-  return `<h2>Mi cuenta</h2><p class="sub">Tus chats con vendedores, las tiendas que sigues y tus datos.</p>
+  return `<h2>Mi cuenta</h2><p class="sub">Tus pedidos, tus chats con las tiendas, las tiendas que sigues y tus datos.</p>
   <div class="tabs">${tabs.map(([k,l,n])=>`<button class="tab ${t===k?'on':''}" onclick="S.ui.buyTab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div>${body}`;
 }
 function addAddr(e){ e.preventDefault(); if(!validPhone($('#aPhone').value)){ toast('El celular debe tener 10 dígitos y empezar por 3.'); return; } BUY(me().key).addresses.push({id:Date.now(), alias:$('#aAlias').value.trim(), name:$('#aName').value.trim(), phone:$('#aPhone').value.replace(/\s/g,''), barrio:$('#aBarrio').value.trim(), dir:$('#aDir').value.trim(), city:readCity('aCity','aCityO')||'Sin ciudad', notes:$('#aNotes').value.trim()}); save(); toast('Dirección guardada.'); render(); }
@@ -1219,9 +1235,10 @@ function viewSeller(){
   const pend=sales.filter(o=>['comanda','preparando'].includes(o.status)).length;
   const sum=(st)=>S.orders.filter(o=>o.sk===sk && st.includes(o.status)).reduce((a,o)=>a+o.sellerGross,0);
   const lk=f=>can(sk,f)?'':' 🔒';
-  const tabs=[['resumen','Resumen', canSell(sk)?0:'!'],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['promos','Promociones'+lk('promos')],['tienda','Mi tienda'],['mensajes','Mensajes'],['plan','Mi plan'],...(isOfficial(sk)?[]:[['cuenta','Verificación', myVerify()==='aprobado'&&s.rutPhoto?0:'!']]),['soporte','Soporte',tkUnread(sk)],['perfil','Mi perfil']];
+  const tabs=[['resumen','Resumen', canSell(sk)?0:'!'],['ventas','Pedidos',pedidos().filter(x=>x.sk===sk&&x.status==='por_confirmar').length],['productos','Mis productos'],['publicar','Publicar'],['inventario','Inventario'+lk('inventario')],['estadisticas','Estadísticas'],['promos','Promociones'+lk('promos')],['tienda','Mi tienda'],['mensajes','Mensajes'],['plan','Mi plan'],...(isOfficial(sk)?[]:[['cuenta','Verificación', myVerify()==='aprobado'&&s.rutPhoto?0:'!']]),['soporte','Soporte',tkUnread(sk)],['perfil','Mi perfil']];
   let body='';
   if(t==='resumen') body = sellerResumen(sk);
+  if(t==='ventas') body = ventasTab(sk);
   if(t==='cuenta') body = verificationPanel();
   if(t==='resumen_old') body = `<div class="kpis">
       <div class="kpi"><small>Pedidos por despachar</small><div>${pend}</div></div>
@@ -1473,7 +1490,7 @@ function viewAdmin(){
   const newOrders=S.orders.filter(o=>o.status==='pagado').length, pickups=S.orders.filter(o=>o.status==='preparando' && (o.readyPickup||o.pendingInfo)).length;
   const domPend=S.orders.filter(o=>o.ship.mode==='merk'&&o.status==='preparando').length;
   const subIssues=sellers.filter(([k])=>['por_vencer','vencido','suspendido'].includes(subState(k))).length;
-  const tabs=[['verif','🪪 Verificaciones',verifPending()],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['correos','📣 Correos'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
+  const tabs=[['verif','🪪 Verificaciones',verifPending()],['pedidos2','Pedidos'],['resumen','Resumen'],['planes','Planes y mensualidades',subIssues+S.subClaims.filter(c=>c.status==='pendiente').length],['vendedores','Vendedores'],['compradores','Compradores'],['productos','Productos'],['alertas','Alertas',S.alerts.length],['mensajes','Mensajes',msgPending()],['publicidad','Publicidad'],['correos','📣 Correos'],['pqrs','PQRS',(S.pqrs||[]).filter(q=>q.status==='abierta').length],['soporte','Soporte',S.tickets.filter(x=>x.status==='abierto').length],['config','Configuración'],['perfil','Mi perfil']];
   let body='';
   if(t==='pedidos') body = `<div class="panel"><h3>Pedidos</h3>${S.orders.length?`<div class="tw"><table><tr><th>Pedido</th><th>Comprador → vendedor</th><th>Entrega</th><th>Estado</th><th></th></tr>${S.orders.map(o=>`<tr>
       <td><b>#${o.id}</b> ${esc(o.title)}<br><span class="note">${o.created} · ${cop(o.price+o.ship.cost)}</span></td>
@@ -1482,6 +1499,7 @@ function viewAdmin(){
       <td>${stepsHtml(o)}${o.readyPickup&&o.status==='preparando'?'<span class="badge warn">Pide domiciliario MER-K</span>':''}${o.pendingInfo&&o.status==='preparando'?'<span class="badge warn">Guía o domicilio por compartir</span>':''}</td>
       <td style="text-align:right;white-space:nowrap">${['agendado','despachado','entregado'].includes(o.status)?`<button class="btn wa sm" title="Enviar aviso por WhatsApp" onclick="openWa('${esc(o.addr.phone||'')}', waShipMsg(O(${o.id})))">📲 WhatsApp</button> `:''}<button class="btn ${o.status==='pagado'||(o.status==='preparando'&&(o.readyPickup||o.pendingInfo))?'':'ghost'} sm" onclick="manageOrder(${o.id})">Gestionar</button></td></tr>`).join('')}</table></div>`:'<p class="empty">Aún no hay pedidos.</p>'}</div>`;
   if(t==='verif') body = adminVerifTab();
+  if(t==='pedidos2') body = adminPedidosTab();
   if(t==='correos') body = adminPromoTab();
   if(t==='resumen') body = adminResumen();
   if(t==='resumen_old'){
@@ -1930,7 +1948,7 @@ function viewStore(slug){
     ${feat.length?`<div class="sec"><h3>Destacados</h3></div><div class="row">${feat.map(card).join('')}</div>`:''}
     <div class="sec"><h3>Todos los productos</h3></div><div class="grid">${list.map(card).join('')||'<p class="empty">Esta tienda aún no tiene productos publicados.</p>'}</div>
     <div class="split" style="margin-top:22px">${st.about?`<div class="panel"><h3>Sobre la tienda</h3><p style="white-space:pre-wrap;margin:0">${esc(st.about)}</p></div>`:''}
-      <div class="panel"><h3>¿Cómo compro?</h3><p style="margin:0">Tienda ubicada en <b>${esc(s.city||'Colombia')}</b>.</p><ol class="note" style="margin:8px 0 0;padding-left:18px"><li>Escoge el producto que te gusta.</li><li>Escríbele a la tienda por <b>WhatsApp</b> o por el <b>chat de MER-K</b>.</li><li>Acuerden juntos el pago y la entrega: en persona${physOf(sk)?', en el punto físico':''}, por domicilio o por transportadora.</li></ol></div></div>
+      <div class="panel"><h3>¿Cómo compro?</h3><p style="margin:0">Tienda ubicada en <b>${esc(s.city||'Colombia')}</b>.</p><ol class="note" style="margin:8px 0 0;padding-left:18px"><li>Agrega al carrito uno o varios productos de esta tienda.</li><li>Pon tu dirección y paga a la <b>llave Bre-B</b> de la tienda (personalizados: 50 % + domicilio).</li><li>Sube tu comprobante. La tienda confirma tu pago y te despacha.</li></ol></div></div>
     ${termsOf(sk)?`<details class="panel termsbox" style="margin-top:18px"><summary><h3 style="display:inline">📜 Términos y condiciones de ${esc(s.name)}</h3></summary><div class="termstext">${termsHtml(termsOf(sk))}</div></details>`:''}
     <div class="protect" style="margin-top:18px">${isOfficial(sk)?'Esta es la tienda oficial de MER-K. Escríbenos por WhatsApp al 333 247 5844 y te atendemos personalmente.':'Para comprar seguro: confirma los detalles del producto antes de pagar y guarda la conversación. <a href="#retracto">Ver consejos de compra segura</a>.'}</div></div>`;
 }
@@ -3770,8 +3788,8 @@ function migrateClasif(){
   S.clasif=true; try{ save(); }catch(e){}
 }
 function normTabs(){
-  const A=['verif','resumen','planes','vendedores','compradores','productos','alertas','mensajes','publicidad','correos','pqrs','soporte','config','perfil'];
-  const B=['cuenta','mensajes','cupones','soporte'], SL=['resumen','productos','publicar','inventario','estadisticas','promos','tienda','mensajes','plan','cuenta','soporte','perfil'];
+  const A=['verif','pedidos2','resumen','planes','vendedores','compradores','productos','alertas','mensajes','publicidad','correos','pqrs','soporte','config','perfil'];
+  const B=['pedidos','cuenta','mensajes','cupones','soporte'], SL=['resumen','ventas','productos','publicar','inventario','estadisticas','promos','tienda','mensajes','plan','cuenta','soporte','perfil'];
   if(!A.includes(S.ui.adminTab)) S.ui.adminTab='verif';
   if(!B.includes(S.ui.buyTab)) S.ui.buyTab='cuenta';
   if(!SL.includes(S.ui.sellTab)) S.ui.sellTab='resumen';
@@ -4114,6 +4132,176 @@ function shipFromBox(sk){ const r=ratesOf(sk), vals=Object.values(r); if(!vals.l
   const min=Math.min(...vals), munis=Object.keys(r);
   return `<div class="note shipfrom">🛵 Domicilio desde <b>${cop(min)}</b> · entrega en ${munis.length>3?munis.slice(0,3).join(', ')+' y más':munis.join(', ')}. Se paga por adelantado.</div>`; }
 
+/* =====================================================================
+   ETAPA 2 · Compra en una sola tienda, pago por llave Bre-B y pedidos
+   ===================================================================== */
+const PED_ST = {esperando_pago:['Falta el comprobante','warn'], por_confirmar:['Pago por confirmar','blue'], confirmado:['Pago confirmado',''], preparando:['Preparando envío',''],
+  despachado:['Despachado 🛵','blue'], entregado:['Entregado 🎉',''], pago_rechazado:['Pago no recibido','bad'], cancelado:['Cancelado','bad']};
+const PED_FLOW = ['por_confirmar','confirmado','preparando','despachado','entregado'];
+function pedidos(){ return S.pedidos || (S.pedidos=[]); }
+const PD = id => pedidos().find(x=>x.id===id);
+function pedBadge(x){ const [l,c]=PED_ST[x.status]||[x.status,'']; return `<span class="badge ${c}">${l}</span>`; }
+function storeTakesOrders(sk){ return Object.keys(ratesOf(sk)).length>0 && (LIVE || !!brebOf(sk)); }
+
+/* Botones del producto: comprar o agregar al carrito */
+function contactBlock(p){
+  const own = me() && me().key===p.s;
+  if(own) return `<div class="protect">Este es tu producto. Así lo ven los compradores.</div>`;
+  const ask = `<div class="askrow">¿Tienes dudas? <a href="javascript:contactChat(${p.id})">💬 Pregúntale a la tienda</a> · <a href="javascript:contactWa(${p.id})">🟢 WhatsApp</a></div>`;
+  if(!storeTakesOrders(p.s)) return `<div class="contactbox"><div class="buybtns"><button class="btn wa" onclick="contactWa(${p.id})"><span>🟢</span> Escribir por WhatsApp</button><button class="btn lav" onclick="contactChat(${p.id})">💬 Chatear en MER-K</button></div>
+    <p class="note" style="margin:8px 0 0">Esta tienda todavía no recibe pedidos en línea. Escríbele para comprar.</p></div>`;
+  return `<div class="contactbox"><div class="buybtns"><button class="btn" onclick="buyNow(${p.id})">Comprar ahora</button><button class="btn ghost" onclick="addToCart(${p.id})">🛒 Agregar al carrito</button></div>${ask}
+    <p class="note" style="margin:8px 0 0">Le pagas directo a la tienda con su llave Bre-B${p.kind==='personalizado'?' (en personalizados, el 50 % + el domicilio por adelantado)':''}. MER-K verifica a las tiendas y te acompaña si tienes un problema.</p></div>`;
+}
+
+/* Carrito: una sola tienda a la vez */
+let ONE_PEND=null;
+function addToCart(pid){
+  if(!canShop()) return;
+  const p=P(pid); if(!p || p.stock<1){ toast('Este producto se agotó.'); return; }
+  const opts=pickedOpts(p); if(opts===false) return;
+  const c=cartRaw(), other=c.find(i=>P(i.pid) && P(i.pid).s!==p.s);
+  if(other){ ONE_PEND={pid, opts}; openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">🛍️</div><h2>Una tienda a la vez</h2>
+      <p class="sub">Puedes comprar varios productos, pero de una sola tienda a la vez. Termina este pedido y luego podrás comprar en otra tienda.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn" onclick="showCart()">Ir a pagar</button><button class="btn ghost" onclick="cartSwap()">Vaciar carrito y agregar este</button></div></div>`, true); return; }
+  const k=cartKey({pid, opts}), it=c.find(i=>cartKey(i)===k), inCart=c.filter(i=>i.pid===pid).reduce((n,i)=>n+(+i.qty||1),0);
+  if(inCart>=p.stock){ toast(`Solo hay ${p.stock} disponibles y ya están en tu carrito.`); return; }
+  if(it) it.qty++; else c.push(opts?{pid, qty:1, opts}:{pid, qty:1});
+  cartSet(c); closeModal(); toast('🛒 Agregado al carrito. ¡Sigue comprando en esta tienda!');
+}
+function cartSwap(){ if(!ONE_PEND) return closeModal(); const {pid,opts}=ONE_PEND; ONE_PEND=null; cartSet([opts?{pid, qty:1, opts}:{pid, qty:1}]); closeModal(); toast('🛒 Listo, tu carrito ahora tiene este producto.'); }
+
+/* Pago: datos de entrega y forma de pago */
+let CO2=null;
+function startCheckout(items){
+  if(!me()){ loginModal('Inicia sesión o crea tu cuenta para comprar. Tu carrito queda guardado.'); return; }
+  if(!isRole('buyer')){ toast('Para comprar necesitas una cuenta de comprador.'); return; }
+  items=(items||[]).filter(i=>P(i.pid)); if(!items.length){ toast('Tu carrito está vacío.'); return; }
+  const sk=P(items[0].pid).s;
+  if(items.some(i=>P(i.pid).s!==sk)){ toast('Solo puedes comprar en una sola tienda por pedido.'); return; }
+  const rates=ratesOf(sk); if(!Object.keys(rates).length){ toast('Esta tienda aún no configuró sus domicilios. Escríbele para comprar.'); return; }
+  CO2={items, sk};
+  const b=BUY(me().key)||{}, a=(b.addresses||[])[0]||{}, hasListo=items.some(i=>P(i.pid).kind!=='personalizado'), hasPers=items.some(i=>P(i.pid).kind==='personalizado');
+  const munis=Object.keys(rates), pre=munis.includes(a.city)?a.city:munis.includes(S.loc)?S.loc:munis[0];
+  openModal(`<div class="mpad"><h2>Finalizar compra</h2><p class="sub">Tienda: <b>${esc(SEL(sk).name)}</b></p>
+    <div class="cart">${items.map(i=>{ const p=P(i.pid); return `<div class="citem"><div class="cthumb" style="${thumbStyle(p)}">${thumbInner(p)}</div><div class="cinfo"><b>${esc(p.t)}</b>${i.opts?`<span class="optline">${esc(optsLabel(i.opts))}</span>`:''}<span class="note">${i.qty} × ${cop(itemPrice(p,i.opts))}${p.kind==='personalizado'?' · ✂️ Personalizado':''}${p.lead?' · ⏱️ '+esc(p.lead):''}</span></div><b class="cline">${cop(itemPrice(p,i.opts)*i.qty)}</b></div>`; }).join('')}</div>
+    <form class="form" onsubmit="coSubmit(event)" oninput="coCalc()" onchange="coCalc()" style="margin-top:12px">
+      <div class="row2"><label>Nombre de quien recibe<input id="cName" required maxlength="60" value="${esc(a.name||b.name||'')}"></label><label>Celular<input id="cPhone" required inputmode="numeric" maxlength="10" value="${esc(a.phone||b.phone||'')}"></label></div>
+      <div class="row2"><label>Municipio<select id="cMuni">${munis.map(m=>`<option value="${esc(m)}" ${m===pre?'selected':''}>${esc(m)} · domicilio ${cop(rates[m])}</option>`).join('')}</select></label><label>Barrio<input id="cBarrio" maxlength="60" value="${esc(a.barrio||'')}"></label></div>
+      <label>Dirección<input id="cDir" required maxlength="120" value="${esc(a.dir||'')}" placeholder="Calle, carrera, número, apto"></label>
+      <label>Punto de referencia (opcional)<input id="cNotes" maxlength="160" value="${esc(a.notes||'')}" placeholder="Portería torre 2, casa de rejas blancas…"></label>
+      ${hasListo?`<fieldset><legend>¿Cómo quieres pagar${hasPers?' los productos listos':''}?</legend>
+        <label class="check"><input type="radio" name="cMode" value="todo" checked> <span><b>Pagar todo ahora</b> · productos + domicilio</span></label>
+        <label class="check"><input type="radio" name="cMode" value="contraentrega"> <span><b>Pagar contra entrega</b> · ahora solo el domicilio, el producto al recibirlo</span></label></fieldset>`:''}
+      ${hasPers?`<p class="note" style="margin:0">✂️ Los productos personalizados se pagan con un <b>abono del 50 % + el domicilio</b> por adelantado. El resto lo pagas al recibir.</p>`:''}
+      <div id="coSum"></div>
+      <div><button class="btn" style="width:100%">Continuar al pago</button></div></form></div>`);
+  coCalc();
+}
+function coAmounts(items, ship, mode){ let sub=0, pers=0, listo=0;
+  items.forEach(i=>{ const p=P(i.pid), v=itemPrice(p,i.opts)*i.qty; sub+=v; if(p.kind==='personalizado') pers+=v; else listo+=v; });
+  const now = ship + Math.ceil(pers/2) + (mode==='todo'?listo:0); return {sub, ship, now, later:sub+ship-now}; }
+function coMode(){ const r=document.querySelector('input[name="cMode"]:checked'); return r?r.value:'todo'; }
+function coCalc(){ if(!CO2) return; const el=$('#coSum'); if(!el) return;
+  const m=$('#cMuni').value, a=coAmounts(CO2.items, ratesOf(CO2.sk)[m]||0, coMode());
+  el.innerHTML=`<table class="sum"><tr><td>Productos</td><td style="text-align:right">${cop(a.sub)}</td></tr><tr><td>Domicilio a ${esc(m)}</td><td style="text-align:right">${cop(a.ship)}</td></tr>
+    <tr><td><b>Pagas ahora a la tienda</b></td><td style="text-align:right"><b class="price">${cop(a.now)}</b></td></tr>
+    <tr><td>Pagas al recibir</td><td style="text-align:right"><b>${cop(a.later)}</b></td></tr></table>
+    <p class="note" style="margin:6px 0 0">⚠️ Si no estás cuando llegue el mensajero, la tienda puede cobrar un recargo por entrega fallida.</p>`; }
+async function coSubmit(e){ e.preventDefault(); if(!CO2) return;
+  const addr={name:$('#cName').value.trim(), phone:$('#cPhone').value.replace(/\D/g,'').replace(/^57(?=3\d{9}$)/,''), dir:$('#cDir').value.trim(), barrio:$('#cBarrio').value.trim(), notes:$('#cNotes').value.trim()};
+  if(!validPhone(addr.phone)) return toast('El celular debe tener 10 números y empezar por 3.');
+  const muni=$('#cMuni').value, mode=coMode(), items=CO2.items.map(i=>i.opts?{pid:i.pid, qty:i.qty, opts:i.opts}:{pid:i.pid, qty:i.qty});
+  const fromCart = cartGet().some(c=>items.some(i=>i.pid===c.pid));
+  let res;
+  if(LIVE){ try{ res=await api.rpc('crear_pedido', {p_seller:CO2.sk, p_items:items, p_muni:muni, p_addr:addr, p_mode:mode}); }catch(x){ return toast(friendly(x)); } }
+  else { for(const i of items){ if(P(i.pid).stock<i.qty) return toast(`Solo quedan ${P(i.pid).stock} unidades de "${P(i.pid).t}".`); }
+    const a=coAmounts(CO2.items, ratesOf(CO2.sk)[muni]||0, mode), id=(S.nextPed=(S.nextPed||100)+1);
+    items.forEach(i=>{ P(i.pid).stock-=i.qty; });
+    pedidos().unshift({id, sk:CO2.sk, bk:me().key, items:CO2.items.map(i=>{ const p=P(i.pid); return {pid:p.id, title:p.t, qty:i.qty, unit:itemPrice(p,i.opts), opts:i.opts||null, kind:p.kind||'listo', lead:p.lead||'', img:p.img||null}; }),
+      sub:a.sub, ship:a.ship, muni, addr, mode, now:a.now, later:a.later, proof:null, status:'esperando_pago', info:null, ts:Date.now(), created:now()});
+    save(); res={id, pay_now:a.now, pay_later:a.later, breb:brebOf(CO2.sk), store:SEL(CO2.sk).name}; }
+  if(fromCart) cartSet([]);
+  CO2=null; if(LIVE) await reload(); payStep(res);
+}
+function payStep(r){
+  const b=r.breb||{};
+  openModal(`<div class="mpad"><h2>Paga a la tienda</h2><p class="sub">Pedido #${r.id} · ${esc(r.store||'')}</p>
+    <div class="paybox"><small>Paga ahora</small><div class="price" style="font-size:32px">${cop(r.pay_now)}</div>
+      <div class="llave"><span>Llave Bre-B${b.tipo?' · '+esc(b.tipo):''}</span><b id="llaveTxt">${esc(b.llave||'—')}</b><button type="button" class="btn ghost sm" onclick="copyLlave()">Copiar</button></div>
+      <span class="note">Titular: <b>${esc(b.titular||'')}</b></span></div>
+    <ol class="note" style="padding-left:18px;margin:12px 0"><li>Abre la app de tu banco o billetera (Nequi, Bancolombia, Daviplata…).</li><li>Envía <b>${cop(r.pay_now)}</b> a la llave de arriba.</li><li>Sube aquí la foto o captura del comprobante.</li></ol>
+    ${r.pay_later>0?`<p class="note" style="margin:0 0 10px">Al recibir tu pedido pagas <b>${cop(r.pay_later)}</b>.</p>`:''}
+    <form class="form" onsubmit="sendProof(event,${r.id})"><label>Comprobante de pago<input id="proofFile" type="file" accept="image/*" required></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1">Enviar comprobante</button><button type="button" class="btn ghost" onclick="closeModal();goPedidos()">Lo subo después</button></div></form></div>`);
+}
+function copyLlave(){ const t=$('#llaveTxt').textContent; try{ navigator.clipboard.writeText(t).then(()=>toast('Llave copiada.'), ()=>toast('Cópiala manualmente: '+t)); }catch(e){ toast('Cópiala manualmente: '+t); } }
+function goPedidos(){ S.ui.buyTab='pedidos'; location.hash='#compras'; render(); }
+function readProof(file){ return new Promise(res=>{ if(!file) return res(null); const rd=new FileReader(); rd.onload=()=>shrink(rd.result, res, 1200); rd.onerror=()=>res(null); rd.readAsDataURL(file); }); }
+async function sendProof(e, id){ e.preventDefault(); const f=$('#proofFile').files[0]; if(!f) return toast('Sube la foto del comprobante.');
+  const data=await readProof(f); if(!data) return toast('No pudimos leer esa imagen. Intenta con otra.');
+  if(LIVE){ try{ const path=await api.uploadPriv('comprobantes', `${ME.id}/pedido-${id}-${Date.now()}.jpg`, await toBlob(data)); await api.rpc('subir_comprobante', {oid:id, path}); await reload(); }catch(x){ return toast(friendly(x)); } }
+  else { const x=PD(id); x.proof=data; x.status='por_confirmar'; notify(x.sk, '💳 Tienes un pago por confirmar', `Pedido #${id}: el cliente pagó ${cop(x.now)} a tu llave Bre-B. Revisa tu banco y confírmalo.`); save(); }
+  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🙌</div><h2>¡Gracias! Recibimos tu comprobante</h2><p class="sub">Estamos verificando tu pago y en breve te confirmamos tu pedido. Te avisamos por correo en cada paso.</p><button class="btn" onclick="closeModal();goPedidos()">Ver mi pedido</button></div>`, true);
+}
+async function reuploadProof(id){ const x=PD(id); let b=brebOf(x.sk);
+  if(LIVE){ try{ b=await api.rpc('llave_pedido', {oid:id}); }catch(e){ return toast(friendly(e)); } }
+  payStep({id, pay_now:x.now, pay_later:x.later, breb:b, store:SEL(x.sk)?.name}); }
+async function cancelPedido(id){ if(!confirm('¿Cancelar este pedido?')) return;
+  if(LIVE){ try{ await api.rpc('cancelar_pedido', {oid:id}); await reload(); toast('Pedido cancelado.'); render(); }catch(e){ toast(friendly(e)); } return; }
+  const x=PD(id); x.items.forEach(i=>{ const p=P(i.pid); if(p) p.stock+=i.qty; }); x.status='cancelado'; save(); toast('Pedido cancelado.'); render(); }
+
+/* Imagen del comprobante (privada) */
+function proofImg(x){ if(!x.proof) return ''; return x.proof.startsWith('data:') ? `<a href="javascript:void(0)" onclick="openModal('<img src=&quot;'+this.querySelector('img').src+'&quot; style=&quot;max-width:100%&quot;>')"><img class="proof" src="${x.proof}" alt="Comprobante"></a>`
+  : `<a href="javascript:void(0)" onclick="openModal('<img src=&quot;'+this.querySelector('img').src+'&quot; style=&quot;max-width:100%&quot;>')"><img class="proof" data-proof="${esc(x.proof)}" alt="Comprobante"></a>`; }
+function hydrateProofs(){}
+function pedSteps(x){ if(['cancelado','pago_rechazado','esperando_pago'].includes(x.status)) return '';
+  const ix=PED_FLOW.indexOf(x.status), L=['Pago por confirmar','Pago confirmado','Preparando','Despachado','Entregado'];
+  return `<div class="psteps">${L.map((l,i)=>`<span class="${i<=ix?'on':''}">${l}</span>`).join('')}</div>`; }
+function pedItems(x){ return `<ul class="pitems">${x.items.map(i=>`<li>${i.qty} × ${esc(i.title)}${i.opts?' ('+esc(optsLabel(i.opts))+')':''} · ${cop(i.unit*i.qty)}${i.kind==='personalizado'?' <span class="ktag pers">✂️ Personalizado</span>':''}${i.lead?` <span class="note">⏱️ ${esc(i.lead)}</span>`:''}</li>`).join('')}</ul>`; }
+function pedMoney(x){ return `<div class="pmoney"><span>Productos ${cop(x.sub)} · Domicilio ${cop(x.ship)}</span><span>Pago por adelantado: <b>${cop(x.now)}</b> · Al recibir: <b>${cop(x.later)}</b>${x.mode==='contraentrega'?' · contra entrega':''}</span></div>`; }
+function pedShip(x){ const i=x.info; if(!i) return ''; return `<div class="leadbox" style="margin-top:8px">🛵 ${i.guia?`Guía ${esc(i.carrier||'')}: <b>${esc(i.guia)}</b>`:`Mensajero: <b>${esc(i.who)}</b>${i.phone?' · '+esc(i.phone):''}`}</div>`; }
+
+/* Comprador: Mis pedidos */
+function misPedidosTab(bk){ const L=pedidos().filter(x=>x.bk===bk); setTimeout(hydrateProofs,30);
+  if(!L.length) return `<div class="panel"><p class="empty">Aún no tienes pedidos. Cuando compres, aquí ves el estado de cada uno.</p></div>`;
+  return L.map(x=>`<div class="panel pedido" id="ped-${x.id}"><div class="phead"><div><b>Pedido #${x.id} · ${esc(SEL(x.sk)?.name||'Tienda')}</b><br><span class="note">${x.created} · ${esc(x.muni)}</span></div>${pedBadge(x)}</div>
+    ${pedSteps(x)}${pedItems(x)}${pedMoney(x)}${pedShip(x)}
+    ${x.status==='pago_rechazado'?'<p class="note" style="color:#B42318">La tienda no encontró tu pago. Revisa tu comprobante y vuelve a subirlo, o escríbenos a soporte.</p>':''}
+    <div class="pbtns">${['esperando_pago','pago_rechazado'].includes(x.status)?`<button class="btn sm" onclick="reuploadProof(${x.id})">Subir comprobante</button><button class="btn ghost sm" onclick="cancelPedido(${x.id})">Cancelar pedido</button>`:''}
+      <button class="btn ghost sm" onclick="S.ui.buyTab='soporte';render()">¿Un problema? Escríbenos</button></div></div>`).join(''); }
+
+/* Tienda: Pedidos */
+function ventasTab(sk){ const L=pedidos().filter(x=>x.sk===sk && x.status!=='cancelado'); setTimeout(hydrateProofs,30);
+  const pend=L.filter(x=>x.status==='por_confirmar').length;
+  const head=`<div class="panel"><h3 style="margin:0">Pedidos</h3><p class="note" style="margin:4px 0 0">Cuando un cliente sube su comprobante te llega un correo. Revisa en tu banco que la plata sí llegó y toca <b>Confirmar pago</b>. Cada botón le avisa al cliente por correo.</p>${pend?`<p style="margin:8px 0 0"><span class="badge blue">${pend} pago${pend>1?'s':''} por confirmar</span></p>`:''}</div>`;
+  if(!L.length) return head+`<div class="panel"><p class="empty">Aún no tienes pedidos. Comparte el enlace de tu tienda para empezar a vender.</p></div>`;
+  return head+L.map(x=>`<div class="panel pedido" id="ped-${x.id}"><div class="phead"><div><b>Pedido #${x.id}</b> · ${x.created}<br><span class="note">${esc(x.addr.name)} · ${esc(x.addr.phone)} · ${esc(x.addr.dir)}${x.addr.barrio?', '+esc(x.addr.barrio):''}, ${esc(x.muni)}${x.addr.notes?' · '+esc(x.addr.notes):''}</span></div>${pedBadge(x)}</div>
+    ${pedSteps(x)}${pedItems(x)}${pedMoney(x)}${pedShip(x)}
+    ${x.proof?`<div class="pproof"><span class="note">Comprobante del cliente (debe ser de ${cop(x.now)}):</span>${proofImg(x)}</div>`:x.status==='esperando_pago'?'<p class="note">Esperando que el cliente pague y suba el comprobante.</p>':''}
+    <div class="pbtns">${x.status==='por_confirmar'?`<button class="btn sm" onclick="pedEstado(${x.id},'confirmado')">✅ Confirmar pago</button><button class="btn bad sm" onclick="pedEstado(${x.id},'pago_rechazado')">❌ No me llegó el pago</button>`:''}
+      ${x.status==='confirmado'?`<button class="btn sm" onclick="pedEstado(${x.id},'preparando')">📦 Preparando envío</button>`:''}
+      ${['confirmado','preparando'].includes(x.status)?`<button class="btn sm" onclick="despachoForm(${x.id})">🛵 Despachado</button>`:''}
+      ${x.status==='despachado'?`<button class="btn sm" onclick="pedEstado(${x.id},'entregado')">🎉 Entregado</button>`:''}</div></div>`).join(''); }
+function despachoForm(id){ openModal(`<div class="mpad"><h2>Pedido #${id} despachado</h2><p class="sub">Esto le llega al cliente para que sepa quién le lleva su pedido.</p>
+  <form class="form" onsubmit="saveDespacho(event,${id})"><fieldset><legend>Con tu domiciliario</legend><div class="row2"><label>Nombre del mensajero<input id="dpWho" maxlength="60"></label><label>Celular del mensajero<input id="dpPhone" inputmode="numeric" maxlength="10"></label></div></fieldset>
+    <fieldset><legend>O por transportadora (resto de Antioquia)</legend><div class="row2"><label>Transportadora<input id="dpCarrier" maxlength="40" value="Interrapidísimo"></label><label>Número de guía<input id="dpGuia" maxlength="40"></label></div></fieldset>
+    <div><button class="btn">Marcar como despachado</button></div></form></div>`, true); }
+function saveDespacho(e,id){ e.preventDefault(); const info={who:$('#dpWho').value.trim(), phone:$('#dpPhone').value.replace(/\D/g,''), carrier:$('#dpGuia').value.trim()?$('#dpCarrier').value.trim():'', guia:$('#dpGuia').value.trim()};
+  if(info.who.length<2 && info.guia.length<3) return toast('Escribe el nombre y el celular del mensajero, o el número de guía.');
+  pedEstado(id,'despachado',info); }
+const PED_MSG = {confirmado:'¡Tu pago fue confirmado! Tu pedido fue recibido con éxito.', pago_rechazado:'No pudimos confirmar tu pago. Revisa tu comprobante o escríbenos a soporte.', preparando:'Estamos preparando tu pedido con mucho cariño.', despachado:'Tu pedido va en camino 🛵.', entregado:'¡Tu pedido llegó! Califica a la tienda ⭐'};
+async function pedEstado(id, st, info){
+  if(st==='pago_rechazado' && !confirm('¿Seguro que no te llegó el pago? Le avisaremos al cliente para que revise su comprobante.')) return;
+  if(LIVE){ try{ await api.rpc('estado_pedido', {oid:id, st, info:info||null}); closeModal(); await reload(); toast('Listo. Le avisamos al cliente.'); render(); }catch(e){ toast(friendly(e)); } return; }
+  const x=PD(id); x.status=st; if(info) x.info=info; notify(x.bk, `Pedido #${id} · ${(PED_ST[st]||[st])[0]}`, PED_MSG[st]||''); save(); closeModal(); toast('Listo. Le avisamos al cliente.'); render(); }
+
+/* Admin: todos los pedidos */
+function adminPedidosTab(){ const L=pedidos(); setTimeout(hydrateProofs,30);
+  if(!L.length) return `<div class="panel"><p class="empty">Aún no hay pedidos.</p></div>`;
+  return `<div class="panel"><h3>Pedidos (${L.length})</h3><div class="tw"><table><tr><th>#</th><th>Fecha</th><th>Tienda</th><th>Cliente</th><th>Adelantado</th><th>Al recibir</th><th>Estado</th><th>Comprobante</th></tr>
+    ${L.map(x=>`<tr><td>${x.id}</td><td>${x.created}</td><td>${esc(SEL(x.sk)?.name||'')}</td><td>${esc(x.addr.name)}<br><span class="note">${esc(x.addr.phone)}</span></td><td>${cop(x.now)}</td><td>${cop(x.later)}</td><td>${pedBadge(x)}</td><td>${x.proof?proofImg(x):'—'}</td></tr>`).join('')}</table></div></div>`; }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -4210,7 +4398,7 @@ async function loadAll(){
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
-  let pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
+  let pedRows=[], pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   ads = await T0('ad_requests', {order:'created_at'});   // públicos: los que están en el banner; el vendedor ve los suyos y admin todos
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
@@ -4219,11 +4407,13 @@ async function loadAll(){
     if(role==='seller' || role==='admin') [slog, pays, subs] = await Promise.all([T0('stock_log', {order:'created_at', limit:300}), T0('payouts', {order:'created_at'}), T0('sub_payments', {order:'created_at'})]);
     if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
     revs = await T0('reviews');
+    pedRows = await T0('pedidos', {order:'created_at'});
     if(role==='admin') pqrsRows = await T0('pqrs', {order:'created_at'});
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
   if(cfg[0]) Object.assign(S.cfg, cfg[0].data);
+  S.pedidos = pedRows.map(mapPedido);
   S.pqrs = pqrsRows.map(q=>({id:q.id, kind:q.kind, name:q.name, email:q.email, phone:q.phone||'', order:q.order_ref||'', msg:q.message, status:q.status, answer:q.answer||'', created:fmtTs(q.created_at), ts:Date.parse(q.created_at)}));
   const P_ = Object.fromEntries(profs.map(p=>[p.id, p])), V_ = Object.fromEntries(privs.map(p=>[p.seller_id, p]));
   S.sellers = Object.fromEntries(sellers.map(r=>[r.id, mapSeller(r, P_[r.id], V_[r.id])]));
@@ -4791,6 +4981,11 @@ async function saveTerms(e){ e.preventDefault(); const t=$('#tmText').value.trim
 /* ---------- Etapa 1: pagos y domicilios (live) ---------- */
 async function savePayShip(e){ e.preventDefault(); let d; try{ d=readPayShip(); }catch(x){ return toast(x); }
   await act(async()=>{ await api.upd('sellers', {ship_rates:d.rates}, {id:ME.id}); await api.upd('seller_private', {breb:d.breb}, {seller_id:ME.id}); }, '¡Guardado! Tus pagos y domicilios quedaron listos.', {close:false}); }
+
+/* ---------- Etapa 2: pedidos (live) ---------- */
+const mapPedido = r => ({id:r.id, sk:r.seller_id, bk:r.buyer_id, items:r.items||[], sub:r.subtotal, ship:r.ship, muni:r.muni, addr:r.addr||{}, mode:r.pay_mode, now:r.pay_now, later:r.pay_later,
+  proof:r.proof||null, status:r.status, info:r.ship_info||null, ts:Date.parse(r.created_at), created:fmtTs(r.created_at)});
+async function hydrateProofs(){ for(const im of document.querySelectorAll('img[data-proof]')){ const path=im.getAttribute('data-proof'); im.removeAttribute('data-proof'); try{ im.src = await api.signed('comprobantes', path); }catch(e){} } }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
