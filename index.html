@@ -1546,7 +1546,7 @@ function viewAdmin(){
   if(t==='envios') body = adminHubTab();
   if(t==='perfil') body = profileTab();
   if(t==='planes'){ const list=sellers.filter(([k,s])=>k!==OFFICIAL);
-    body = claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
+    body = planPagosPanel() + claimsPanel() + `<div class="panel"><h3>Planes de los vendedores</h3>${list.length?`<div class="tw"><table><tr><th>Vendedor</th><th>Plan</th><th>Mensualidad</th><th>Vence</th><th>Estado</th><th></th></tr>${list.map(([k,s])=>{ const st=subState(k); return `<tr>
       <td><b>${esc(s.name)}</b><br><span class="note">${esc(s.owner)}</span></td><td>${PLAN_INFO[s.plan].name}</td><td>${s.plan==='gratis'?'$0':cop(planPrice(s.plan))}</td><td>${s.sub?fdate(s.sub.due):'—'}</td><td>${SUB_BADGE[st]||'<span class="badge lav">Gratis</span>'}</td>
       <td style="text-align:right;white-space:nowrap"><button class="btn sm" onclick="subPayForm('${k}')">${s.plan==='gratis'?'Activar plan pago':st==='suspendido'?'Registrar pago y reactivar':'Registrar pago'}</button> <button class="btn ghost sm" onclick="courtesyForm('${k}')">🎁 Cortesía</button>
         ${s.plan==='gratis'?'':`<button class="btn ghost sm" onclick="remindSub('${k}')">Enviar recordatorio</button>`}
@@ -2220,6 +2220,7 @@ function payPlan(plan){
     <ol class="note olist"><li>Toca <b>Pagar con Wompi</b>: se abre la página segura de Wompi.</li><li>Paga con tarjeta, PSE, Nequi o botón Bancolombia.</li><li>Vuelve aquí y escribe el número de la transacción (te llega al correo).</li></ol>
     ${link?`<a class="btn" style="display:block;text-align:center;text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener" onclick="S.pendingPlan={sk:'${sk}',plan:'${plan}'};save()">Pagar ${cop(planPrice(plan))} con Wompi</a>`
       :`<p class="alert">El enlace de pago de este plan aún no está configurado. MER-K lo pone en Administración → Configuración.</p>`}
+    ${planLlaveBtn(plan)}
     <form class="form" style="margin-top:16px" onsubmit="reportPay(event,'${plan}')"><label>Número de la transacción de Wompi<input id="rpRef" required minlength="4" maxlength="40" placeholder="Ej: 120394-1730812345-38291"></label>
       <div><button class="btn ghost">Ya pagué, enviar comprobante</button></div></form>
     <p class="note">Cuando MER-K confirma el pago, tu plan se activa y te llega a la campanita 🔔.</p>
@@ -3731,7 +3732,7 @@ function plansHtml(sk){
   const s=SEL(sk), cur=s.plan, ss=subState(sk), on=effPlan(sk)!=='ninguno';
   const status = `<div class="panel"><h3>Tu plan: ${on?PLAN_INFO[cur].name:'sin plan activo'}</h3>
       ${on?`<p>${SUB_BADGE[ss]||''} Vence el <b>${fdate(s.sub.due)}</b>.</p><p class="note">Mensualidad: ${cop(planPrice(cur))}. Si no pagas, tienes ${S.cfg.graceDays} días de gracia y después tus productos se ocultan hasta que pagues.</p>`
-        :`<p>${ss==='suspendido'?'Tu plan se venció y tus productos están ocultos. ':''}Para vender en MER-K necesitas un plan activo. Elige uno y págalo con Wompi (tarjeta, PSE, Nequi o Bancolombia).</p>`}
+        :`<p>${ss==='suspendido'?'Tu plan se venció y tus productos están ocultos. ':''}Para vender en MER-K necesitas un plan activo. Elige uno y págalo con tu llave Bre-B desde Nequi, Bancolombia, Daviplata o cualquier banco.</p>`}
       ${S.subClaims.some(c=>c.sk===sk&&c.status==='pendiente')?'<p><span class="badge warn">Pago enviado · MER-K lo está confirmando</span></p>':''}${on?`<button class="btn" onclick="payPlan('${cur}')">Pagar mensualidad</button>`:''}</div>`;
   return status + planCards(cur, k=>on&&cur===k?'<button class="btn ghost" disabled>Tu plan actual</button>':`<button class="btn ${k==='pro'?'lav':''}" onclick="payPlan('${k}')">${on?'Cambiar a ':'Elegir '}${PLAN_INFO[k].name}</button>`);
 }
@@ -3837,7 +3838,7 @@ function viewTerminos(){
   <h3>3. Planes para vender</h3>
   <ul><li>Para publicar productos necesitas un plan pago: <b>Básico</b> (${cop(planPrice('basico'))} al mes, hasta ${S.cfg.limits?.basico??15} productos), <b>Emprendedor</b> (${cop(planPrice('emprendedor'))} al mes, hasta ${S.cfg.limits?.emprendedor??150} productos) o <b>Pro</b> (${cop(planPrice('pro'))} al mes, productos ilimitados y prioridad en búsquedas). Los precios pueden cambiar; te avisamos antes de que apliquen.</li>
   <li>MER-K <b>no cobra comisión por venta</b>. Sus ingresos son los planes y la publicidad.</li>
-  <li>Los planes se pagan por adelantado cada 30 días por Wompi. Si no pagas, tienes ${S.cfg.graceDays??3} días de gracia y luego tus productos se ocultan hasta que pagues. El plan no se renueva solo: cada mes decides si lo pagas.</li></ul>
+  <li>Los planes se pagan por adelantado cada 30 días a la llave Bre-B de MER-K, subiendo el comprobante en la página; MER-K lo confirma y el plan se activa. Si no pagas, tienes ${S.cfg.graceDays??3} días de gracia y luego tus productos se ocultan hasta que pagues. El plan no se renueva solo: cada mes decides si lo pagas.</li></ul>
   <h3>4. Reglas para publicar</h3>
   <ul><li>Publica solo productos reales, propios o que tengas derecho a vender, con fotos y descripciones verdaderas y el precio real.</li>
   <li>Está prohibido publicar: animales vivos, armas, municiones, pólvora o explosivos, drogas o medicamentos con fórmula, pornografía o contenido sexual explícito, productos falsificados, robados o de contrabando, y cualquier cosa ilegal en Colombia.</li>
@@ -3865,7 +3866,7 @@ function viewPrivacidad(){
   <li><b>Uso de la plataforma:</b> productos publicados, mensajes del chat de MER-K, pagos de planes, solicitudes de soporte y PQRS.</li>
   <li><b>Pedidos:</b> nombre, celular y dirección de entrega, los productos comprados y la foto del comprobante de pago. Los ven solo el comprador, la tienda del pedido y MER-K. La llave Bre-B de cada tienda se le muestra solo a quien tiene un pedido con ella.</li>
   <li><b>Conversaciones con el asesor virtual de cada tienda:</b> las preguntas y respuestas, que puede ver la tienda para atenderte mejor.</li>
-  <li><b>Pagos de planes:</b> el estado y la referencia de la transacción. Los datos de tarjetas y cuentas los maneja directamente Wompi; MER-K no los ve ni los guarda.</li></ul>
+  <li><b>Pagos de planes:</b> el comprobante de pago que subes y su estado. MER-K no pide ni guarda datos de tarjetas ni claves bancarias.</li></ul>
   <p><b>Dato sensible:</b> la foto de la cédula y la selfie incluyen tu imagen, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás vender. Solo la usamos para verificar que eres tú.</p>
   <h3>2. ¿Para qué usamos tus datos?</h3>
   <ul><li>Crear y administrar tu cuenta y, si vas a vender, <b>verificar tu identidad</b> y tu RUT o NIT, para dar confianza a los compradores.</li>
@@ -3877,7 +3878,7 @@ function viewPrivacidad(){
   <h3>3. ¿Quién ve tus documentos?</h3>
   <p>Las fotos de la cédula, la selfie, el RUT y la Cámara de Comercio se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios con cuenta, el WhatsApp del vendedor.</p>
   <h3>4. ¿Con quién compartimos tus datos?</h3>
-  <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: la pasarela de pagos Wompi, nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos) y el proveedor de inteligencia artificial que genera las respuestas del asesor virtual (Anthropic), que recibe solo el texto de la conversación y la información de la tienda. Todos están obligados a protegerlos. Con la tienda a la que le compras compartimos los datos de entrega del pedido. No vendemos tus datos.</p>
+  <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos) y el proveedor de inteligencia artificial que genera las respuestas del asesor virtual (Anthropic), que recibe solo el texto de la conversación y la información de la tienda. Todos están obligados a protegerlos. Con la tienda a la que le compras compartimos los datos de entrega del pedido. No vendemos tus datos.</p>
   <h3>5. Tus derechos</h3>
   <p>Como titular puedes: conocer, actualizar y rectificar tus datos; pedir prueba de la autorización; saber cómo los usamos; revocar la autorización o pedir que los borremos (incluidas las fotos de tus documentos) cuando no exista un deber legal de conservarlos; presentar quejas ante la Superintendencia de Industria y Comercio; y acceder gratis a tus datos.</p>
   <h3>6. ¿Cómo ejercer tus derechos?</h3>
@@ -4421,6 +4422,38 @@ async function aiAsk(sk, pid, msgs){ await new Promise(r=>setTimeout(r,500)); co
   return (hit ? `¡Claro! ${hit} 😊 ¿Te ayudo con algo más o lo agregas al carrito?` : '¡Buena pregunta! En la página real te respondo con la información de la tienda. ¿Quieres que te cuente de los domicilios o del tiempo de entrega?'); }
 function aiLog(sk){ openModal(`<div class="mpad"><h2>Preguntas de clientes</h2><p class="sub">En la página real aquí ves las últimas preguntas que le hicieron a tu asistente y lo que respondió.</p></div>`, true); }
 
+/* =====================================================================
+   PAGAR EL PLAN CON LA LLAVE BRE-B DE MER-K
+   ===================================================================== */
+function merkBreb(){ return S.cfg.breb || {tipo:'Llave Bre-B', llave:'0090020629', titular:'MER-K'}; }
+function planPagos(){ return S.planPagos || (S.planPagos=[]); }
+function planLlaveBtn(plan){ return `<button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="planLlave('${plan}')">Pagar con llave Bre-B (Nequi, Bancolombia, Daviplata…)</button>`; }
+function planLlave(plan){ const b=merkBreb(), pend=planPagos().find(x=>x.sk===me().key && x.status==='por_confirmar');
+  if(pend) return openModal(`<div class="mpad" style="text-align:center"><div style="font-size:42px">⏳</div><h2>Estamos revisando tu pago</h2><p class="sub">Ya enviaste el comprobante de tu plan. Te avisamos apenas lo confirmemos.</p></div>`, true);
+  openModal(`<div class="mpad"><h2>Plan ${PLAN_INFO[plan].name}</h2><p class="sub">Paga tu mensualidad a la llave de MER-K y sube el comprobante.</p>
+    <div class="paybox"><small>Paga</small><div class="price" style="font-size:32px">${cop(planPrice(plan))}</div>
+      <div class="llave"><span>${esc(b.tipo||'Llave Bre-B')}</span><b id="llaveTxt">${esc(b.llave)}</b><button type="button" class="btn ghost sm" onclick="copyLlave()">Copiar</button></div>
+      <span class="note">Titular: <b>${esc(b.titular||'MER-K')}</b></span></div>
+    <ol class="note" style="padding-left:18px;margin:12px 0"><li>Abre la app de tu banco o billetera.</li><li>Envía <b>${cop(planPrice(plan))}</b> a la llave de arriba.</li><li>Sube aquí el pantallazo del comprobante. Cuando MER-K lo confirme, tu plan se activa por 30 días.</li></ol>
+    <form class="form" onsubmit="sendPlanProof(event,'${plan}')"><label>Comprobante de pago<input id="ppProof" type="file" accept="image/*" required></label><div><button class="btn" style="width:100%">Enviar comprobante</button></div></form></div>`, true); }
+async function sendPlanProof(e, plan){ e.preventDefault(); const f=$('#ppProof').files[0]; if(!f) return toast('Sube el comprobante.');
+  const data=await readProof(f); if(!data) return toast('No pudimos leer esa imagen. Intenta con otra.');
+  if(LIVE){ try{ const path=await api.uploadPriv('comprobantes', `${ME.id}/plan-${Date.now()}.jpg`, await toBlob(data)); await api.rpc('pagar_plan_llave', {p_plan:plan, path}); await reload(); }catch(x){ return toast(friendly(x)); } }
+  else { const id=(S.nextPP=(S.nextPP||1)+1); planPagos().unshift({id, sk:me().key, plan, amount:planPrice(plan), proof:data, status:'por_confirmar', created:now()}); notify('admin','💳 Pago de plan por confirmar', `${SEL(me().key).name} pagó ${cop(planPrice(plan))} del plan ${PLAN_INFO[plan].name}.`); save(); }
+  openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🙌</div><h2>¡Recibimos tu comprobante!</h2><p class="sub">MER-K lo revisa y te avisamos por correo y con la campanita cuando tu plan quede activo.</p><button class="btn" onclick="closeModal()">Listo</button></div>`, true); }
+function planPagosPanel(){ const L=planPagos().filter(x=>x.status==='por_confirmar'); setTimeout(hydrateProofs,30); const b=merkBreb();
+  return `<div class="panel"><h3>💳 Pagos de planes por llave Bre-B</h3>
+    <form class="form" onsubmit="saveMerkBreb(event)" style="margin-bottom:12px"><div class="row3"><label>Tipo<input id="mbTipo" maxlength="30" value="${esc(b.tipo||'')}"></label><label>Llave de MER-K<input id="mbLlave" required maxlength="60" value="${esc(b.llave||'')}"></label><label>Titular<input id="mbTit" maxlength="80" value="${esc(b.titular||'')}"></label></div><div><button class="btn ghost sm">Guardar llave</button></div></form>
+    ${L.length?L.map(x=>`<div class="addr"><div><b>${esc(SEL(x.sk)?.name||'Tienda')}</b> · Plan ${PLAN_INFO[x.plan].name} · <b>${cop(x.amount)}</b><br><span class="note">${x.created} · revisa que la plata llegó a la cuenta de MER-K</span><div class="pproof">${proofImg(x)}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="decidePlanPago(${x.id},true)">✅ Confirmar y activar</button><button class="btn bad sm" onclick="decidePlanPago(${x.id},false)">❌ No llegó</button></div></div>`).join('')
+      :'<p class="empty">No hay pagos por confirmar.</p>'}</div>`; }
+function saveMerkBreb(e){ e.preventDefault(); S.cfg.breb={tipo:$('#mbTipo').value.trim()||'Llave Bre-B', llave:$('#mbLlave').value.trim(), titular:$('#mbTit').value.trim()||'MER-K'}; save(); toast('Llave guardada.'); render(); }
+function decidePlanPago(id, ok){ if(!ok && !confirm('¿Seguro que no llegó el pago? Le avisaremos a la tienda.')) return; const x=planPagos().find(y=>y.id===id); x.status=ok?'confirmado':'rechazado';
+  if(ok){ SEL(x.sk).plan=x.plan; paySub(x.sk, 'LLAVE-'+id, 'llave'); } else notify(x.sk,'No pudimos confirmar el pago de tu plan','Revisa tu comprobante y vuelve a enviarlo, o escríbenos a Soporte.');
+  save(); toast(ok?'Plan activado por 30 días. Le avisamos a la tienda.':'Le avisamos a la tienda.'); render(); }
+
+function payPlan(plan){ planLlave(plan); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -4517,7 +4550,7 @@ async function loadAll(){
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
   const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
-  let pedRows=[], pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
+  let pedRows=[], ppRows=[], pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   ads = await T0('ad_requests', {order:'created_at'});   // públicos: los que están en el banner; el vendedor ve los suyos y admin todos
   if(uid){
     [profs, privs, orders, evs, msgs, notifs, tks, tms] = await Promise.all([T0('profiles'), T0('seller_private'), T0('orders', {order:'created_at'}), T0('order_events', {order:'created_at', asc:true}),
@@ -4527,12 +4560,14 @@ async function loadAll(){
     if(role==='buyer') [fols, cls] = await Promise.all([T0('follows'), T0('coupon_claims')]);
     revs = await T0('reviews');
     pedRows = await T0('pedidos', {order:'created_at'});
+    if(role==='seller'||role==='admin') ppRows = await T0('plan_pagos', {order:'created_at'});
     if(role==='admin') pqrsRows = await T0('pqrs', {order:'created_at'});
     if(role==='admin'){ [exps, alerts] = await Promise.all([T0('expenses', {order:'created_at'}), T0('alerts', {order:'created_at', limit:200})]); summary = await api.rpc('admin_summary').catch(()=>null); }
   }
   if(seq !== loadSeq) return;     // llegó una carga más nueva
   if(cfg[0]) Object.assign(S.cfg, cfg[0].data);
   S.pedidos = pedRows.map(mapPedido);
+  S.planPagos = ppRows.map(r=>({id:r.id, sk:r.seller_id, plan:r.plan, amount:r.amount, proof:r.proof, status:r.status, created:fmtTs(r.created_at)}));
   S.pqrs = pqrsRows.map(q=>({id:q.id, kind:q.kind, name:q.name, email:q.email, phone:q.phone||'', order:q.order_ref||'', msg:q.message, status:q.status, answer:q.answer||'', created:fmtTs(q.created_at), ts:Date.parse(q.created_at)}));
   const P_ = Object.fromEntries(profs.map(p=>[p.id, p])), V_ = Object.fromEntries(privs.map(p=>[p.seller_id, p]));
   S.sellers = Object.fromEntries(sellers.map(r=>[r.id, mapSeller(r, P_[r.id], V_[r.id])]));
@@ -4813,11 +4848,7 @@ async function changePlan(k){
   if(k==='gratis'){ if(!confirm('¿Seguro? Pierdes los beneficios de tu plan y los productos que pasen de '+S.cfg.limits.gratis+' se pausan.')) return; await act(()=>api.rpc('change_to_free'), 'Ahora estás en el plan Gratis.'); return; }
   payPlan(k);
 }
-function payPlan(plan){
-  openModal(`<div class="mpad"><h2>Plan ${PLAN_INFO[plan].name}</h2><p class="sub">${cop(planPrice(plan))} por 30 días.</p><ul class="note">${perksOf(plan).map(x=>`<li>${x}</li>`).join('')}</ul>
-    <p class="note">Pagas en la página segura de Wompi con tarjeta, PSE, Nequi o botón Bancolombia. Cuando el pago se aprueba, tu plan se activa solo.</p>
-    <button class="btn" style="width:100%" id="ppBtn" onclick="goPayPlan('${plan}')">Pagar ${cop(planPrice(plan))} </button></div>`, true);
-}
+function payPlan(plan){ planLlave(plan); }
 async function goPayPlan(plan){ const b=$('#ppBtn'); b.disabled=true; b.textContent='Abriendo el pago…';
   try{ await openPayment('plan', {plan}); }
   catch(e){ toast(friendly(e)); b.disabled=false; b.textContent='Pagar'; } }
@@ -5123,6 +5154,12 @@ async function aiLog(sk){ let rows=[]; try{ rows = await api.sel('ai_messages', 
   rows = rows.filter(m=>m.seller_id===sk);
   openModal(`<div class="mpad"><h2>Preguntas de clientes</h2><p class="sub">Las últimas conversaciones con tu asistente.</p>
     ${rows.length?`<div class="aimsgs" style="max-height:60vh">${rows.slice().reverse().map(m=>`<div class="aim ${m.role==='user'?'me':''}">${esc(m.content).replace(/\n/g,'<br>')}<br><span class="note" style="font-size:11px">${fmtTs(m.created_at)}</span></div>`).join('')}</div>`:'<p class="empty">Todavía no hay preguntas.</p>'}</div>`, true); }
+
+/* ---------- Planes por llave Bre-B (live) ---------- */
+async function saveMerkBreb(e){ e.preventDefault(); const c=JSON.parse(JSON.stringify(S.cfg)); c.breb={tipo:$('#mbTipo').value.trim()||'Llave Bre-B', llave:$('#mbLlave').value.trim(), titular:$('#mbTit').value.trim()||'MER-K'};
+  delete c.wompiLinks; delete c.fixedFee; delete c.fixedUnder; delete c.domicilio; await act(()=>api.upd('config', {data:c}, {id:1}), 'Llave guardada.', {close:false}); }
+async function decidePlanPago(id, ok){ if(!ok && !confirm('¿Seguro que no llegó el pago? Le avisaremos a la tienda.')) return;
+  await act(()=>api.rpc('admin_pago_plan', {pid:id, ok}), ok?'Plan activado por 30 días. Le avisamos a la tienda.':'Le avisamos a la tienda.', {close:false}); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
