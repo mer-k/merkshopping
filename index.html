@@ -527,6 +527,22 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
 
 .physbox{margin-top:8px;font-size:13px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:7px 11px;line-height:1.45}
 .physbox a{font-weight:800;color:var(--blue)}
+
+.termsbox summary{cursor:pointer;list-style:none}.termsbox summary::-webkit-details-marker{display:none}.termsbox summary h3:after{content:' ▾';font-size:14px}
+.termstext{font-size:14px;line-height:1.6;color:var(--ink);margin-top:10px;max-height:60vh;overflow:auto}
+
+/* Etapa 1 */
+.kindpick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.kopt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line,#DCE7F7);border-radius:14px;padding:12px;cursor:pointer;background:#fff}
+.kopt input{margin-top:4px}.kopt span{display:grid;gap:3px}.kopt small{color:var(--ink2,#4A5878);font-weight:600;line-height:1.35}
+.kopt:has(input:checked){border-color:var(--blue,#005CFF);background:#EAF3FF}
+.ktag{display:inline-block;font-size:11.5px;font-weight:800;border-radius:99px;padding:2px 9px;margin:4px 4px 0 0}
+.ktag.pers{background:#FFF1E0;color:#A65300}.ktag.lead{background:#EAF3FF;color:#0047CC}
+.leadbox{background:#EAF3FF;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}
+.rates{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rates label{font-size:13px}
+.shipfrom{margin:0}
+@media(max-width:600px){.kindpick{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1026,7 +1042,7 @@ function card(p){
     <div class="thumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
     <div class="cbody">${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}
       <div><span class="price">${fromTxt(p)}${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
-      <div class="ptitle">${esc(p.t)}</div><div class="pcity">📍 ${esc(s.city||'')}${p.freeShip?' · Envío gratis':''}</div>
+      <div class="ptitle">${esc(p.t)}</div><div class="pcity">📍 ${esc(s.city||'')}</div>${kindTag(p)}
       ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}${vBadge(p.s)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
 }
 function shipBox(p, city){
@@ -1045,9 +1061,10 @@ function showProduct(id){
       <p class="note" style="margin:0;white-space:pre-line">${esc(p.d)}</p>
       ${specsTable(p)}
       ${pickerHtml(p)}
-      <div class="shipbox"><b>📍 ${esc(s.city||'Colombia')}</b>${p.freeShip?'<span class="badge" style="justify-self:start">El vendedor ofrece envío gratis</span>':''}<span class="note">La entrega (en persona, domicilio o transportadora) la acuerdas con el vendedor.</span></div>
+      ${leadBox(p)}
+      <div class="shipbox"><b>📍 ${esc(s.city||'Colombia')}</b>${shipFromBox(p.s)||'<span class="note">La tienda aún no ha configurado sus domicilios.</span>'}</div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}
-      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}${physBox(p.s)}</div>${planBadge(p.s)}</div>
+      <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}${physBox(p.s)}${termsOf(p.s)?`<a class="note" style="display:inline-block;margin-top:6px;font-weight:800;color:var(--blue)" href="javascript:showTerms('${p.s}')">📜 Términos y condiciones de la tienda</a>`:''}</div>${planBadge(p.s)}</div>
       ${contactBlock(p)}</div></div>`);
 }
 
@@ -1405,10 +1422,8 @@ function productForm(p){
       ${p?`<label>Estado<select id="fpause"><option value="0" ${!v.paused?'selected':''}>Publicado</option><option value="1" ${v.paused?'selected':''}>Pausado</option></select></label>`:''}</div>
     ${specsFields(p)}
     ${photoPicker(p)}
-    <fieldset><legend>Entrega</legend>
-      <label class="check"><input type="checkbox" id="ffree" ${v.freeShip?'checked':''}> Ofrezco envío gratis (sale como etiqueta en el producto; la entrega la acuerdas con el comprador)</label>
-      <label id="fncWrap" style="display:none">Costo del envío nacional (lo paga el comprador)<input id="fnc" type="number" min="0" step="500" value="${v.natCost??14000}"><span class="note" style="font-weight:500">Pon lo que te cobra la transportadora por enviar este producto (según su peso y tamaño).</span></label>
-      <p class="note" style="margin:0">En Medellín y alrededores el domicilio se cobra automáticamente según la tarifa de la zona del comprador.</p></fieldset>
+    ${kindFields(v)}
+    <input type="checkbox" id="ffree" hidden ${v.freeShip?'checked':''}><input type="hidden" id="fnc" value="${v.natCost??0}">
     <div><button class="btn">${p?'Guardar cambios':'Publicar'}</button></div></form>`;
 }
 function editProduct(id){ openModal(`<div class="mpad"><h2>Editar producto</h2>${productForm(P(id))}</div>`); }
@@ -1422,7 +1437,8 @@ function saveProduct(e, id){
   const t=$('#ft').value.trim(), d=$('#fd').value.trim(), sx=specsText(specs), r=check(t+' \n '+d+' \n '+sx), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
   if(!r.ok){ const m=strike(s, s.name, t+' — '+d, r.reason, id?'Edición de producto':'Publicación'); save(); toast('No se guardó: '+r.reason+'. '+m); return; }
-  const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:looksAdult(t+' '+d)?ADULT_CAT:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0), specs};
+  const data={t, d, p:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), c:looksAdult(t+' '+d)?ADULT_CAT:$('#fc').value, freeShip:$('#ffree').checked, natCost:Math.max(0,+$('#fnc').value||0), specs, kind:readKind(), lead:readLead()};
+  if(!data.lead){ toast('Escribe el tiempo de entrega del producto.'); return; }
   const images=PF_PHOTOS.map(f=>f.url||f.prev); data.images=images; data.img=images[0]||null;
   if(id){ Object.assign(P(id), data, {paused:$('#fpause').value==='1'}); try{ save(); }catch(_){ toast('Las fotos ocupan mucho espacio en esta demo.'); return; } toast('Cambios guardados.'); closeModal(); return; }
   S.products.unshift(Object.assign({id:S.nextId++, e:'📦', s:sk, paused:false}, data)); save(); S.ui.sellTab='productos'; toast('¡Producto publicado!'); render();
@@ -1915,6 +1931,7 @@ function viewStore(slug){
     <div class="sec"><h3>Todos los productos</h3></div><div class="grid">${list.map(card).join('')||'<p class="empty">Esta tienda aún no tiene productos publicados.</p>'}</div>
     <div class="split" style="margin-top:22px">${st.about?`<div class="panel"><h3>Sobre la tienda</h3><p style="white-space:pre-wrap;margin:0">${esc(st.about)}</p></div>`:''}
       <div class="panel"><h3>¿Cómo compro?</h3><p style="margin:0">Tienda ubicada en <b>${esc(s.city||'Colombia')}</b>.</p><ol class="note" style="margin:8px 0 0;padding-left:18px"><li>Escoge el producto que te gusta.</li><li>Escríbele a la tienda por <b>WhatsApp</b> o por el <b>chat de MER-K</b>.</li><li>Acuerden juntos el pago y la entrega: en persona${physOf(sk)?', en el punto físico':''}, por domicilio o por transportadora.</li></ol></div></div>
+    ${termsOf(sk)?`<details class="panel termsbox" style="margin-top:18px"><summary><h3 style="display:inline">📜 Términos y condiciones de ${esc(s.name)}</h3></summary><div class="termstext">${termsHtml(termsOf(sk))}</div></details>`:''}
     <div class="protect" style="margin-top:18px">${isOfficial(sk)?'Esta es la tienda oficial de MER-K. Escríbenos por WhatsApp al 333 247 5844 y te atendemos personalmente.':'Para comprar seguro: confirma los detalles del producto antes de pagar y guarda la conversación. <a href="#retracto">Ver consejos de compra segura</a>.'}</div></div>`;
 }
 function storeTab(sk){
@@ -1923,7 +1940,9 @@ function storeTab(sk){
       <div><h3 style="margin:0">Personalizar mi tienda</h3><span class="note">Dirección de tu tienda: <b>merkshopping.com/tienda/${esc(st.slug)}</b></span></div>
       <a class="btn ghost sm" href="${storeUrl(sk)}" style="text-decoration:none">Ver mi tienda</a></div>
     ${shareBox(sk)}
+    ${payShipPanel(sk)}
     ${socialPanel(sk)}
+    ${termsPanel(sk)}
     <form class="panel form" onsubmit="saveStore(event)">
       <label>Sobre nosotros (descripción de la tienda)<textarea id="stAbout" rows="3" maxlength="600" placeholder="Cuenta quiénes son y qué venden">${esc(st.about)}</textarea></label>
       ${cus?`<label>Eslogan<input id="stSlogan" maxlength="80" value="${esc(st.slogan)}" placeholder="Ej: Detalles hechos a mano en Medellín"></label>
@@ -4014,6 +4033,87 @@ function adminPromoTab(){
     <div class="panel"><h3>Promociones enviadas</h3>${camps.length?`<div class="tw"><table><thead><tr><th>Fecha</th><th>Asunto</th><th>Para</th><th>Personas</th></tr></thead><tbody>${camps.map(c=>`<tr><td>${new Date(c.created_at).toLocaleDateString('es-CO')}</td><td>${esc(c.subject)}</td><td>${audName[c.audience]||c.audience}</td><td>${c.sent_count}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Todavía no has enviado promociones.</p>'}</div>`;
 }
 
+/* ---------- Términos y condiciones de cada tienda ---------- */
+function termsOf(sk){ return String(((SEL(sk)||{}).store||{}).terms||'').trim(); }
+function termsHtml(t){ return esc(t).replace(/\n/g,'<br>'); }
+const TERMS_TEMPLATE = `CAMBIOS Y DEVOLUCIONES
+- Tienes 5 días después de recibir tu producto para pedir un cambio.
+- El producto debe estar sin usar, con etiquetas y en su empaque original.
+- No hay cambios en productos en promoción ni en ropa interior.
+
+GARANTÍA
+- Nuestros productos tienen garantía de 30 días por defectos de fábrica.
+- La garantía no cubre daños por mal uso.
+
+ENVÍOS
+- Enviamos a toda Colombia por transportadora. El valor del envío lo paga el comprador.
+- En Medellín hacemos entregas a domicilio.
+- Despachamos de 1 a 3 días hábiles después de confirmar el pago.
+
+PAGOS
+- Recibimos transferencia, Nequi y efectivo contra entrega (según la zona).
+- El pedido se separa cuando se confirma el pago.`;
+function termsPanel(sk){ const t=termsOf(sk);
+  return `<form class="panel form" onsubmit="saveTerms(event)"><h3>📜 Términos y condiciones de tu tienda</h3>
+    <p class="note" style="margin-top:-6px">Escribe tus reglas para cambios, devoluciones, garantías, envíos y pagos. Los compradores las ven en tu tienda y en cada producto. Si no sabes por dónde empezar, usa la plantilla y cámbiala a tu manera.</p>
+    <label>Tus términos y condiciones<textarea id="tmText" rows="12" maxlength="4000" placeholder="Ej: Tienes 5 días para cambios…">${esc(t)}</textarea></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar</button><button type="button" class="btn ghost sm" onclick="if(!$('#tmText').value.trim()||confirm('¿Reemplazar lo que escribiste por la plantilla?')){ $('#tmText').value=TERMS_TEMPLATE; }">Usar plantilla</button></div>
+    <p class="note" style="margin:0">Recuerda: si eres comerciante, la ley te obliga a dar garantía legal y, en ventas a distancia, derecho de retracto de 5 días hábiles. Tus términos no pueden quitarle esos derechos al comprador.</p></form>`; }
+function saveTerms(e){ e.preventDefault(); const t=$('#tmText').value.trim().slice(0,4000), s=SEL(me().key);
+  s.store=Object.assign({}, s.store||{}, {terms:t}); if(!t) delete s.store.terms; save(); toast(t?'¡Guardado! Ya se ven en tu tienda.':'Términos borrados.'); render(); }
+function showTerms(sk){ const t=termsOf(sk); if(!t) return; openModal(`<div class="mpad"><h2>📜 Términos de ${esc(SEL(sk).name)}</h2><div class="termstext">${termsHtml(t)}</div></div>`, true); }
+
+/* =====================================================================
+   ETAPA 1 · Tipo de producto, tiempo de entrega, llave Bre-B y domicilios
+   ===================================================================== */
+const MUNIS = ['Medellín','Envigado','Sabaneta','Itagüí','Bello','La Estrella','Caldas','Copacabana','Girardota','Barbosa'];
+const MUNI_OTHER = 'Resto de Antioquia';
+function kindFields(v){ const k=(v&&v.kind)||'listo';
+  return `<fieldset><legend>Tipo de producto y tiempo de entrega</legend>
+    <div class="kindpick">
+      <label class="kopt"><input type="radio" name="fkind" value="listo" ${k==='listo'?'checked':''}><span><b>📦 Listo para despachar</b><small>Ya está hecho, solo se empaca. El cliente puede pagar todo o contra entrega.</small></span></label>
+      <label class="kopt"><input type="radio" name="fkind" value="personalizado" ${k==='personalizado'?'checked':''}><span><b>✂️ Personalizado</b><small>Se elabora por pedido. El cliente paga el 50 % + el domicilio por adelantado.</small></span></label>
+    </div>
+    <label>Tiempo de entrega o elaboración<input id="flead" required maxlength="80" value="${esc((v&&v.lead)||'')}" placeholder="Ej: Listo en 3 a 5 días hábiles · Entrega al día siguiente"></label>
+    <p class="note" style="margin:0">El cliente ve este tiempo en el producto antes de comprar. El valor del domicilio lo configuras en <b>Pagos y domicilios</b>.</p></fieldset>`; }
+function readKind(){ const r=document.querySelector('input[name="fkind"]:checked'); return r&&r.value==='personalizado'?'personalizado':'listo'; }
+function readLead(){ const el=$('#flead'); return el?el.value.trim().slice(0,80):''; }
+function kindTag(p, big){ if(!p) return ''; const pers=p.kind==='personalizado';
+  return `${pers?`<span class="ktag pers">✂️ Personalizado</span>`:''}${big&&p.lead?`<span class="ktag lead">⏱️ ${esc(p.lead)}</span>`:''}`; }
+function leadBox(p){ if(!p) return ''; const pers=p.kind==='personalizado';
+  return `<div class="leadbox">${pers?'<b>✂️ Producto personalizado</b> · se elabora por pedido.<br>':''}${p.lead?`⏱️ <b>Tiempo de entrega:</b> ${esc(p.lead)}`:''}</div>`; }
+
+/* Pagos y domicilios de la tienda */
+function brebOf(sk){ return (SEL(sk)||{}).breb||null; }
+function ratesOf(sk){ return (SEL(sk)||{}).shipRates||{}; }
+function payShipPanel(sk){ const b=brebOf(sk)||{}, r=ratesOf(sk);
+  const types=['Celular','Cédula','Correo','Llave alfanumérica','Código de comercio'];
+  return `<form class="panel form" onsubmit="savePayShip(event)"><h3>💳 Pagos y domicilios</h3>
+    <p class="note" style="margin-top:-6px">Tus clientes te pagan directo a tu <b>llave Bre-B</b>, desde cualquier banco o billetera. MER-K no cobra comisión: la plata te llega completa. Tu llave solo la ve el cliente cuando va a pagar un pedido.</p>
+    <div class="row3"><label>Tipo de llave<select id="bbType">${types.map(t=>`<option ${b.tipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+      <label>Llave Bre-B<input id="bbKey" required maxlength="60" value="${esc(b.llave||'')}" placeholder="Ej: 3001234567 o @mitienda"></label>
+      <label>Titular (como aparece en el banco)<input id="bbHolder" required maxlength="80" value="${esc(b.titular||'')}" placeholder="Nombre del titular"></label></div>
+    <fieldset><legend>Valor del domicilio por municipio</legend>
+      <p class="note" style="margin:0 0 8px">Tú despachas con tu propio domiciliario y el cliente paga el domicilio <b>por adelantado</b>, junto con su pago. Deja en blanco los municipios a donde <b>no</b> entregas.</p>
+      <div class="rates">${MUNIS.map((m,i)=>`<label>${m}<input type="number" min="0" step="500" inputmode="numeric" data-muni="${esc(m)}" value="${r[m]??''}" placeholder="No entrego"></label>`).join('')}
+        <label>${MUNI_OTHER} <small>(Interrapidísimo)</small><input type="number" min="0" step="500" inputmode="numeric" data-muni="${MUNI_OTHER}" value="${r[MUNI_OTHER]??''}" placeholder="No envío"></label></div>
+      <p class="note" style="margin:8px 0 0">¿No tienes domiciliario disponible para un pedido? Desde el pedido podrás tocar <b>"Necesito un mensajero"</b> y MER-K te coordina uno.</p></fieldset>
+    <div><button class="btn">Guardar</button></div></form>`; }
+function readPayShip(){
+  const llave=$('#bbKey').value.trim(), titular=$('#bbHolder').value.trim(), tipo=$('#bbType').value;
+  if(llave.length<3) throw 'Escribe tu llave Bre-B.';
+  if(titular.length<3) throw 'Escribe el nombre del titular de la llave.';
+  if(tipo==='Celular' && !validPhone(llave.replace(/\D/g,'').replace(/^57/,''))) throw 'La llave de celular debe tener 10 números y empezar por 3.';
+  const rates={}; document.querySelectorAll('[data-muni]').forEach(i=>{ const v=i.value.trim(); if(v!==''){ const n=Math.round(+v); if(n>=0 && n<=500000) rates[i.dataset.muni]=n; } });
+  if(!Object.keys(rates).length) throw 'Pon el valor del domicilio de al menos un municipio.';
+  return {breb:{tipo, llave, titular}, rates};
+}
+function savePayShip(e){ e.preventDefault(); let d; try{ d=readPayShip(); }catch(x){ return toast(x); }
+  const s=SEL(me().key); s.breb=d.breb; s.shipRates=d.rates; save(); toast('¡Guardado! Tus pagos y domicilios quedaron listos.'); render(); }
+function shipFromBox(sk){ const r=ratesOf(sk), vals=Object.values(r); if(!vals.length) return '';
+  const min=Math.min(...vals), munis=Object.keys(r);
+  return `<div class="note shipfrom">🛵 Domicilio desde <b>${cop(min)}</b> · entrega en ${munis.length>3?munis.slice(0,3).join(', ')+' y más':munis.join(', ')}. Se paga por adelantado.</div>`; }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -4084,7 +4184,7 @@ const fmtTs = ts => new Date(ts).toLocaleString('es-CO', {dateStyle:'short', tim
 /* ---------- Convertir filas de la base de datos al formato de la página ---------- */
 function mapProduct(r){ return {id:r.id, t:r.title, d:r.description, p:r.price, disc:r.disc, c:r.category, e:r.emoji, s:r.seller_id, stock:r.stock, paused:r.paused, pausedByPlan:r.paused_by_plan,
   freeShip:r.free_ship, natCost:r.nat_cost, priority:!!r.priority, img:(r.images||[])[0]||null, images:r.images||[], sku:r.sku||'', featured:r.featured, views:r.views,
-  flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null, specs:Array.isArray(r.specs)?r.specs:[]}; }
+  flash: r.flash_until ? {pct:r.flash_pct, until:Date.parse(r.flash_until)} : null, specs:Array.isArray(r.specs)?r.specs:[], kind:r.kind||'listo', lead:r.lead_time||''}; }
 function mapSeller(r, prof, priv){
   const b = priv?.bank || null;
   return {name:r.store_name, plan:r.plan, city:r.city||'', rating:+r.rating, sales:r.sales, warnings:prof?.warnings||0, status:prof?.status||'activa', until:prof?.suspended_until?Date.parse(prof.suspended_until):null,
@@ -4093,7 +4193,7 @@ function mapSeller(r, prof, priv){
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
     storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost,
-    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', selfie:prof?.selfie||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', type:priv?.seller_type||'Persona natural', camara:priv?.camara_photo||'', waStore:priv?.whatsapp||'', verified:!!r.verified, ratingCount:r.rating_count||0, bankPending: priv ? priv.bank_verified===false : false};
+    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', selfie:prof?.selfie||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', type:priv?.seller_type||'Persona natural', camara:priv?.camara_photo||'', waStore:priv?.whatsapp||'', verified:!!r.verified, ratingCount:r.rating_count||0, shipRates:r.ship_rates||{}, breb:priv?.breb||null, bankPending: priv ? priv.bank_verified===false : false};
 }
 const mapAddr = a => ({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||'', phone:a.phone||'', barrio:a.barrio||''});
 function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, items:r.items||null, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
@@ -4376,7 +4476,8 @@ async function saveProduct(e, id){
   const t=$('#ft').value.trim(), d=$('#fd').value.trim(), sx=specsText(specs), ban=bannedReason(t+' '+d+' '+sx);
   if(ban){ bannedAlert(ban); return; }
   if(!(await checkText(t+' \n '+d+(sx?' \n '+sx:''), id?'Edición de producto':'Publicación'))) return;
-  const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:looksAdult(t+' '+d)?ADULT_CAT:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0), specs};
+  const row={title:t, description:d, price:+$('#fp').value, disc:Math.max(0,Math.min(80,+$('#fdisc').value||0)), stock:Math.max(0,+$('#fs').value||0), category:looksAdult(t+' '+d)?ADULT_CAT:$('#fc').value, free_ship:$('#ffree').checked, nat_cost:Math.max(0,+$('#fnc').value||0), specs, kind:readKind(), lead_time:readLead()};
+  if(!row.lead_time){ toast('Escribe el tiempo de entrega del producto.'); return; }
   const photos=[...PF_PHOTOS];
   const upPhotos = async()=>{ const out=[]; let n=0; for(const f of photos){ if(f.url){ out.push(f.url); continue; }
       const u = await api.upload('productos', `${ME.id}/p${Date.now()}-${n++}.jpg`, await toBlob(f.prev)); if(u) out.push(u); } return out; };
@@ -4682,6 +4783,14 @@ async function sendPromo(e){ e.preventDefault(); let d; try{ d=readPromo(); }cat
   if(!confirm(`¿Enviar "${d.subject}" a ${n} persona${n>1?'s':''}?`)) return;
   await act(async()=>{ const sent = await api.rpc('admin_send_promo', {subj:d.subject, title:d.title, body:d.body, btn_text:d.btn, btn_url:d.url, audience:d.audience}); toast(`Promoción en cola para ${sent} persona${sent>1?'s':''}. Sale poco a poco (máx. 450 correos al día).`); }, '', {close:false});
   try{ S.promoCampaigns = await api.sel('promo_campaigns', {order:'id', limit:20}) || []; }catch(e){} render(); }
+
+async function saveTerms(e){ e.preventDefault(); const t=$('#tmText').value.trim().slice(0,4000), sk=me().key;
+  const st=Object.assign({}, storeOf(sk)); delete st.slug; if(t) st.terms=t; else delete st.terms;
+  await act(()=>api.upd('sellers', {store:st}, {id:sk}), t?'¡Guardado! Ya se ven en tu tienda.':'Términos borrados.', {close:false}); }
+
+/* ---------- Etapa 1: pagos y domicilios (live) ---------- */
+async function savePayShip(e){ e.preventDefault(); let d; try{ d=readPayShip(); }catch(x){ return toast(x); }
+  await act(async()=>{ await api.upd('sellers', {ship_rates:d.rates}, {id:ME.id}); await api.upd('seller_private', {breb:d.breb}, {seller_id:ME.id}); }, '¡Guardado! Tus pagos y domicilios quedaron listos.', {close:false}); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
