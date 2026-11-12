@@ -4145,8 +4145,8 @@ function payShipPanel(sk){ const b=brebOf(sk)||{}, r=ratesOf(sk);
       <label>Titular (como aparece en el banco)<input id="bbHolder" required maxlength="80" value="${esc(b.titular||'')}" placeholder="Nombre del titular"></label></div>
     <fieldset><legend>Valor del domicilio por municipio</legend>
       <p class="note" style="margin:0 0 8px">Tú despachas con tu propio domiciliario y el cliente paga el domicilio <b>por adelantado</b>, junto con su pago. Deja en blanco los municipios a donde <b>no</b> entregas.</p>
-      <div class="rates">${MUNIS.map((m,i)=>`<label>${m}<input type="number" min="0" step="500" inputmode="numeric" data-muni="${esc(m)}" value="${r[m]??''}" placeholder="No entrego"></label>`).join('')}
-        <label>${MUNI_OTHER} <small>(Interrapidísimo)</small><input type="number" min="0" step="500" inputmode="numeric" data-muni="${MUNI_OTHER}" value="${r[MUNI_OTHER]??''}" placeholder="No envío"></label></div>
+      <div class="rates">${MUNIS.map((m,i)=>`<label>${m}<input type="number" min="0" step="500" inputmode="numeric" id="rt${i}" data-muni="${esc(m)}" value="${r[m]??''}" placeholder="No entrego"></label>`).join('')}
+        <label>${MUNI_OTHER} <small>(Interrapidísimo)</small><input type="number" min="0" step="500" inputmode="numeric" id="rtOther" data-muni="${MUNI_OTHER}" value="${r[MUNI_OTHER]??''}" placeholder="No envío"></label></div>
       <p class="note" style="margin:8px 0 0">¿No tienes domiciliario disponible para un pedido? Desde el pedido podrás tocar <b>"Necesito un mensajero"</b> y MER-K te coordina uno.</p></fieldset>
     <div><button class="btn">Guardar</button></div></form>`; }
 function readPayShip(){
@@ -4456,6 +4456,17 @@ function payPlan(plan){ planLlave(plan); }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
+/* Lo que la persona está escribiendo no se pierde: ni con las actualizaciones automáticas
+   ni al guardar otro formulario de la misma pantalla */
+const DIRTY=new Map();
+document.addEventListener('input', e=>{ const t=e.target; if(!t.id || t.id==='q' || !t.closest || !t.closest('#app')) return; if(t.type==='file') return;
+  DIRTY.set(t.id, (t.type==='checkbox'||t.type==='radio') ? {c:t.checked} : {v:t.value}); }, true);
+document.addEventListener('change', e=>{ const t=e.target; if(t.id && t.closest && t.closest('#app') && (t.type==='checkbox'||t.type==='radio'||t.tagName==='SELECT')) DIRTY.set(t.id, t.tagName==='SELECT'?{v:t.value}:{c:t.checked}); }, true);
+document.addEventListener('submit', e=>{ e.target.querySelectorAll('[id]').forEach(el=>DIRTY.delete(el.id)); }, true);
+window.addEventListener('hashchange', ()=>DIRTY.clear());
+function softRender(){ const ae=document.activeElement, typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest('#app');
+  if(DIRTY.size || typing){ const a=$('#acct'); if(a) a.innerHTML=headerRight(); return; } render(); }
+function restoreDirty(){ DIRTY.forEach((s,id)=>{ const el=document.getElementById(id); if(!el){ return; } if('c' in s) el.checked=s.c; else el.value=s.v; }); }
 function render(){
   migrateClasif(); normTabs(); autoRelease(); subCheck();
   let v=(location.hash||'#inicio').slice(1); const openPid = v.startsWith('producto/') ? +v.slice(9) : 0;
@@ -4466,6 +4477,7 @@ function render(){
   $('#locBtn').textContent = '📍 '+S.loc;
   $('#nav').innerHTML = navLinks().map(([k,l])=>`<a href="#${k}" class="${k===key?'on':''}">${l}</a>`).join('');
   $('#acct').innerHTML = headerRight();
+  restoreDirty();
 }
 
 /* =====================================================================
@@ -5010,9 +5022,9 @@ async function boot(){
   else if(!S.locAsked && !new URLSearchParams(location.search).get('id')) setTimeout(()=>askLocation(), 400);
   wompiReturn();
   let tmr=null; api.live(()=>{ clearTimeout(tmr); tmr=setTimeout(async()=>{ const before=S.notifs.filter(n=>!n.read).length; await loadAll();
-    const open=$('#scrim').classList.contains('open'); if(open && chatKey && $('.chat')) drawChat(); if(!open) render(); else $('#acct').innerHTML=headerRight();
+    const open=$('#scrim').classList.contains('open'); if(open && chatKey && $('.chat')) drawChat(); if(!open) softRender(); else $('#acct').innerHTML=headerRight();
     if(S.notifs.filter(n=>!n.read).length>before) toast('🔔 Tienes una notificación nueva.'); }, 400); });
-  setInterval(()=>{ if(!$('#scrim').classList.contains('open') && document.visibilityState==='visible') reload(); }, 90000);
+  setInterval(async()=>{ if(!$('#scrim').classList.contains('open') && document.visibilityState==='visible'){ await loadAll(); softRender(); } }, 90000);
 }
 
 /* PQRS en la página real */
