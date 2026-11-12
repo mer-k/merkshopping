@@ -558,6 +558,16 @@ h2 .vbadge i{width:20px;height:20px;font-size:12px}
 .pproof{display:grid;gap:4px;margin-top:8px}.proof{max-width:160px;max-height:200px;border-radius:10px;border:1px solid #DCE7F7;cursor:zoom-in}
 td .proof{max-width:60px;max-height:60px}
 .check:has(input[type=radio]){display:flex;gap:8px;align-items:flex-start}
+/* Etapa 4: asistente */
+.aichat{display:grid;gap:10px}.aihead{display:flex;gap:10px;align-items:center}
+.aiav{width:44px;height:44px;border-radius:50%;background:#005CFF;color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px 'Fredoka',sans-serif;object-fit:cover;border:2px solid #EAF3FF;flex:none}
+.aion{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22C55E;margin-right:5px;vertical-align:middle}
+.aimsgs{display:flex;flex-direction:column;gap:8px;max-height:52vh;min-height:220px;overflow:auto;background:#F5F9FF;border-radius:14px;padding:12px}
+.aim{max-width:82%;background:#fff;border:1px solid #DCE7F7;border-radius:14px 14px 14px 4px;padding:9px 12px;font-size:14.5px;line-height:1.45;align-self:flex-start}
+.aim.me{align-self:flex-end;background:#005CFF;color:#fff;border-color:#005CFF;border-radius:14px 14px 4px 14px}
+.aim.typing{color:#8A97B0;font-style:italic}
+.aiform{display:flex;gap:8px}.aiform input{flex:1;min-width:0}
+img.aiav{background:#fff;object-fit:contain;padding:3px}
 </style>
 </head>
 <body>
@@ -1959,6 +1969,7 @@ function storeTab(sk){
       <a class="btn ghost sm" href="${storeUrl(sk)}" style="text-decoration:none">Ver mi tienda</a></div>
     ${shareBox(sk)}
     ${payShipPanel(sk)}
+    ${assistantPanel(sk)}
     ${socialPanel(sk)}
     ${termsPanel(sk)}
     <form class="panel form" onsubmit="saveStore(event)">
@@ -4151,7 +4162,7 @@ function storeTakesOrders(sk){ return Object.keys(ratesOf(sk)).length>0 && (LIVE
 function contactBlock(p){
   const own = me() && me().key===p.s;
   if(own) return `<div class="protect">Este es tu producto. Así lo ven los compradores.</div>`;
-  const ask = `<div class="askrow">¿Tienes dudas? <a href="javascript:contactChat(${p.id})">💬 Pregúntale a la tienda</a> · <a href="javascript:contactWa(${p.id})">🟢 WhatsApp</a></div>`;
+  const ask = `<div class="askrow">¿Tienes dudas? <a href="javascript:aiChat(${p.id})">💬 Pregúntale a la tienda</a> · <a href="javascript:contactWa(${p.id})">🟢 WhatsApp</a></div>`;
   if(!storeTakesOrders(p.s)) return `<div class="contactbox"><div class="buybtns"><button class="btn wa" onclick="contactWa(${p.id})"><span>🟢</span> Escribir por WhatsApp</button><button class="btn lav" onclick="contactChat(${p.id})">💬 Chatear en MER-K</button></div>
     <p class="note" style="margin:8px 0 0">Esta tienda todavía no recibe pedidos en línea. Escríbele para comprar.</p></div>`;
   return `<div class="contactbox"><div class="buybtns"><button class="btn" onclick="buyNow(${p.id})">Comprar ahora</button><button class="btn ghost" onclick="addToCart(${p.id})">🛒 Agregar al carrito</button></div>${ask}
@@ -4348,6 +4359,52 @@ function modExtra(k){ const u=acctOf(k)||{};
     <div class="modbox"><b>🔑 Cambiar la contraseña</b><p class="note">Nadie puede ver las contraseñas. Le enviamos un enlace a su correo${u.email?' ('+esc(u.email)+')':''} para que cree una nueva.</p><button class="btn ghost sm" onclick="sendResetFor('${k}')">Enviar enlace</button></div></div>`; }
 function sendResetFor(k){ const u=acctOf(k); if(!u||!u.email) return toast('Esta cuenta no tiene correo.'); toast('Le enviamos el enlace a '+u.email+'.'); }
 
+/* =====================================================================
+   ETAPA 4 · Asistente con IA de cada tienda
+   ===================================================================== */
+const AI_FIELDS = [['hours','🕘 Horarios de atención y de despacho','Ej: Lunes a sábado de 9 a. m. a 6 p. m. Despachamos de lunes a viernes.'],
+  ['delivery','🛵 Tiempos de entrega','Ej: En Medellín y Envigado entregamos al día siguiente. Al resto de Antioquia, 2 a 4 días por Interrapidísimo.'],
+  ['sizes','📏 Tallas, materiales y cuidados','Ej: Tallas S a XL, horma normal. Algodón 100 %. Lavar a mano con agua fría.'],
+  ['custom','✂️ Productos personalizados','Ej: Personalizamos con nombre o frase. Nos envías la idea y en 3 a 5 días hábiles está listo.'],
+  ['warranty','🔁 Garantía, cambios y devoluciones','Ej: Cambios hasta 5 días después de recibido, con etiqueta. No hacemos cambios en personalizados.'],
+  ['faq','❓ Preguntas frecuentes con sus respuestas','Ej: ¿Hacen envíos el mismo día? Sí, si pides antes de las 11 a. m.'],
+  ['other','📝 Otra información importante','Lo que quieras que el asistente sepa de tu tienda']];
+function aiAvatar(sk){ const st=storeOf(sk)||{}, n=(SEL(sk)||{}).name||'?';
+  return st.logo ? `<img class="aiav" src="${esc(st.logo)}" alt="${esc(n)}">` : `<div class="aiav">${esc(n.trim()[0]||'?').toUpperCase()}</div>`; }
+function aiOf(sk){ return (SEL(sk)||{}).assistant||{}; }
+function aiOn(sk){ return aiOf(sk).on!==false; }
+function assistantPanel(sk){ const a=aiOf(sk);
+  return `<form class="panel form" onsubmit="saveAssistant(event)"><h3>🤖 Asistente de tu tienda</h3>
+    <p class="note" style="margin-top:-6px">Responde las preguntas de tus clientes a cualquier hora, de forma cercana y vendedora, usando <b>solo lo que escribas aquí</b>, tus productos, tus domicilios y tus términos. Nunca confirma pagos: eso lo haces tú con el botón. Entre más completo lo llenes, mejor vende.</p>
+    <label class="check"><input type="checkbox" id="aiOn" ${a.on!==false?'checked':''}> Asistente encendido</label>
+    ${AI_FIELDS.map(([k,l,ph])=>`<label>${l}<textarea id="ai_${k}" rows="${k==='faq'?4:2}" maxlength="1500" placeholder="${esc(ph)}">${esc(a[k]||'')}</textarea></label>`).join('')}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar</button><button type="button" class="btn ghost" onclick="aiTry('${sk}')">Probar mi asistente</button><button type="button" class="btn ghost" onclick="aiLog('${sk}')">Ver preguntas de clientes</button></div></form>`; }
+function readAssistant(){ const o={on:$('#aiOn').checked}; AI_FIELDS.forEach(([k])=>{ const v=$('#ai_'+k).value.trim(); if(v) o[k]=v.slice(0,1500); }); return o; }
+function saveAssistant(e){ e.preventDefault(); SEL(me().key).assistant=readAssistant(); save(); toast('¡Listo! Tu asistente ya sabe esto.'); render(); }
+
+/* Chat con el asistente */
+const AI_H={}; let AI_CUR=null;
+function aiChat(pid){ const p=P(pid); if(!p) return; const sk=p.s;
+  if(LIVE && !me()) return loginModal('Inicia sesión para hablar con la tienda.');
+  if(!aiOn(sk)) return contactChat(pid);
+  AI_CUR={sk, pid}; AI_H[sk]=AI_H[sk]||[{role:'assistant', content:`¡Hola! 👋 Bienvenido a ${SEL(sk).name}. ¿Qué te gustaría saber de "${p.t}"?`}];
+  aiRender(); }
+function aiTry(sk){ AI_CUR={sk, pid:null}; AI_H[sk]=[{role:'assistant', content:`¡Hola! 👋 Bienvenido a ${SEL(sk).name}. ¿En qué te podemos ayudar?`}]; aiRender(); }
+function aiRender(){ const {sk}=AI_CUR, h=AI_H[sk];
+  openModal(`<div class="mpad aichat"><div class="aihead">${aiAvatar(sk)}<div><b>${esc(SEL(sk).name)}</b>${vBadge(sk)}<br><span class="note"><span class="aion"></span>En línea · responde al instante</span></div></div>
+    <div class="aimsgs" id="aiMsgs">${h.map(m=>`<div class="aim ${m.role==='user'?'me':''}">${esc(m.content).replace(/\n/g,'<br>')}</div>`).join('')}${AI_CUR.wait?'<div class="aim typing">Escribiendo…</div>':''}</div>
+    <form class="aiform" onsubmit="aiSend(event)"><input id="aiIn" maxlength="600" placeholder="Escribe tu pregunta…" autocomplete="off" ${AI_CUR.wait?'disabled':''}><button class="btn" ${AI_CUR.wait?'disabled':''}>Enviar</button></form>
+    ${AI_CUR.pid?`<p class="note" style="margin:8px 0 0;text-align:center">¿Prefieres hablar con la tienda? <a href="javascript:contactWa(${AI_CUR.pid})">Escríbele por WhatsApp</a></p>`:''}</div>`, true);
+  const box=$('#aiMsgs'); if(box) box.scrollTop=box.scrollHeight; const i=$('#aiIn'); if(i && !AI_CUR.wait) i.focus(); }
+async function aiSend(e){ e.preventDefault(); const t=$('#aiIn').value.trim(); if(!t||!AI_CUR) return; const {sk,pid}=AI_CUR, h=AI_H[sk];
+  h.push({role:'user', content:t}); AI_CUR.wait=true; aiRender();
+  let reply; try{ reply=await aiAsk(sk, pid, h.filter((m,i)=>i>0||m.role==='user')); }catch(x){ reply=String(x.message||x); }
+  h.push({role:'assistant', content:reply}); AI_CUR.wait=false; if($('#aiMsgs')) aiRender(); }
+async function aiAsk(sk, pid, msgs){ await new Promise(r=>setTimeout(r,500)); const a=aiOf(sk), q=msgs[msgs.length-1].content.toLowerCase();
+  const hit = /hora|horario|abren/.test(q)?a.hours : /entreg|demora|llega|cuándo|cuando/.test(q)?(a.delivery||P(pid)?.lead) : /talla|material|medida/.test(q)?a.sizes : /personaliz/.test(q)?a.custom : /garant|cambio|devol/.test(q)?a.warranty : /domicilio|envío|envio/.test(q)?'Domicilios: '+Object.entries(ratesOf(sk)).map(([m,v])=>m+' '+cop(v)).join(', ') : null;
+  return (hit ? `¡Claro! ${hit} 😊 ¿Te ayudo con algo más o lo agregas al carrito?` : '¡Buena pregunta! En la página real te respondo con la información de la tienda. ¿Quieres que te cuente de los domicilios o del tiempo de entrega?'); }
+function aiLog(sk){ openModal(`<div class="mpad"><h2>Preguntas de clientes</h2><p class="sub">En la página real aquí ves las últimas preguntas que le hicieron a tu asistente y lo que respondió.</p></div>`, true); }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 function render(){
@@ -4427,7 +4484,7 @@ function mapSeller(r, prof, priv){
     ship:{}, sub: r.sub_due ? {due:Date.parse(r.sub_due), suspended:r.sub_suspended, r5:r.sub_r5, r0:r.sub_r0} : null,
     store:Object.assign({slogan:'', about:'', theme:'azul', logo:null, banner:null, notice:'', policy:'', hours:''}, r.store||{}, {slug:r.slug}),
     storeVisits:r.store_visits, lowStock:r.low_stock, boost:!!r.boost,
-    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', selfie:prof?.selfie||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', type:priv?.seller_type||'Persona natural', camara:priv?.camara_photo||'', waStore:priv?.whatsapp||'', verified:!!r.verified, ratingCount:r.rating_count||0, shipRates:r.ship_rates||{}, breb:priv?.breb||null, bankPending: priv ? priv.bank_verified===false : false};
+    verify:prof?.verify||'sin_enviar', verifyNote:prof?.verify_note||'', idFront:prof?.id_front||'', idBack:prof?.id_back||'', selfie:prof?.selfie||'', address:prof?.address||r.address||'', nit:priv?.nit||'', rutPhoto:priv?.rut_photo||'', type:priv?.seller_type||'Persona natural', camara:priv?.camara_photo||'', waStore:priv?.whatsapp||'', verified:!!r.verified, ratingCount:r.rating_count||0, shipRates:r.ship_rates||{}, breb:priv?.breb||null, assistant:r.assistant||{}, bankPending: priv ? priv.bank_verified===false : false};
 }
 const mapAddr = a => ({id:a.id, alias:a.alias, name:a.name, dir:a.dir, city:a.city, notes:a.notes||'', phone:a.phone||'', barrio:a.barrio||''});
 function mapOrder(r, evs){ return {id:r.id, pid:r.product_id, items:r.items||null, sk:r.seller_id, bk:r.buyer_id, title:r.title, price:r.price, listPrice:r.list_price, fee:+r.fee, fixed:0, proc:r.proc,
@@ -5041,6 +5098,15 @@ async function createTicket(cat, subject, text, img, pedidoId){
     cat==='Necesito un mensajero' ? '¡Listo! MER-K te coordina un mensajero y te responde en Soporte.' : '¡Recibimos tu reporte! Te respondemos en Soporte.'); }
 async function sendResetFor(k){ const u=acctOf(k); if(!u||!u.email) return toast('Esta cuenta no tiene correo.');
   try{ await api.auth.reset(u.email); toast('Le enviamos el enlace a '+u.email+' para que cree una contraseña nueva.'); }catch(e){ toast(friendly(e)); } }
+
+/* ---------- Etapa 4: asistente (live) ---------- */
+async function saveAssistant(e){ e.preventDefault(); const a=readAssistant();
+  await act(()=>api.upd('sellers', {assistant:a}, {id:ME.id}), '¡Listo! Tu asistente ya sabe esto.', {close:false}); }
+async function aiAsk(sk, pid, msgs){ const r = await api.fn('asistente', {seller_id:sk, product_id:pid||null, messages:msgs}); if(r && r.reply) return r.reply; throw new Error((r&&r.error)||'El asistente no está disponible en este momento.'); }
+async function aiLog(sk){ let rows=[]; try{ rows = await api.sel('ai_messages', {eq:{seller_id:sk}, order:'created_at', limit:60}); }catch(e){}
+  rows = rows.filter(m=>m.seller_id===sk);
+  openModal(`<div class="mpad"><h2>Preguntas de clientes</h2><p class="sub">Las últimas conversaciones con tu asistente.</p>
+    ${rows.length?`<div class="aimsgs" style="max-height:60vh">${rows.slice().reverse().map(m=>`<div class="aim ${m.role==='user'?'me':''}">${esc(m.content).replace(/\n/g,'<br>')}<br><span class="note" style="font-size:11px">${fmtTs(m.created_at)}</span></div>`).join('')}</div>`:'<p class="empty">Todavía no hay preguntas.</p>'}</div>`, true); }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
