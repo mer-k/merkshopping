@@ -2469,6 +2469,8 @@ function canDeleteAccount(){ const u=me(); if(!u||u.role==='admin') return false
 function deleteBlockers(){
   const u=me(), out=[];
   const act=S.orders.filter(o=>ACTIVE_ST.includes(o.status) && (u.role==='seller' ? o.sk===u.key : o.bk===u.key));
+  const pa=pedidos().filter(x=>['esperando_pago','por_confirmar','confirmado','preparando','despachado'].includes(x.status) && (u.role==='seller'?x.sk===u.key:x.bk===u.key));
+  if(pa.length) out.push(`Tienes ${pa.length} pedido${pa.length>1?'s':''} sin terminar (${pa.slice(0,4).map(x=>'#'+x.id).join(', ')}). Primero deben completarse o cancelarse.`);
   if(act.length) out.push(`Tienes ${act.length} pedido${act.length>1?'s':''} en curso (${act.slice(0,4).map(o=>'#'+o.id).join(', ')}${act.length>4?'…':''}). Espera a que terminen, incluida la garantía.`);
   if(u.role==='seller' && SEL(u.key).available>0) out.push(`MER-K todavía te debe transferir ${cop(SEL(u.key).available)}. Espera esa transferencia antes de borrar la cuenta.`);
   return out;
@@ -3244,12 +3246,14 @@ function modUser(k){
       <div class="modbox"><b>⛔ Bloquear para siempre</b><p class="note">No puede volver a usar la cuenta hasta que tú la desbloquees.</p><button class="btn bad sm" onclick="doModerate('${k}','bloquear')">Bloquear</button></div>
       ${u.status!=='activa'||u.warnings?`<div class="modbox"><b>✅ Desbloquear / quitar castigo</b><p class="note">La cuenta vuelve a estar activa y se borran sus advertencias.</p><button class="btn sm" onclick="doModerate('${k}','desbloquear')">Desbloquear</button></div>`:''}
     </div>
+    ${modExtra(k)}
     <div class="dangerbox" style="margin-top:14px"><b>🗑️ Eliminar la cuenta para siempre</b><p class="note" style="margin:4px 0 8px">Se borran sus datos${isS?', su tienda y sus productos':''}. Esto no se puede deshacer. Si tiene pedidos en curso${isS?' o dinero por transferirle':''}, primero hay que terminarlos; mientras tanto, bloquéala.</p>
       <div class="specw"><input id="mdDel" placeholder="Escribe ELIMINAR para confirmar" autocomplete="off"><button class="btn bad sm" onclick="doDeleteUser('${k}')">Eliminar</button></div></div></div>`);
 }
-function modMsg(action, days){ return action==='castigar'?`Cuenta castigada por ${days} día(s).`:action==='bloquear'?'Cuenta bloqueada.':'Cuenta desbloqueada. Ya puede usar MER-K.'; }
+function modMsg(action, days){ return action==='advertir'?'Advertencia enviada.':action==='castigar'?`Cuenta castigada por ${days} día(s).`:action==='bloquear'?'Cuenta bloqueada.':'Cuenta desbloqueada. Ya puede usar MER-K.'; }
 function doModerate(k, action){
   const u=acctOf(k), days=+$('#mdDays').value, why=$('#mdWhy').value.trim();
+  if(action==='advertir'){ if(!confirm(`¿Enviarle una advertencia a ${u.name}?`)) return; u.warnings=Math.min(3,(u.warnings||0)+1); notify(k,'⚠️ Recibiste una advertencia de MER-K',(why?'Motivo: '+why+'. ':'')+'Recuerda seguir las reglas de la comunidad.'); save(); closeModal(); toast('Advertencia enviada.'); render(); return; }
   if(action!=='desbloquear' && !confirm(action==='castigar'?`¿Castigar a ${u.name} por ${days} día(s)?`:`¿Bloquear a ${u.name} para siempre?`)) return;
   if(action==='castigar'){ u.status='suspendida'; u.until=Date.now()+days*864e5; }
   else if(action==='bloquear'){ u.status='bloqueada'; u.until=null; }
@@ -4269,7 +4273,7 @@ function misPedidosTab(bk){ const L=pedidos().filter(x=>x.bk===bk); setTimeout(h
     ${pedSteps(x)}${pedItems(x)}${pedMoney(x)}${pedShip(x)}
     ${x.status==='pago_rechazado'?'<p class="note" style="color:#B42318">La tienda no encontró tu pago. Revisa tu comprobante y vuelve a subirlo, o escríbenos a soporte.</p>':''}
     <div class="pbtns">${['esperando_pago','pago_rechazado'].includes(x.status)?`<button class="btn sm" onclick="reuploadProof(${x.id})">Subir comprobante</button><button class="btn ghost sm" onclick="cancelPedido(${x.id})">Cancelar pedido</button>`:''}
-      <button class="btn ghost sm" onclick="S.ui.buyTab='soporte';render()">¿Un problema? Escríbenos</button></div></div>`).join(''); }
+      <button class="btn ghost sm" onclick="pedTicket(${x.id},'reporte')">🆘 Reportar un problema</button></div></div>`).join(''); }
 
 /* Tienda: Pedidos */
 function ventasTab(sk){ const L=pedidos().filter(x=>x.sk===sk && x.status!=='cancelado'); setTimeout(hydrateProofs,30);
@@ -4282,7 +4286,9 @@ function ventasTab(sk){ const L=pedidos().filter(x=>x.sk===sk && x.status!=='can
     <div class="pbtns">${x.status==='por_confirmar'?`<button class="btn sm" onclick="pedEstado(${x.id},'confirmado')">✅ Confirmar pago</button><button class="btn bad sm" onclick="pedEstado(${x.id},'pago_rechazado')">❌ No me llegó el pago</button>`:''}
       ${x.status==='confirmado'?`<button class="btn sm" onclick="pedEstado(${x.id},'preparando')">📦 Preparando envío</button>`:''}
       ${['confirmado','preparando'].includes(x.status)?`<button class="btn sm" onclick="despachoForm(${x.id})">🛵 Despachado</button>`:''}
-      ${x.status==='despachado'?`<button class="btn sm" onclick="pedEstado(${x.id},'entregado')">🎉 Entregado</button>`:''}</div></div>`).join(''); }
+      ${x.status==='despachado'?`<button class="btn sm" onclick="pedEstado(${x.id},'entregado')">🎉 Entregado</button>`:''}
+      ${['confirmado','preparando'].includes(x.status)?`<button class="btn ghost sm" onclick="pedTicket(${x.id},'mensajero')">🛵 Necesito un mensajero</button>`:''}
+      ${x.status!=='esperando_pago'?`<button class="btn ghost sm" onclick="pedTicket(${x.id},'reporte')">🆘 Reportar un problema</button>`:''}</div></div>`).join(''); }
 function despachoForm(id){ openModal(`<div class="mpad"><h2>Pedido #${id} despachado</h2><p class="sub">Esto le llega al cliente para que sepa quién le lleva su pedido.</p>
   <form class="form" onsubmit="saveDespacho(event,${id})"><fieldset><legend>Con tu domiciliario</legend><div class="row2"><label>Nombre del mensajero<input id="dpWho" maxlength="60"></label><label>Celular del mensajero<input id="dpPhone" inputmode="numeric" maxlength="10"></label></div></fieldset>
     <fieldset><legend>O por transportadora (resto de Antioquia)</legend><div class="row2"><label>Transportadora<input id="dpCarrier" maxlength="40" value="Interrapidísimo"></label><label>Número de guía<input id="dpGuia" maxlength="40"></label></div></fieldset>
@@ -4301,6 +4307,46 @@ function adminPedidosTab(){ const L=pedidos(); setTimeout(hydrateProofs,30);
   if(!L.length) return `<div class="panel"><p class="empty">Aún no hay pedidos.</p></div>`;
   return `<div class="panel"><h3>Pedidos (${L.length})</h3><div class="tw"><table><tr><th>#</th><th>Fecha</th><th>Tienda</th><th>Cliente</th><th>Adelantado</th><th>Al recibir</th><th>Estado</th><th>Comprobante</th></tr>
     ${L.map(x=>`<tr><td>${x.id}</td><td>${x.created}</td><td>${esc(SEL(x.sk)?.name||'')}</td><td>${esc(x.addr.name)}<br><span class="note">${esc(x.addr.phone)}</span></td><td>${cop(x.now)}</td><td>${cop(x.later)}</td><td>${pedBadge(x)}</td><td>${x.proof?proofImg(x):'—'}</td></tr>`).join('')}</table></div></div>`; }
+
+/* =====================================================================
+   ETAPA 3 · "Necesito un mensajero", "Reportar un problema" y sanciones
+   ===================================================================== */
+function pedResumen(x){ const s=SEL(x.sk)||{};
+  return `Pedido #${x.id} · ${s.name||''}\nCliente: ${x.addr.name} · ${x.addr.phone}\nEntrega: ${x.addr.dir}${x.addr.barrio?', '+x.addr.barrio:''}, ${x.muni}${x.addr.notes?' ('+x.addr.notes+')':''}\nProductos: ${x.items.map(i=>i.qty+' × '+i.title).join(', ')}\nPagado por adelantado: ${cop(x.now)} · Al recibir: ${cop(x.later)}\nEstado: ${(PED_ST[x.status]||[x.status])[0]}`; }
+function pedTicket(id, kind){ const x=PD(id); if(!x) return; const s=SEL(x.sk)||{}, ph=physOf(x.sk);
+  if(kind==='mensajero') return openModal(`<div class="mpad"><h2>🛵 Necesito un mensajero</h2><p class="sub">Pedido #${id}. MER-K te coordina un mensajero y te responde en Soporte.</p>
+    <form class="form" onsubmit="sendPedTicket(event,${id},'mensajero')">
+      <label>Dirección de recogida<input id="ptPick" required maxlength="160" value="${esc((ph&&ph.addr)||s.address||s.addr||'')}" placeholder="Dirección de tu tienda o de donde sale el pedido"></label>
+      <div class="row2"><label>¿Desde qué hora está listo?<input id="ptWhen" required maxlength="60" placeholder="Ej: Hoy desde las 2 p. m."></label><label>Tu celular de contacto<input id="ptPhone" required inputmode="numeric" maxlength="10" value="${esc(s.waStore||s.phone||'')}"></label></div>
+      <label>Notas (opcional)<textarea id="ptText" rows="2" maxlength="500" placeholder="Ej: Paquete mediano, frágil"></textarea></label>
+      <p class="note" style="margin:0">Entrega en: <b>${esc(x.addr.dir)}, ${esc(x.muni)}</b> · ${esc(x.addr.name)}</p>
+      <div><button class="btn">Pedir mensajero</button></div></form></div>`, true);
+  openModal(`<div class="mpad"><h2>🆘 Reportar un problema</h2><p class="sub">Pedido #${id}. Tu reporte le llega a MER-K y te respondemos en Soporte.</p>
+    <form class="form" onsubmit="sendPedTicket(event,${id},'reporte')">
+      <label>¿Qué pasó?<select id="ptWhy">${(isRole('seller')?['El cliente no recibió el pedido','El comprobante parece falso','El cliente no responde','Otro problema']:['No me llegó el pedido','El producto llegó dañado o diferente','La tienda no confirma mi pago','La tienda no responde','Otro problema']).map(o=>`<option>${o}</option>`).join('')}</select></label>
+      <label>Cuéntanos los detalles<textarea id="ptText" rows="4" required maxlength="1500" placeholder="Entre más detalles, más rápido lo solucionamos"></textarea></label>
+      <label>Foto o pantallazo (opcional)<input id="ptImg" type="file" accept="image/*"></label>
+      <div><button class="btn">Enviar reporte</button></div></form></div>`, true); }
+function readTkImg(f){ return new Promise(res=>{ if(!f) return res(null); const rd=new FileReader(); rd.onload=()=>shrink(rd.result, res); rd.onerror=()=>res(null); rd.readAsDataURL(f); }); }
+async function sendPedTicket(e, id, kind){ e.preventDefault(); const x=PD(id); let cat, subject, text, img=null;
+  if(kind==='mensajero'){ const ph=$('#ptPhone').value.replace(/\D/g,''); if(!validPhone(ph)) return toast('Tu celular debe tener 10 números y empezar por 3.');
+    cat='Necesito un mensajero'; subject=`🛵 Pedido #${id} · Necesito un mensajero`;
+    text=`Recoger en: ${$('#ptPick').value.trim()}\nListo desde: ${$('#ptWhen').value.trim()}\nContacto de la tienda: ${ph}${$('#ptText').value.trim()?'\nNotas: '+$('#ptText').value.trim():''}\n\n${pedResumen(x)}`; }
+  else { cat='Reporte de pedido'; subject=`🆘 Pedido #${id} · ${$('#ptWhy').value}`.slice(0,80); text=`${$('#ptText').value.trim()}\n\n${pedResumen(x)}`; img=await readTkImg($('#ptImg').files[0]); }
+  await createTicket(cat, subject, text, img, id);
+}
+function createTicket(cat, subject, text, img, pedidoId){
+  const key=me().key, pr=supportOf(key), urgent=cat==='Necesito un mensajero';
+  const t={id:S.nextTicket++, from:key, role:me().role, subject, cat, prio:urgent?'Urgente':pr.label, rank:urgent?-1:pr.rank, sla:urgent?2:pr.sla, status:'abierto', created:T(), msgs:[{from:'u', text, t:now(), img}], unreadAdmin:true, unreadUser:false, pedido:pedidoId||null};
+  S.tickets.unshift(t); notify('admin', `${urgent?'🛵 Mensajero':'🛟 Soporte'} · #${t.id}`, `${nameOf(key)}: ${subject}`, {tk:t.id}); save(); closeModal();
+  toast(urgent?'¡Listo! MER-K te coordina un mensajero y te responde en Soporte.':'¡Recibimos tu reporte! Te respondemos en Soporte.'); render(); }
+
+/* Sanciones: advertencia y enlace para cambiar la contraseña */
+function modExtra(k){ const u=acctOf(k)||{};
+  return `<div class="modgrid" style="margin-top:12px">
+    <div class="modbox"><b>⚠️ Enviar una advertencia</b><p class="note">Le llega un aviso y un correo con el motivo. Suma una advertencia (máximo 3).</p><button class="btn sm" onclick="doModerate('${k}','advertir')">Advertir</button></div>
+    <div class="modbox"><b>🔑 Cambiar la contraseña</b><p class="note">Nadie puede ver las contraseñas. Le enviamos un enlace a su correo${u.email?' ('+esc(u.email)+')':''} para que cree una nueva.</p><button class="btn ghost sm" onclick="sendResetFor('${k}')">Enviar enlace</button></div></div>`; }
+function sendResetFor(k){ const u=acctOf(k); if(!u||!u.email) return toast('Esta cuenta no tiene correo.'); toast('Le enviamos el enlace a '+u.email+'.'); }
 
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
@@ -4881,7 +4927,8 @@ async function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) r
 /* Sanciones en la página real */
 async function doModerate(k, action){
   const u=acctOf(k), days=+$('#mdDays').value, why=$('#mdWhy').value.trim();
-  if(action!=='desbloquear' && !confirm(action==='castigar'?`¿Castigar a ${u.name} por ${days} día(s)?`:`¿Bloquear a ${u.name} para siempre?`)) return;
+  if(action==='advertir' && !confirm(`¿Enviarle una advertencia a ${u.name}?`)) return;
+  if(!['desbloquear','advertir'].includes(action) && !confirm(action==='castigar'?`¿Castigar a ${u.name} por ${days} día(s)?`:`¿Bloquear a ${u.name} para siempre?`)) return;
   await act(()=>api.rpc('admin_moderate', {target:k, action, days:action==='castigar'?days:null, reason:why}), modMsg(action, days));
 }
 async function doDeleteUser(k){
@@ -4986,6 +5033,14 @@ async function savePayShip(e){ e.preventDefault(); let d; try{ d=readPayShip(); 
 const mapPedido = r => ({id:r.id, sk:r.seller_id, bk:r.buyer_id, items:r.items||[], sub:r.subtotal, ship:r.ship, muni:r.muni, addr:r.addr||{}, mode:r.pay_mode, now:r.pay_now, later:r.pay_later,
   proof:r.proof||null, status:r.status, info:r.ship_info||null, ts:Date.parse(r.created_at), created:fmtTs(r.created_at)});
 async function hydrateProofs(){ for(const im of document.querySelectorAll('img[data-proof]')){ const path=im.getAttribute('data-proof'); im.removeAttribute('data-proof'); try{ im.src = await api.signed('comprobantes', path); }catch(e){} } }
+
+/* ---------- Etapa 3 (live) ---------- */
+async function createTicket(cat, subject, text, img, pedidoId){
+  await act(async()=>{ const [t] = await api.ins('tickets', [{user_id:ME.id, subject, category:cat, pedido_id:pedidoId||null}]);
+    await api.ins('ticket_messages', [{ticket_id:t.id, body:text, image:img}]); },
+    cat==='Necesito un mensajero' ? '¡Listo! MER-K te coordina un mensajero y te responde en Soporte.' : '¡Recibimos tu reporte! Te respondemos en Soporte.'); }
+async function sendResetFor(k){ const u=acctOf(k); if(!u||!u.email) return toast('Esta cuenta no tiene correo.');
+  try{ await api.auth.reset(u.email); toast('Le enviamos el enlace a '+u.email+' para que cree una contraseña nueva.'); }catch(e){ toast(friendly(e)); } }
 
 
 $('#q').addEventListener('input', e=>{ S.ui.q=e.target.value; if((location.hash||'#inicio')!=='#inicio') location.hash='#inicio'; else render(); });
