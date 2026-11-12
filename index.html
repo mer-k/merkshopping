@@ -3544,9 +3544,9 @@ if(window.MERK_LIVE && 'serviceWorker' in navigator && location.protocol==='http
    ===================================================================== */
 Object.assign(PLAN_INFO, {basico:{name:'Básico'}, ninguno:{name:'Sin plan activo'}});
 PLAN_INFO.gratis.name = 'Básico';
-PLAN_PERKS.basico = ['Tu tienda con enlace para compartir','Chat y WhatsApp con compradores','Insignia de identidad verificada','Soporte estándar'];
-PLAN_PERKS.emprendedor = ['Tienda personalizada (logo, portada y eslogan)','Inventario y alertas de pocas unidades','Estadísticas de visitas','Mayor visibilidad','Soporte prioritario'];
-PLAN_PERKS.pro = ['Prioridad en las búsquedas','Productos destacados y ofertas relámpago','Tus productos en el banner de inicio','Estadísticas avanzadas','Soporte preferencial'];
+PLAN_PERKS.basico = ['Carrito y pedidos en línea: la plata te llega completa a tu llave Bre-B','Asesor virtual que responde por tu tienda 24/7','Avisos de pedidos por correo','Tu tienda con enlace para compartir','Insignia de identidad verificada','Soporte estándar'];
+PLAN_PERKS.emprendedor = ['Todo lo del Básico','Tienda personalizada (logo, portada y eslogan)','Inventario y alertas de pocas unidades','Estadísticas de visitas','Mayor visibilidad','Soporte prioritario'];
+PLAN_PERKS.pro = ['Todo lo del Emprendedor','Prioridad en las búsquedas','Productos destacados y ofertas relámpago','Tus productos en el banner de inicio','Estadísticas avanzadas','Soporte preferencial'];
 PLAN_PERKS.ninguno = [];
 SUPPORT.basico = SUPPORT.gratis; SUPPORT.ninguno = SUPPORT.gratis;
 if(typeof PLAN_RANK==='object'){ PLAN_RANK.basico = PLAN_RANK.gratis ?? 2; PLAN_RANK.ninguno = 9; }
@@ -3750,7 +3750,7 @@ function adminResumen(){ const sel=Object.entries(S.sellers).filter(([k])=>k!==O
   return `<div class="kpis"><div class="kpi"><small>Cuentas por verificar</small><div>${pend}</div>${pend?`<button class="btn sm" style="margin-top:6px" onclick="S.ui.adminTab='verif';render()">Revisar</button>`:''}</div>
     <div class="kpi"><small>Vendedores con plan activo</small><div>${act} / ${sel.length}</div></div><div class="kpi"><small>Compradores registrados</small><div>${buy.length}</div></div>
     <div class="kpi"><small>Planes cobrados este mes</small><div>${cop(subIn)}</div></div><div class="kpi"><small>Productos publicados</small><div>${visibleProducts().length}</div></div></div>
-    <div class="panel"><h3>Cómo gana MER-K</h3><p class="note" style="margin:0">Con este modelo MER-K no recibe el dinero de las ventas ni cobra comisión: los ingresos son las mensualidades de los planes (Básico ${cop(planPrice('basico'))}, Emprendedor ${cop(planPrice('emprendedor'))}, Pro ${cop(planPrice('pro'))}) y la publicidad en los banners.</p></div>`; }
+    <div class="panel"><h3>Cómo gana MER-K</h3><p class="note" style="margin:0">MER-K no recibe el dinero de las ventas ni cobra comisión: cada venta te llega completa a tu llave Bre-B. Los ingresos de MER-K son las mensualidades de los planes (Básico ${cop(planPrice('basico'))}, Emprendedor ${cop(planPrice('emprendedor'))}, Pro ${cop(planPrice('pro'))}) y la publicidad en los banners.</p></div>`; }
 
 /* ---------- Administración: verificaciones ---------- */
 function verifList(){ const rows=[];
@@ -3820,7 +3820,14 @@ function viewTerminos(){
   return legalPage('terminos','Términos y condiciones de uso', `
   <p>Estos términos regulan el uso de <b>merkshopping.com</b> (en adelante, “MER-K” o “la plataforma”), operada por ${legalWho()}. Al crear una cuenta aceptas estos términos y la <a href="#privacidad">Política de tratamiento de datos</a>. Se rigen por las leyes de Colombia.</p>
   <h3>1. ¿Qué es MER-K?</h3>
-  <p>MER-K es una plataforma de <b>avisos clasificados</b> en línea: un espacio donde personas y empresas publican productos y donde los interesados las contactan. <b>MER-K no es el vendedor, no es dueño de los productos publicados, no recibe el dinero de las ventas y no hace las entregas.</b> La negociación, el precio final, el pago, la entrega, las garantías y las devoluciones se acuerdan directamente entre comprador y vendedor.</p>
+  <p>MER-K es una <b>vitrina en línea de tiendas verificadas de Antioquia</b>: las tiendas publican sus productos y los clientes les compran directamente. <b>MER-K no es el vendedor, no es dueño de los productos publicados, no recibe el dinero de las ventas y no hace las entregas.</b> El cliente le paga directamente a la tienda, en la llave Bre-B de la tienda, y la tienda despacha el pedido con su propio domiciliario o con una transportadora. Las garantías, cambios y devoluciones son responsabilidad de cada tienda.</p>
+  <h3>1A. Cómo funcionan las compras</h3>
+  <ul><li>Cada pedido es de <b>una sola tienda</b>. El cliente puede llevar varios productos de esa tienda.</li>
+  <li><b>Productos listos para despachar:</b> el cliente escoge pagar todo por adelantado, o pagar por adelantado solo el domicilio y el producto contra entrega.</li>
+  <li><b>Productos personalizados</b> (se elaboran por pedido): el cliente paga por adelantado el <b>50 % del producto más el domicilio</b>, y el otro 50 % al recibir.</li>
+  <li>El domicilio o envío siempre se paga por adelantado y su valor lo fija cada tienda según el municipio. Si el cliente no está cuando llega el mensajero, la tienda puede cobrar un recargo por entrega fallida.</li>
+  <li>El cliente sube el comprobante de pago en MER-K y la tienda lo confirma revisando su cuenta. La tienda solo debe confirmar un pago cuando el dinero realmente le llegó.</li>
+  <li>Cada producto muestra el tiempo de entrega o de elaboración que indicó la tienda.</li></ul>
   <h3>2. Registro y verificación de identidad</h3>
   <ul><li>Para escribirles a los vendedores basta con crear una cuenta gratis con datos reales: nombre, correo, celular y ciudad.</li>
   <li>Para <b>vender</b> debes verificar tu identidad: número y foto de tu cédula por los dos lados, una selfie sosteniendo la cédula, celular y dirección.</li>
@@ -3838,9 +3845,9 @@ function viewTerminos(){
   <li>Si el vendedor es comerciante, debe cumplir el Estatuto del Consumidor (Ley 1480 de 2011): información clara, garantía legal y derecho de retracto en las ventas a distancia.</li>
   <li>MER-K puede ocultar o borrar publicaciones que incumplan estas reglas.</li></ul>
   <h3>5. Comunicación entre usuarios</h3>
-  <p>Comprador y vendedor pueden hablar por el chat de MER-K o por WhatsApp. El número de WhatsApp del vendedor solo se muestra a usuarios con cuenta en MER-K. Está prohibido usar los datos de otros usuarios para fines distintos a la negociación, enviar publicidad no pedida, acosar o engañar.</p>
+  <p>Cada tienda tiene en su página un <b>asesor virtual</b> que responde al instante con la información que la propia tienda escribió, sus productos, sus domicilios y sus términos. La tienda responde por la información que le da al asesor. El asesor nunca confirma pagos. Comprador y vendedor también pueden hablar por el chat de MER-K o por WhatsApp. El número de WhatsApp del vendedor solo se muestra a usuarios con cuenta en MER-K. Está prohibido usar los datos de otros usuarios para fines distintos a la negociación, enviar publicidad no pedida, acosar o engañar.</p>
   <h3>6. Responsabilidad</h3>
-  <p>Como MER-K no participa en la venta, no responde por el estado, la calidad, la entrega o la garantía de los productos, ni por los pagos que se hagan entre usuarios. Sí nos comprometemos a: verificar la identidad de quienes se registran, atender los reportes de usuarios por ${legalContact()}, y sancionar a quienes incumplan. Te recomendamos seguir los <a href="#retracto">consejos de compra segura</a>.</p>
+  <p>Como MER-K no participa en la venta, no responde por el estado, la calidad, la entrega o la garantía de los productos, ni por los pagos que se hagan entre usuarios. Sí nos comprometemos a: verificar la identidad de las tiendas, atender los reportes que se hacen con el botón <b>Reportar un problema</b> de cada pedido o por ${legalContact()}, ayudar a las tiendas a conseguir un mensajero cuando lo piden, y sancionar a quienes incumplan. Te recomendamos seguir los <a href="#retracto">consejos de compra segura</a>.</p>
   <h3>7. Sanciones</h3>
   <p>Si un usuario incumple estos términos, engaña a otros usuarios o publica productos prohibidos, MER-K puede advertirle, suspender su cuenta por un tiempo, bloquearla de forma permanente o borrarla. Las mensualidades ya pagadas de una cuenta sancionada por incumplimiento no se devuelven.</p>
   <h3>8. Publicidad</h3>
@@ -3856,6 +3863,8 @@ function viewPrivacidad(){
   <li><b>De quienes quieren vender:</b> número de cédula, <b>fotos de la cédula por los dos lados y una selfie sosteniendo la cédula</b>, y dirección.</li>
   <li><b>De los vendedores, además:</b> nombre de la tienda, número de RUT o NIT, foto del RUT o del certificado del NIT, certificado de Cámara de Comercio si es empresa, y de forma opcional el WhatsApp y las redes sociales de la tienda (que se muestran en su tienda).</li>
   <li><b>Uso de la plataforma:</b> productos publicados, mensajes del chat de MER-K, pagos de planes, solicitudes de soporte y PQRS.</li>
+  <li><b>Pedidos:</b> nombre, celular y dirección de entrega, los productos comprados y la foto del comprobante de pago. Los ven solo el comprador, la tienda del pedido y MER-K. La llave Bre-B de cada tienda se le muestra solo a quien tiene un pedido con ella.</li>
+  <li><b>Conversaciones con el asesor virtual de cada tienda:</b> las preguntas y respuestas, que puede ver la tienda para atenderte mejor.</li>
   <li><b>Pagos de planes:</b> el estado y la referencia de la transacción. Los datos de tarjetas y cuentas los maneja directamente Wompi; MER-K no los ve ni los guarda.</li></ul>
   <p><b>Dato sensible:</b> la foto de la cédula y la selfie incluyen tu imagen, que puede considerarse un dato sensible. No estás obligado a autorizar su tratamiento, pero sin ella no podemos verificar tu identidad y no podrás vender. Solo la usamos para verificar que eres tú.</p>
   <h3>2. ¿Para qué usamos tus datos?</h3>
@@ -3868,7 +3877,7 @@ function viewPrivacidad(){
   <h3>3. ¿Quién ve tus documentos?</h3>
   <p>Las fotos de la cédula, la selfie, el RUT y la Cámara de Comercio se guardan en un espacio privado y cifrado. <b>Solo el equipo administrador de MER-K puede verlas</b>, para verificar tu cuenta. Nunca se muestran a otros usuarios ni se venden. A los demás usuarios solo se les muestra el nombre de la tienda, la ciudad, la insignia de identidad verificada y, a usuarios con cuenta, el WhatsApp del vendedor.</p>
   <h3>4. ¿Con quién compartimos tus datos?</h3>
-  <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: la pasarela de pagos Wompi y nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos), que están obligados a protegerlos. No vendemos tus datos.</p>
+  <p>Solo con quienes nos ayudan a prestar el servicio y únicamente lo necesario: la pasarela de pagos Wompi, nuestros proveedores de tecnología (alojamiento de la página, base de datos y envío de correos) y el proveedor de inteligencia artificial que genera las respuestas del asesor virtual (Anthropic), que recibe solo el texto de la conversación y la información de la tienda. Todos están obligados a protegerlos. Con la tienda a la que le compras compartimos los datos de entrega del pedido. No vendemos tus datos.</p>
   <h3>5. Tus derechos</h3>
   <p>Como titular puedes: conocer, actualizar y rectificar tus datos; pedir prueba de la autorización; saber cómo los usamos; revocar la autorización o pedir que los borremos (incluidas las fotos de tus documentos) cuando no exista un deber legal de conservarlos; presentar quejas ante la Superintendencia de Industria y Comercio; y acceder gratis a tus datos.</p>
   <h3>6. ¿Cómo ejercer tus derechos?</h3>
@@ -3882,24 +3891,31 @@ function viewPrivacidad(){
 }
 function viewRetracto(){
   return legalPage('retracto','Compra segura en MER-K', `
-  <p>En MER-K compradores y vendedores negocian directamente. MER-K verifica la identidad de todos, pero <b>no recibe el dinero de las ventas ni hace las entregas</b>. Estos consejos te ayudan a comprar y vender con tranquilidad.</p>
-  <h3>Si vas a comprar</h3>
-  <ul><li>Mira que el vendedor tenga la insignia <b>✔ Vendedor verificado</b> o la identidad verificada, y revisa su tienda.</li>
-  <li>Pide fotos o un video reciente del producto y pregunta todo antes de pagar.</li>
-  <li>Prefiere <b>pagar contra entrega</b> o al recibir en persona. Si te reúnes, hazlo en un lugar público y de día.</li>
-  <li>Si pagas por adelantado, hazlo a una cuenta a nombre del vendedor o de su empresa, y guarda el comprobante y la conversación.</li>
-  <li>Desconfía de precios demasiado bajos, de afanes para que pagues ya o de pedidos de pagos por fuera de lo acordado.</li>
+  <p>En MER-K le compras directamente a tiendas verificadas: tu pago le llega a la tienda, sin intermediarios ni comisiones. MER-K verifica la identidad de cada tienda y te acompaña si algo sale mal.</p>
+  <h3>Cómo comprar paso a paso</h3>
+  <ol><li>Agrega al carrito uno o varios productos de <b>una misma tienda</b>.</li>
+  <li>Pon tu nombre, celular y dirección. La página te muestra el valor del domicilio y cuánto pagas ahora y al recibir.</li>
+  <li>Paga a la <b>llave Bre-B de la tienda</b> desde cualquier banco o billetera y sube la foto del comprobante.</li>
+  <li>La tienda confirma tu pago y te avisamos por correo en cada paso: preparando, despachado (con los datos del mensajero o la guía) y entregado.</li></ol>
+  <h3>Cuánto pagas por adelantado</h3>
+  <ul><li><b>Producto listo:</b> todo ahora, o solo el domicilio ahora y el producto contra entrega. Tú escoges.</li>
+  <li><b>Producto personalizado:</b> el 50 % del producto + el domicilio ahora, y el otro 50 % al recibir. Así la tienda puede empezar a hacerlo y tú no pagas todo antes de verlo.</li>
+  <li>El domicilio siempre se paga por adelantado. Si no estás cuando llegue el mensajero, la tienda puede cobrar un recargo por entrega fallida.</li></ul>
+  <h3>Consejos para comprar tranquilo</h3>
+  <ul><li>Mira que la tienda tenga la insignia <b>✔ Verificada</b> y revisa sus calificaciones.</li>
+  <li>Paga solo a la llave que te muestra MER-K al finalizar la compra y sube siempre el comprobante en la página.</li>
+  <li>Si tienes dudas, pregúntale a la tienda desde el producto antes de comprar.</li>
   <li>Nunca compartas claves, códigos que te lleguen por mensaje ni datos de tu tarjeta.</li></ul>
-  <h3>Si vas a vender</h3>
-  <ul><li>Publica fotos reales y describe el estado del producto con honestidad.</li>
-  <li>Confirma que el pago llegó a tu cuenta antes de entregar o enviar.</li>
-  <li>Si eres comerciante, recuerda tus obligaciones con el consumidor: garantía legal y, en ventas a distancia, derecho de retracto de 5 días hábiles (Ley 1480 de 2011).</li></ul>
+  <h3>Si vendes</h3>
+  <ul><li>Revisa en tu banco que la plata sí llegó antes de tocar <b>Confirmar pago</b>. Si no llegó, toca <b>No me llegó el pago</b>.</li>
+  <li>Cumple los tiempos de entrega que publicaste y marca cada paso del pedido.</li>
+  <li>Si eres comerciante, recuerda la garantía legal y, en ventas a distancia, el derecho de retracto de 5 días hábiles (Ley 1480 de 2011).</li></ul>
   <h3>Garantías, cambios y devoluciones</h3>
-  <p>Se acuerdan directamente con el vendedor, que es quien vendió el producto. Cuando el vendedor es comerciante, responde por la garantía legal según el Estatuto del Consumidor.</p>
+  <p>Las da cada tienda según sus términos y condiciones (los ves en su tienda). Cuando la tienda es comerciante, responde por la garantía legal según el Estatuto del Consumidor.</p>
   <h3>Retracto de los planes de MER-K</h3>
   <p>Si pagaste un plan y te arrepientes, puedes pedir la devolución dentro de los <b>5 días hábiles</b> siguientes al pago, siempre que no hayas publicado productos con ese plan. Pídelo por ${legalContact()}.</p>
   <h3>¿Algo salió mal?</h3>
-  <p>Repórtalo por ${legalContact()} con el nombre de la tienda y los pantallazos de la conversación. Revisamos el caso y podemos suspender o bloquear la cuenta del usuario que incumplió. Si fuiste víctima de un delito, denúncialo también ante la Policía o la Fiscalía.</p>`);
+  <p>Entra a <b>Mi cuenta → Mis pedidos</b> y toca <b>Reportar un problema</b> en el pedido. Nos llega con todos los datos y el comprobante; revisamos el caso y podemos advertir, suspender o bloquear a quien incumplió. Si fuiste víctima de un delito, denúncialo también ante la Policía o la Fiscalía.</p>`);
 }
 
 /* ---------- Guía para vendedores (modelo clasificados) ---------- */
@@ -3910,12 +3926,12 @@ function guiaSteps(pdf){ const L=S.cfg.limits||{};
   return [
     ['Crea tu cuenta', '<ol><li>Entra a <b>merkshopping.com</b>, toca <b>Crear cuenta</b> y elige <b>Quiero vender</b>.</li><li>Escribe el nombre de tu tienda, tu nombre completo como aparece en la cédula, tu número de cédula, tu RUT o NIT, tu correo, tu WhatsApp y tu dirección.</li><li>Confirma tu correo con el enlace que te llega.</li></ol>'],
     ['Verifica tu identidad', '<ol><li>En tu panel entra a <b>Verificación</b> y toca <b>Subir documentos</b>.</li><li>Sube la foto de tu <b>cédula por los dos lados</b>, una <b>selfie sosteniendo tu cédula</b> y la foto de tu <b>RUT de la DIAN</b> o del <b>NIT</b>. Si eres empresa, también el certificado de <b>Cámara de Comercio</b>.</li><li>MER-K los revisa y te avisa por la campanita 🔔 cuando tu cuenta quede aprobada.</li></ol>'+tip('🔒 Tus documentos solo los ve el equipo de MER-K. Nunca se muestran a los compradores.')],
-    ['Elige y paga tu plan', plans+'<p style="margin:2mm 0 0">Lo pagas en <b>Mi plan</b> con Wompi (tarjeta, PSE, Nequi o Bancolombia). <b>MER-K no cobra comisión por venta:</b> todo lo que vendes es tuyo.</p>'],
-    ['Publica tus productos', '<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca. Si vendes varios pesos, agrega una fila por peso con su precio.</li><li>Tus productos se muestran cuando tu cuenta está aprobada y tu plan al día.</li><li>En <b>Mi tienda → WhatsApp y redes sociales</b> pon tu WhatsApp, Instagram, Facebook y TikTok para que te encuentren.</li></ol>'],
+    ['Elige y paga tu plan', plans+'<p style="margin:2mm 0 0">Lo pagas en <b>Mi plan</b>. <b>MER-K no cobra comisión por venta:</b> la plata de cada venta te llega completa a tu cuenta.</p>'],
+    ['Publica tus productos', '<ol><li>Entra a <b>Publicar</b>: título claro, buena descripción, precio y unidades.</li><li>Sube hasta <b>5 fotos reales</b> con buena luz. La primera es la portada.</li><li>En <b>Especificaciones</b> pon peso, talla, color, tamaño, material o marca. Si vendes varios pesos, agrega una fila por peso con su precio.</li><li>Escoge si el producto está <b>📦 listo para despachar</b> o es <b>✂️ personalizado</b>, y escribe su <b>tiempo de entrega</b>.</li><li>Tus productos se muestran cuando tu cuenta está aprobada y tu plan al día.</li><li>En <b>Mi tienda → WhatsApp y redes sociales</b> pon tu WhatsApp, Instagram, Facebook y TikTok para que te encuentren.</li></ol>'],
     ['Lo que no se puede vender', warn('🚫 Animales vivos · armas, municiones, pólvora o explosivos · pornografía o contenido sexual explícito · drogas y medicamentos con fórmula · productos falsificados, robados o de contrabando. Estas publicaciones se borran y la cuenta puede ser sancionada.')+tip('🔞 Los productos para adultos sí se pueden vender en la categoría <b>Adultos +18</b>, con fotos solo del producto (sin desnudos).')],
-    ['Cuando un comprador te escribe', '<ol><li>Te llega por el <b>chat de MER-K</b> (lo ves en <b>Mensajes</b>) o directo a tu <b>WhatsApp</b>. Solo pueden escribirte personas con cuenta en MER-K.</li><li>Responde rápido y acuerda con el comprador el precio final, la forma de pago y la entrega (en persona, domicilio o transportadora).</li><li>Confirma que el pago llegó a tu cuenta antes de entregar o enviar.</li></ol>'+tip('💡 El dinero de la venta te llega directo a ti: MER-K no lo recibe ni lo retiene.')],
-    ['Reglas importantes', '<ul><li>Publica solo productos reales, con fotos y precios verdaderos.</li><li>Trata bien a los compradores y cumple lo que acuerdas.</li><li>Si eres comerciante, das la garantía legal de tus productos (Ley 1480 de 2011).</li><li>Si incumples, MER-K puede suspender o bloquear tu cuenta.</li></ul>'],
-    ['¿Necesitas ayuda?', 'Escríbenos desde la pestaña <b>Soporte</b> de tu panel o por el formulario de <b>PQRS</b> en merkshopping.com. ¡Estamos para ayudarte a vender más! 💜']
+    ['Configura pagos, domicilios y tu asesor', '<ol><li>En <b>Mi tienda → Pagos y domicilios</b> pon tu <b>llave Bre-B</b> y el valor del domicilio de cada municipio al que entregas.</li><li>En <b>Mi tienda → Asesor de tu tienda</b> escribe tus horarios, tiempos de entrega, tallas, garantía y preguntas frecuentes. El asesor responde a tus clientes a cualquier hora con esa información.</li></ol>'+tip('💡 El dinero de cada venta te llega directo a tu llave: MER-K no lo recibe ni cobra comisión.')],
+    ['Cuando te llega un pedido', '<ol><li>Te llega un <b>correo de pago por confirmar</b>. Entra a <b>Pedidos</b>, mira el comprobante y revisa en tu banco que la plata sí llegó.</li><li>Toca <b>Confirmar pago</b> (o <b>No me llegó el pago</b>). Luego <b>Preparando envío</b>, <b>Despachado</b> (con el nombre y celular del mensajero, o la guía de Interrapidísimo) y <b>Entregado</b>. Cada botón le avisa al cliente.</li><li>¿No tienes domiciliario? Toca <b>Necesito un mensajero</b> y MER-K te coordina uno.</li></ol>'+warn('⚠️ Nunca confirmes un pago sin verlo en tu cuenta. Los pedidos personalizados llegan con el 50 % + el domicilio pagos; los listos, con todo pago o solo el domicilio (contra entrega).')],
+    ['Reglas y ayuda', '<ul><li>Publica solo productos reales, con fotos y precios verdaderos, y cumple los tiempos de entrega.</li><li>Si eres comerciante, das la garantía legal de tus productos (Ley 1480 de 2011).</li><li>Si incumples, MER-K puede advertir, suspender o bloquear tu cuenta.</li><li>¿Necesitas ayuda? Escríbenos desde <b>Soporte</b> en tu panel. ¡Estamos para ayudarte a vender más! 💙</li></ul>']
   ];
 }
 function guiaBody(){ return '<p>Todo lo que necesitas para vender en MER-K, paso a paso.</p>' + guiaSteps(false).map((x,i)=>`<h3>${i+1}. ${x[0]}</h3>${x[1]}`).join(''); }
@@ -4374,11 +4390,11 @@ function aiAvatar(sk){ const st=storeOf(sk)||{}, n=(SEL(sk)||{}).name||'?';
 function aiOf(sk){ return (SEL(sk)||{}).assistant||{}; }
 function aiOn(sk){ return aiOf(sk).on!==false; }
 function assistantPanel(sk){ const a=aiOf(sk);
-  return `<form class="panel form" onsubmit="saveAssistant(event)"><h3>🤖 Asistente de tu tienda</h3>
+  return `<form class="panel form" onsubmit="saveAssistant(event)"><h3>🤖 Asesor de tu tienda</h3>
     <p class="note" style="margin-top:-6px">Responde las preguntas de tus clientes a cualquier hora, de forma cercana y vendedora, usando <b>solo lo que escribas aquí</b>, tus productos, tus domicilios y tus términos. Nunca confirma pagos: eso lo haces tú con el botón. Entre más completo lo llenes, mejor vende.</p>
-    <label class="check"><input type="checkbox" id="aiOn" ${a.on!==false?'checked':''}> Asistente encendido</label>
+    <label class="check"><input type="checkbox" id="aiOn" ${a.on!==false?'checked':''}> Asesor encendido</label>
     ${AI_FIELDS.map(([k,l,ph])=>`<label>${l}<textarea id="ai_${k}" rows="${k==='faq'?4:2}" maxlength="1500" placeholder="${esc(ph)}">${esc(a[k]||'')}</textarea></label>`).join('')}
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar</button><button type="button" class="btn ghost" onclick="aiTry('${sk}')">Probar mi asistente</button><button type="button" class="btn ghost" onclick="aiLog('${sk}')">Ver preguntas de clientes</button></div></form>`; }
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Guardar</button><button type="button" class="btn ghost" onclick="aiTry('${sk}')">Probar mi asesor</button><button type="button" class="btn ghost" onclick="aiLog('${sk}')">Ver preguntas de clientes</button></div></form>`; }
 function readAssistant(){ const o={on:$('#aiOn').checked}; AI_FIELDS.forEach(([k])=>{ const v=$('#ai_'+k).value.trim(); if(v) o[k]=v.slice(0,1500); }); return o; }
 function saveAssistant(e){ e.preventDefault(); SEL(me().key).assistant=readAssistant(); save(); toast('¡Listo! Tu asistente ya sabe esto.'); render(); }
 
