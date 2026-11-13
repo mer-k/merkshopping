@@ -1608,7 +1608,7 @@ function viewAdmin(){
         <label>Días para dar por entregado si el comprador no confirma<input id="cdays" type="number" min="1" max="30" value="${S.cfg.autoDays}"></label></div>
       <div class="row2"><label>Tiempo de entrega en Medellín y alrededores<input id="cetaD" maxlength="40" value="${esc(etaDom())}" placeholder="4 a 7 días hábiles"></label>
         <label>Tiempo de entrega nacional (aprox.)<input id="cetaN" maxlength="40" value="${esc(etaNat())}" placeholder="4 a 7 días hábiles"></label></div>
-      <label class="check"><input type="checkbox" id="cwa" ${S.cfg.waAlerts===false?'':'checked'}> Cuando le escribamos a un cliente o vendedor (mensajes, soporte o chat de un pedido), abrir WhatsApp con un aviso para que entre a la página a leerlo</label>
+      <label class="check"><input type="checkbox" id="cwa" ${S.cfg.waAlerts===false?'':'checked'}> Cuando le escribamos a un cliente o vendedor (mensajes, soporte o chat de un pedido), abrir WhatsApp con un aviso para que entre a la página a leerlo (solo con el primer mensaje: no se repite con la misma persona durante 12 horas)</label>
       <fieldset><legend>Punto de despacho (envío único)</legend>
         <label class="check"><input type="checkbox" id="chub" ${hubOn()?'checked':''}> Todos los pedidos llegan primero a nuestro punto de despacho y salen juntos (el comprador paga un solo envío)</label>
         <label>Dirección del punto de recogida (solo la ven los vendedores con pedidos)<input id="chubA" maxlength="150" value="${esc(S.cfg.hubAddr||'')}" placeholder="Carrera 40A # 47 Sur - 28, apartamento 201, barrio El Trianón, Envigado, Antioquia"></label>
@@ -3142,11 +3142,18 @@ function pqrsWa(id){ const ans=$('#qAns').value.trim(); if(ans.length<3) return 
 function waAlertWho(key){ const s=S.sellers&&S.sellers[key]; if(s) return {phone:s.phone, name:s.owner||s.name, seller:true}; const b=S.buyers&&S.buyers[key]; return b?{phone:b.phone, name:b.name, seller:false}:{}; }
 function waAlertText(name, seller){ const first=String(name||'').trim().split(/\s+/)[0]; return `Hola${first?' '+first:''} 👋 Tienes un mensaje nuevo de MER-K en la página.\n\nEntra a merkshopping.com, inicia sesión y revisa ${seller?'tu panel de vendedor (Mensajes o Soporte)':'tus mensajes o la campanita 🔔'} para leerlo y responder.\n\n¡Gracias!`; }
 // Se llama justo al tocar "Enviar" (antes de esperar al servidor) para que el navegador no bloquee la ventana.
+/* El aviso por WhatsApp sale solo con el primer mensaje: si ya le avisamos a esa persona
+   en las últimas 12 horas, no se vuelve a abrir WhatsApp (ya sabe que tiene mensajes en la página) */
+const WA_GAP = 12*3600e3;
+function waSentMap(){ try{ return JSON.parse(localStorage.getItem('merk-wa-sent')||'{}'); }catch(e){ return {}; } }
+function waMark(key){ const m=waSentMap(); m[key]=Date.now(); Object.keys(m).forEach(k=>{ if(Date.now()-m[k]>7*864e5) delete m[k]; }); try{ localStorage.setItem('merk-wa-sent', JSON.stringify(m)); }catch(e){} }
+function waRecently(key){ const t=waSentMap()[key]; return t && Date.now()-t < WA_GAP; }
 function waAlert(key, phone){
   if(S.cfg.waAlerts===false || !isRole('admin')) return;
+  if(waRecently(key)) return;
   const w=waAlertWho(key), ph=phone||w.phone;
   if(!waNumber(ph)){ toast('Esta persona no tiene celular registrado, así que no se abrió WhatsApp.'); return; }
-  const url=waLink(ph, waAlertText(w.name, w.seller)); let win=null;
+  const url=waLink(ph, waAlertText(w.name, w.seller)); let win=null; waMark(key);
   try{ win=window.open(url, '_blank'); }catch(e){}
   if(win){ try{ win.opener=null; }catch(e){} return; }
   waAlertBar(url, w.name);   // el navegador bloqueó la ventana: un toque en el botón siempre funciona
