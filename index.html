@@ -568,6 +568,18 @@ td .proof{max-width:60px;max-height:60px}
 .aim.typing{color:#8A97B0;font-style:italic}
 .aiform{display:flex;gap:8px}.aiform input{flex:1;min-width:0}
 img.aiav{background:#fff;object-fit:contain;padding:3px}
+
+/* Reseñas */
+.cstars{color:#E8A400;font-weight:800;font-size:12px;white-space:nowrap}.cstars small{color:#8A97B0;font-weight:700}
+.revbox{border-top:1px solid #DCE7F7;padding-top:12px;margin-top:4px;display:grid;gap:10px}
+.revavg{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.revavg .big{font:700 26px 'Fredoka',sans-serif;color:#011E58}
+.stars{color:#E8A400;letter-spacing:1px}
+.revphotos{display:flex;gap:6px;overflow-x:auto}.revphotos img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #DCE7F7;cursor:zoom-in;flex:none}
+.revphotos.sm img{width:56px;height:56px}
+.rev{border:1px solid #EEF3FB;border-radius:12px;padding:9px 11px;font-size:14px}.rev p{margin:5px 0}
+.rstars{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}.rstars input{display:none}
+.rstars label{font-size:34px;color:#D5DCE8;cursor:pointer;line-height:1}
+.rstars input:checked ~ label,.rstars label:hover,.rstars label:hover ~ label{color:#E8A400}
 </style>
 </head>
 <body>
@@ -1067,7 +1079,7 @@ function card(p){
     <div class="thumb" style="${thumbStyle(p)}">${thumbInner(p)}</div>
     <div class="cbody">${discOf(p)>0?`<div class="old">${cop(p.p)}</div>`:''}
       <div><span class="price">${fromTxt(p)}${cop(finalPrice(p))}</span>${discOf(p)>0?`<span class="off">${discOf(p)}% OFF</span>`:''}</div>
-      <div class="ptitle">${esc(p.t)}</div><div class="pcity">📍 ${esc(s.city||'')}</div>${kindTag(p)}
+      <div class="ptitle">${esc(p.t)}</div><div class="pcity">📍 ${esc(s.city||'')} ${cardStars(p)}</div>${kindTag(p)}
       ${flashOn(p)?`<div class="flash">⚡ Relámpago · termina ${fdate(p.flash.until)}</div>`:''}<div class="meta"><span>${esc(s.name)}${vBadge(p.s)}</span>${p.priority?'<span class="badge lav">⭐ Recomendado</span>':isFeatured(p)?'<span class="badge lav">Destacado</span>':tag}</div></div></button>`;
 }
 function shipBox(p, city){
@@ -1090,7 +1102,8 @@ function showProduct(id){
       <div class="shipbox"><b>📍 ${esc(s.city||'Colombia')}</b>${shipFromBox(p.s)||'<span class="note">La tienda aún no ha configurado sus domicilios.</span>'}</div>
       ${flashOn(p)?`<div class="flash big">⚡ Oferta relámpago: termina el ${fdate(p.flash.until)}</div>`:''}
       <div class="seller"><div><b>${esc(s.name)}</b>${vBadge(p.s,true)}<br><span class="note">${s.verify==='aprobado'||LIVE?'🪪 Identidad verificada por MER-K · ':''}${esc(s.city)}</span><br><a class="note" style="font-weight:800;color:var(--blue)" href="${storeUrl(p.s)}" onclick="$('#scrim').classList.remove('open')">Ver tienda →</a>${socialLinks(p.s,false)}${physBox(p.s)}${termsOf(p.s)?`<a class="note" style="display:inline-block;margin-top:6px;font-weight:800;color:var(--blue)" href="javascript:showTerms('${p.s}')">📜 Términos y condiciones de la tienda</a>`:''}</div>${planBadge(p.s)}</div>
-      ${contactBlock(p)}</div></div>`);
+      ${contactBlock(p)}
+      ${reviewsBlock(p)}</div></div>`);
 }
 
 /* ---------- Checkout ---------- */
@@ -4256,7 +4269,6 @@ async function coSubmit(e){ e.preventDefault(); if(!CO2) return;
   if(LIVE){ try{ res=await api.rpc('crear_pedido', {p_seller:CO2.sk, p_items:items, p_muni:muni, p_addr:addr, p_mode:mode}); }catch(x){ return toast(friendly(x)); } }
   else { for(const i of items){ if(P(i.pid).stock<i.qty) return toast(`Solo quedan ${P(i.pid).stock} unidades de "${P(i.pid).t}".`); }
     const a=coAmounts(CO2.items, ratesOf(CO2.sk)[muni]||0, mode), id=(S.nextPed=(S.nextPed||100)+1);
-    items.forEach(i=>{ P(i.pid).stock-=i.qty; });
     pedidos().unshift({id, sk:CO2.sk, bk:me().key, items:CO2.items.map(i=>{ const p=P(i.pid); return {pid:p.id, title:p.t, qty:i.qty, unit:itemPrice(p,i.opts), opts:i.opts||null, kind:p.kind||'listo', lead:p.lead||'', img:p.img||null}; }),
       sub:a.sub, ship:a.ship, muni, addr, mode, now:a.now, later:a.later, proof:null, status:'esperando_pago', info:null, ts:Date.now(), created:now()});
     save(); res={id, pay_now:a.now, pay_later:a.later, breb:brebOf(CO2.sk), store:SEL(CO2.sk).name}; }
@@ -4280,7 +4292,8 @@ function readProof(file){ return new Promise(res=>{ if(!file) return res(null); 
 async function sendProof(e, id){ e.preventDefault(); const f=$('#proofFile').files[0]; if(!f) return toast('Sube la foto del comprobante.');
   const data=await readProof(f); if(!data) return toast('No pudimos leer esa imagen. Intenta con otra.');
   if(LIVE){ try{ const path=await api.uploadPriv('comprobantes', `${ME.id}/pedido-${id}-${Date.now()}.jpg`, await toBlob(data)); await api.rpc('subir_comprobante', {oid:id, path}); await reload(); }catch(x){ return toast(friendly(x)); } }
-  else { const x=PD(id); x.proof=data; x.status='por_confirmar'; notify(x.sk, '💳 Tienes un pago por confirmar', `Pedido #${id}: el cliente pagó ${cop(x.now)} a tu llave Bre-B. Revisa tu banco y confírmalo.`); save(); }
+  else { const x=PD(id); if(!x.reserved){ x.items.forEach(i=>{ const p=P(i.pid), tk=p?Math.min(p.stock, i.qty):0; if(p) p.stock-=tk; i.taken=tk; if(tk<i.qty) x.sinStock=true; }); x.reserved=true; }
+    x.proof=data; x.status='por_confirmar'; notify(x.sk, '💳 Tienes un pago por confirmar', `Pedido #${id}: el cliente pagó ${cop(x.now)} a tu llave Bre-B. Revisa tu banco y confírmalo.`); save(); }
   openModal(`<div class="mpad" style="text-align:center"><div style="font-size:46px">🙌</div><h2>¡Gracias! Recibimos tu comprobante</h2><p class="sub">Estamos verificando tu pago y en breve te confirmamos tu pedido. Te avisamos por correo en cada paso.</p><button class="btn" onclick="closeModal();goPedidos()">Ver mi pedido</button></div>`, true);
 }
 async function reuploadProof(id){ const x=PD(id); let b=brebOf(x.sk);
@@ -4288,7 +4301,7 @@ async function reuploadProof(id){ const x=PD(id); let b=brebOf(x.sk);
   payStep({id, pay_now:x.now, pay_later:x.later, breb:b, store:SEL(x.sk)?.name}); }
 async function cancelPedido(id){ if(!confirm('¿Cancelar este pedido?')) return;
   if(LIVE){ try{ await api.rpc('cancelar_pedido', {oid:id}); await reload(); toast('Pedido cancelado.'); render(); }catch(e){ toast(friendly(e)); } return; }
-  const x=PD(id); x.items.forEach(i=>{ const p=P(i.pid); if(p) p.stock+=i.qty; }); x.status='cancelado'; save(); toast('Pedido cancelado.'); render(); }
+  const x=PD(id); if(x.reserved) x.items.forEach(i=>{ const p=P(i.pid); if(p) p.stock+=(i.taken??i.qty); }); x.reserved=false; x.status='cancelado'; save(); toast('Pedido cancelado.'); render(); }
 
 /* Imagen del comprobante (privada) */
 function proofImg(x){ if(!x.proof) return ''; return x.proof.startsWith('data:') ? `<a href="javascript:void(0)" onclick="openModal('<img src=&quot;'+this.querySelector('img').src+'&quot; style=&quot;max-width:100%&quot;>')"><img class="proof" src="${x.proof}" alt="Comprobante"></a>`
@@ -4297,7 +4310,7 @@ function hydrateProofs(){}
 function pedSteps(x){ if(['cancelado','pago_rechazado','esperando_pago'].includes(x.status)) return '';
   const ix=PED_FLOW.indexOf(x.status), L=['Pago por confirmar','Pago confirmado','Preparando','Despachado','Entregado'];
   return `<div class="psteps">${L.map((l,i)=>`<span class="${i<=ix?'on':''}">${l}</span>`).join('')}</div>`; }
-function pedItems(x){ return `<ul class="pitems">${x.items.map(i=>`<li>${i.qty} × ${esc(i.title)}${i.opts?' ('+esc(optsLabel(i.opts))+')':''} · ${cop(i.unit*i.qty)}${i.kind==='personalizado'?' <span class="ktag pers">✂️ Personalizado</span>':''}${i.lead?` <span class="note">⏱️ ${esc(i.lead)}</span>`:''}</li>`).join('')}</ul>`; }
+function pedItems(x){ const mine=x.bk===(me()&&me().key); return `<ul class="pitems">${x.items.map(i=>`<li>${i.qty} × ${esc(i.title)}${i.opts?' ('+esc(optsLabel(i.opts))+')':''} · ${cop(i.unit*i.qty)}${i.kind==='personalizado'?' <span class="ktag pers">✂️ Personalizado</span>':''}${i.lead?` <span class="note">⏱️ ${esc(i.lead)}</span>`:''}${mine&&x.status==='entregado'?(myReview(x.id,i.pid)?' <span class="badge">✓ Calificado</span>':` <button class="btn sm" onclick="rateModal(${x.id},${i.pid})">⭐ Calificar</button>`):''}</li>`).join('')}</ul>`; }
 function pedMoney(x){ return `<div class="pmoney"><span>Productos ${cop(x.sub)} · Domicilio ${cop(x.ship)}</span><span>Pago por adelantado: <b>${cop(x.now)}</b> · Al recibir: <b>${cop(x.later)}</b>${x.mode==='contraentrega'?' · contra entrega':''}</span></div>`; }
 function pedShip(x){ const i=x.info; if(!i) return ''; return `<div class="leadbox" style="margin-top:8px">🛵 ${i.guia?`Guía ${esc(i.carrier||'')}: <b>${esc(i.guia)}</b>`:`Mensajero: <b>${esc(i.who)}</b>${i.phone?' · '+esc(i.phone):''}`}</div>`; }
 
@@ -4317,6 +4330,7 @@ function ventasTab(sk){ const L=pedidos().filter(x=>x.sk===sk && x.status!=='can
   if(!L.length) return head+`<div class="panel"><p class="empty">Aún no tienes pedidos. Comparte el enlace de tu tienda para empezar a vender.</p></div>`;
   return head+L.map(x=>`<div class="panel pedido" id="ped-${x.id}"><div class="phead"><div><b>Pedido #${x.id}</b> · ${x.created}<br><span class="note">${esc(x.addr.name)} · ${esc(x.addr.phone)} · ${esc(x.addr.dir)}${x.addr.barrio?', '+esc(x.addr.barrio):''}, ${esc(x.muni)}${x.addr.notes?' · '+esc(x.addr.notes):''}</span></div>${pedBadge(x)}</div>
     ${pedSteps(x)}${pedItems(x)}${pedMoney(x)}${pedShip(x)}
+    ${x.sinStock&&['por_confirmar','confirmado','preparando'].includes(x.status)?`<div class="protect" style="border-color:#F2C4C4;background:#FFF4F4;margin-top:8px">⚠️ <b>Ya no te quedan unidades</b> de uno de estos productos: otro cliente pagó primero. Si no lo puedes conseguir, devuélvele la plata a este cliente o ofrécele otro producto, y avísanos en Soporte.</div>`:''}
     ${x.proof?`<div class="pproof"><span class="note">Comprobante del cliente (debe ser de ${cop(x.now)}):</span>${proofImg(x)}</div>`:x.status==='esperando_pago'?'<p class="note">Esperando que el cliente pague y suba el comprobante.</p>':''}
     <div class="pbtns">${x.status==='por_confirmar'?`<button class="btn sm" onclick="pedEstado(${x.id},'confirmado')">✅ Confirmar pago</button><button class="btn bad sm" onclick="pedEstado(${x.id},'pago_rechazado')">❌ No me llegó el pago</button>`:''}
       ${x.status==='confirmado'?`<button class="btn sm" onclick="pedEstado(${x.id},'preparando')">📦 Preparando envío</button>`:''}
@@ -4335,7 +4349,8 @@ const PED_MSG = {confirmado:'¡Tu pago fue confirmado! Tu pedido fue recibido co
 async function pedEstado(id, st, info){
   if(st==='pago_rechazado' && !confirm('¿Seguro que no te llegó el pago? Le avisaremos al cliente para que revise su comprobante.')) return;
   if(LIVE){ try{ await api.rpc('estado_pedido', {oid:id, st, info:info||null}); closeModal(); await reload(); toast('Listo. Le avisamos al cliente.'); render(); }catch(e){ toast(friendly(e)); } return; }
-  const x=PD(id); x.status=st; if(info) x.info=info; notify(x.bk, `Pedido #${id} · ${(PED_ST[st]||[st])[0]}`, PED_MSG[st]||''); save(); closeModal(); toast('Listo. Le avisamos al cliente.'); render(); }
+  const x=PD(id); if(st==='pago_rechazado' && x.reserved){ x.items.forEach(i=>{ const p=P(i.pid); if(p) p.stock+=(i.taken??i.qty); delete i.taken; }); x.reserved=false; x.sinStock=false; }
+  x.status=st; if(info) x.info=info; notify(x.bk, `Pedido #${id} · ${(PED_ST[st]||[st])[0]}`, PED_MSG[st]||''); save(); closeModal(); toast('Listo. Le avisamos al cliente.'); render(); }
 
 /* Admin: todos los pedidos */
 function adminPedidosTab(){ const L=pedidos(); setTimeout(hydrateProofs,30);
@@ -4461,6 +4476,38 @@ function decidePlanPago(id, ok){ if(!ok && !confirm('¿Seguro que no llegó el p
 
 function payPlan(plan){ planLlave(plan); }
 
+/* =====================================================================
+   RESEÑAS DE PRODUCTOS (estrellas + fotos reales, solo quien compró)
+   ===================================================================== */
+function previews(){ return S.previews || (S.previews=[]); }
+const revsOf = pid => previews().filter(r=>r.pid===pid);
+function myReview(pedido, pid){ return previews().some(r=>r.pedido===pedido && r.pid===pid); }
+function starsTxt(n){ const r=Math.round(n); return '★★★★★'.slice(0,r)+'☆☆☆☆☆'.slice(0,5-r); }
+function revStats(pid){ const L=revsOf(pid); if(!L.length) return null; return {avg:L.reduce((a,r)=>a+r.rating,0)/L.length, n:L.length}; }
+function cardStars(p){ const s=revStats(p.id); return s?`<span class="cstars">★ ${s.avg.toFixed(1).replace('.',',')} <small>(${s.n})</small></span>`:''; }
+function reviewsBlock(p){ const L=revsOf(p.id).slice().sort((a,b)=>b.ts-a.ts), s=revStats(p.id);
+  if(!L.length) return `<div class="revbox"><b>Opiniones del producto</b><p class="note" style="margin:4px 0 0">Todavía no tiene opiniones. Solo pueden opinar quienes lo compraron y lo recibieron.</p></div>`;
+  const photos=L.flatMap(r=>r.photos||[]);
+  return `<div class="revbox"><div class="revhead"><div><b>Opiniones del producto</b><div class="revavg"><span class="big">${s.avg.toFixed(1).replace('.',',')}</span> <span class="stars">${starsTxt(s.avg)}</span> <span class="note">${s.n} opinión${s.n>1?'es':''} de compradores</span></div></div></div>
+    ${photos.length?`<div class="revphotos">${photos.slice(0,10).map(u=>`<img src="${esc(u)}" alt="Foto de un comprador" onclick="openModal('<img src=&quot;${esc(u)}&quot; style=&quot;max-width:100%&quot;>')">`).join('')}</div>`:''}
+    ${L.slice(0,8).map(r=>`<div class="rev"><div><span class="stars">${starsTxt(r.rating)}</span> <b>${esc(r.name||'Comprador')}</b> <span class="badge">✓ Compra verificada</span> <span class="note">${r.created}</span></div>${r.comment?`<p>${esc(r.comment)}</p>`:''}${(r.photos||[]).length?`<div class="revphotos sm">${r.photos.map(u=>`<img src="${esc(u)}" alt="Foto del comprador" onclick="openModal('<img src=&quot;${esc(u)}&quot; style=&quot;max-width:100%&quot;>')">`).join('')}</div>`:''}</div>`).join('')}</div>`; }
+let RATE_PH=[];
+function rateModal(pedido, pid){ const x=PD(pedido), it=x&&x.items.find(i=>i.pid===pid); if(!it) return; RATE_PH=[];
+  openModal(`<div class="mpad"><h2>Califica tu producto</h2><p class="sub">${esc(it.title)}</p>
+    <form class="form" onsubmit="sendReview(event,${pedido},${pid})">
+      <div class="rstars">${[5,4,3,2,1].map(n=>`<input type="radio" name="rStar" id="rs${n}" value="${n}" ${n===5?'checked':''}><label for="rs${n}" title="${n} estrellas">★</label>`).join('')}</div>
+      <label>Cuéntales a otros compradores cómo te fue<textarea id="rText" rows="3" maxlength="800" placeholder="¿Cómo es la calidad? ¿Te llegó a tiempo? ¿Cómo te queda?"></textarea></label>
+      <label>Fotos reales del producto (hasta 4)<input id="rPh" type="file" accept="image/*" multiple onchange="ratePhotos(this)"></label>
+      <div id="rPrev" class="revphotos sm"></div>
+      <div><button class="btn" style="width:100%">Publicar opinión</button></div></form></div>`, true); }
+async function ratePhotos(inp){ const fs=[...inp.files].slice(0, 4); RATE_PH=[]; for(const f of fs){ const d=await readProof(f); if(d) RATE_PH.push(d); } $('#rPrev').innerHTML=RATE_PH.map(u=>`<img src="${u}" alt="">`).join(''); }
+async function sendReview(e, pedido, pid){ e.preventDefault(); const rating=+(document.querySelector('input[name="rStar"]:checked')||{}).value||5, comment=$('#rText').value.trim();
+  if(!LIVE){ const r=check(comment); if(comment && !r.ok) return toast('No se publicó: '+r.reason);
+    previews().unshift({id:Date.now(), pid, pedido, sk:PD(pedido).sk, name:(acctOfMe()?.name||'').split(' ')[0], rating, comment, photos:[...RATE_PH], ts:Date.now(), created:now()}); save(); closeModal(); toast('¡Gracias por tu opinión!'); render(); return; }
+  try{ const urls=[]; let n=0; for(const d of RATE_PH){ urls.push(await api.upload('resenas', `${ME.id}/r${pedido}-${pid}-${Date.now()}-${n++}.jpg`, await toBlob(d))); }
+    await api.rpc('calificar_producto', {p_pedido:pedido, p_product:pid, p_rating:rating, p_comment:comment, p_photos:urls}); closeModal(); await reload(); toast('¡Gracias por tu opinión!'); }
+  catch(x){ toast(friendly(x)); } }
+
 /* =================== RUTAS =================== */
 const VIEWS={inicio:viewHome, ofertas:viewDeals, compras:viewBuyer, vender:viewSeller, admin:viewAdmin, terminos:viewTerminos, 'guia-vendedores':viewGuiaVendedores, privacidad:viewPrivacidad, retracto:viewRetracto, pqrs:viewPqrs};
 /* Lo que la persona está escribiendo no se pierde: ni con las actualizaciones automáticas
@@ -4568,7 +4615,7 @@ async function loadAll(){
   if(!api) return;
   const seq = ++loadSeq, role = PROFILE?.role || null, uid = ME?.id || null;
   const T0 = (t, o) => api.sel(t, o).catch(e => { console.warn(t, e); return []; });
-  const [cfg, sellers, products, coupons] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'})]);
+  const [cfg, sellers, products, coupons, prevRows] = await Promise.all([T0('config'), T0('sellers'), T0('products', {order:'created_at'}), T0('coupons', {order:'created_at'}), T0('product_reviews', {order:'created_at'})]);
   let pedRows=[], ppRows=[], pqrsRows=[], ads=[], profs=[], privs=[], addrs=[], orders=[], evs=[], msgs=[], notifs=[], tks=[], tms=[], slog=[], pays=[], subs=[], exps=[], alerts=[], fols=[], cls=[], revs=[], summary=null;
   ads = await T0('ad_requests', {order:'created_at'});   // públicos: los que están en el banner; el vendedor ve los suyos y admin todos
   if(uid){
@@ -4586,6 +4633,7 @@ async function loadAll(){
   if(seq !== loadSeq) return;     // llegó una carga más nueva
   if(cfg[0]) Object.assign(S.cfg, cfg[0].data);
   S.pedidos = pedRows.map(mapPedido);
+  S.previews = prevRows.map(r=>({id:r.id, pid:r.product_id, pedido:r.pedido_id, sk:r.seller_id, name:r.buyer_name, rating:r.rating, comment:r.comment||'', photos:r.photos||[], ts:Date.parse(r.created_at), created:fmtTs(r.created_at)}));
   S.planPagos = ppRows.map(r=>({id:r.id, sk:r.seller_id, plan:r.plan, amount:r.amount, proof:r.proof, status:r.status, created:fmtTs(r.created_at)}));
   S.pqrs = pqrsRows.map(q=>({id:q.id, kind:q.kind, name:q.name, email:q.email, phone:q.phone||'', order:q.order_ref||'', msg:q.message, status:q.status, answer:q.answer||'', created:fmtTs(q.created_at), ts:Date.parse(q.created_at)}));
   const P_ = Object.fromEntries(profs.map(p=>[p.id, p])), V_ = Object.fromEntries(privs.map(p=>[p.seller_id, p]));
@@ -5154,7 +5202,7 @@ async function savePayShip(e){ e.preventDefault(); let d; try{ d=readPayShip(); 
 
 /* ---------- Etapa 2: pedidos (live) ---------- */
 const mapPedido = r => ({id:r.id, sk:r.seller_id, bk:r.buyer_id, items:r.items||[], sub:r.subtotal, ship:r.ship, muni:r.muni, addr:r.addr||{}, mode:r.pay_mode, now:r.pay_now, later:r.pay_later,
-  proof:r.proof||null, status:r.status, info:r.ship_info||null, ts:Date.parse(r.created_at), created:fmtTs(r.created_at)});
+  proof:r.proof||null, status:r.status, info:r.ship_info||null, reserved:!!r.reserved, sinStock:!!r.sin_stock, ts:Date.parse(r.created_at), created:fmtTs(r.created_at)});
 async function hydrateProofs(){ for(const im of document.querySelectorAll('img[data-proof]')){ const path=im.getAttribute('data-proof'); im.removeAttribute('data-proof'); try{ im.src = await api.signed('comprobantes', path); }catch(e){} } }
 
 /* ---------- Etapa 3 (live) ---------- */
